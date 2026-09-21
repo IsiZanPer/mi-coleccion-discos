@@ -143,18 +143,31 @@
   #detalle .cover-grande{
     width:100%;
     aspect-ratio:1/1;
-    background:var(--panel-hi);
+    background:var(--panel-hi) linear-gradient(135deg,#2a2d38,#1a1c23);
     border:1px solid var(--border);
     border-radius:4px;
     overflow:hidden;
     margin-bottom:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--muted);
+    font-family:Fraunces,Georgia,serif;
+    font-size:16px;
+    text-align:center;
+    padding:16px;
   }
   #detalle .cover-grande img{width:100%;height:100%;object-fit:cover;}
   #detalle h2{font-size:22px;margin:0 0 2px;}
   #detalle .artista-det{color:var(--accent);font-size:15px;margin-bottom:10px;}
   #detalle .meta{color:var(--muted);font-size:12.5px;line-height:1.7;margin-bottom:14px;}
   #detalle .meta b{color:var(--text);font-weight:500;}
-  #rating-det{color:var(--accent);letter-spacing:2px;font-size:15px;margin-bottom:14px;}
+  #detalle .meta .vacio{opacity:.5;}
+
+  #rating-det{margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .estrellas{letter-spacing:2px;font-size:17px;color:#4a4d58;}
+  .estrellas .llena{color:#e6c84b;}
+  #rating-det .num-rating{color:var(--muted);font-size:12.5px;}
 
   .cerrar-detalle{
     float:right;
@@ -388,18 +401,33 @@ function abrirDetalle(album){
   $("#det-artista").textContent = album["ARTISTA ALBUM"] || "";
 
   const portada = album["PORTADA"];
-  $("#det-cover").innerHTML = portada ? `<img src="${escapeAttr(portada)}" alt="">` : "";
+  $("#det-cover").innerHTML = portada
+    ? `<img src="${escapeAttr(portada)}" alt="">`
+    : escapeHTML(album["ALBUM"] || "Sin carátula");
 
-  const rating = parseInt(album["Rating"]) || 0;
-  $("#rating-det").textContent = rating > 0 ? "★".repeat(rating) + "☆".repeat(Math.max(0,10-rating)) : "";
+  // Rating en estrellas amarillas (Rating es sobre 10 -> lo pasamos a 5 estrellas)
+  const ratingNum = parseInt(album["Rating"]) || 0;
+  const estrellasLlenas = Math.round(ratingNum / 2);
+  let htmlEstrellas = "";
+  for(let i=1;i<=5;i++){
+    htmlEstrellas += `<span class="${i<=estrellasLlenas ? 'llena':''}">★</span>`;
+  }
+  $("#rating-det").innerHTML = ratingNum > 0
+    ? `<span class="estrellas">${htmlEstrellas}</span><span class="num-rating">${ratingNum}/10</span>`
+    : `<span class="estrellas">${htmlEstrellas}</span><span class="num-rating vacio">Sin puntuar</span>`;
 
-  const meta = [];
-  if(album["GENERO"]) meta.push(`<b>Género:</b> ${escapeHTML(album["GENERO"])}`);
-  if(album["Fecha"]) meta.push(`<b>Año:</b> ${escapeHTML(String(album["Fecha"]))}`);
-  if(album["Etiqueta"]) meta.push(`<b>Sello:</b> ${escapeHTML(album["Etiqueta"])}`);
-  if(album["Número de Catalogo"]) meta.push(`<b>Catálogo:</b> ${escapeHTML(album["Número de Catalogo"])}`);
-  if(album["Total duración"]) meta.push(`<b>Duración:</b> ${escapeHTML(String(album["Total duración"]))}`);
-  if(album["Fecha de compra"]) meta.push(`<b>Comprado:</b> ${escapeHTML(String(album["Fecha de compra"]))}${album["Precio"] ? " · " + escapeHTML(String(album["Precio"])) + "€" : ""}${album["Tienda"] ? " · " + escapeHTML(album["Tienda"]) : ""}`);
+  const campoOVacio = (valor, sufijo) => valor ? `${escapeHTML(String(valor))}${sufijo||''}` : `<span class="vacio">—</span>`;
+
+  const meta = [
+    `<b>Género:</b> ${campoOVacio(album["GENERO"])}`,
+    `<b>Año:</b> ${campoOVacio(album["Fecha"])}`,
+    `<b>Sello:</b> ${campoOVacio(album["Etiqueta"])}`,
+    `<b>Nº de catálogo:</b> ${campoOVacio(album["Número de Catalogo"])}`,
+    `<b>Duración total:</b> ${album["Total duración"] ? escapeHTML(formatearDuracion(album["Total duración"])) : '<span class="vacio">—</span>'}`,
+    `<b>Fecha de compra:</b> ${campoOVacio(album["Fecha de compra"])}`,
+    `<b>Precio:</b> ${campoOVacio(album["Precio"], " €")}`,
+    `<b>Tienda:</b> ${campoOVacio(album["Tienda"])}`,
+  ];
   $("#det-meta").innerHTML = meta.join("<br>");
 
   const canciones = CANCIONES
@@ -493,8 +521,9 @@ function escapeHTML(s){
 function escapeAttr(s){ return escapeHTML(s); }
 function formatearDuracion(v){
   if(!v) return "";
-  if(typeof v === "string" && v.includes(":")) return v.split(":").slice(0,2).join(":").padStart(4,"0");
-  return String(v);
+  // El script ya envía "HH:mm:ss"; si la hora es 00, la recortamos (ej. "00:04:33" -> "04:33")
+  const m = String(v).match(/^00:(\d{2}:\d{2})$/);
+  return m ? m[1] : String(v);
 }
 
 /* ---------- Eventos ---------- */
