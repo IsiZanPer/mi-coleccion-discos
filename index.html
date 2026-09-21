@@ -131,7 +131,7 @@
 
   /* --- Panel detalle --- */
   #detalle{
-    width:460px;
+    width:520px;
     flex-shrink:0;
     border-left:1px solid var(--border);
     background:var(--panel);
@@ -140,35 +140,6 @@
     display:none;
   }
   #detalle.abierto{display:block;}
-  #detalle .cover-grande{
-    width:100%;
-    aspect-ratio:1/1;
-    background:var(--panel-hi) linear-gradient(135deg,#2a2d38,#1a1c23);
-    border:1px solid var(--border);
-    border-radius:4px;
-    overflow:hidden;
-    margin-bottom:14px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:var(--muted);
-    font-family:Fraunces,Georgia,serif;
-    font-size:16px;
-    text-align:center;
-    padding:16px;
-  }
-  #detalle .cover-grande img{width:100%;height:100%;object-fit:cover;}
-  #detalle h2{font-size:25px;margin:0 0 3px;}
-  #detalle .artista-det{color:var(--accent);font-size:17px;margin-bottom:12px;}
-  #detalle .meta{color:var(--muted);font-size:14px;line-height:1.8;margin-bottom:16px;}
-  #detalle .meta b{color:var(--text);font-weight:500;}
-  #detalle .meta .vacio{opacity:.5;}
-
-  #rating-det{margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-  .estrellas{letter-spacing:2px;font-size:19px;color:#4a4d58;}
-  .estrellas .llena{color:#e6c84b;}
-  #rating-det .num-rating{color:var(--muted);font-size:14px;}
-
   .cerrar-detalle{
     float:right;
     cursor:pointer;
@@ -177,20 +148,62 @@
     line-height:1;
   }
   .cerrar-detalle:hover{color:var(--text);}
+  #detalle .cerrar-detalle{position:relative;top:0;}
 
-  #canciones{list-style:none;margin:0 0 16px;padding:0;border-top:1px solid var(--border);}
+  #detalle h2{font-size:23px;margin:16px 0 2px;line-height:1.2;}
+  #detalle .artista-det{color:var(--accent);font-size:14px;margin-bottom:16px;}
+
+  .det-cabecera{display:flex;gap:16px;margin-bottom:8px;}
+  .cover-mediana{
+    width:130px;height:130px;flex-shrink:0;
+    background:var(--panel-hi) linear-gradient(135deg,#2a2d38,#1a1c23);
+    border:1px solid var(--border);
+    border-radius:4px;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--muted);font-family:Fraunces,Georgia,serif;font-size:12px;text-align:center;padding:6px;
+  }
+  .cover-mediana img{width:100%;height:100%;object-fit:cover;}
+
+  .det-info-top{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;}
+  .det-sello-anio{font-size:15px;font-weight:600;color:var(--text);}
+  .det-genero{font-size:13px;color:var(--muted);}
+  .det-badges{display:flex;gap:8px;margin:4px 0 2px;}
+  .badge-id, .badge-rating{
+    display:inline-flex;align-items:center;gap:5px;
+    background:var(--panel-hi);
+    border:1px solid var(--border);
+    padding:4px 10px;
+    border-radius:5px;
+    font-size:12.5px;
+    font-weight:600;
+  }
+  .badge-rating{color:#e6c84b;}
+  .det-catalogo{font-size:12.5px;color:var(--muted);}
+  .det-resumen{font-size:12.5px;color:var(--muted);margin-top:2px;}
+
+  .det-subtitulo{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--accent);
+    margin:22px 0 8px;
+    font-family:Inter,system-ui,sans-serif;
+    font-weight:600;
+  }
+
+  #canciones{list-style:none;margin:0 0 16px;padding:0;border-radius:4px;overflow:hidden;}
   #canciones li{
     display:flex;
     align-items:center;
     justify-content:space-between;
     gap:8px;
-    padding:9px 0;
-    border-bottom:1px solid var(--border);
-    font-size:14.5px;
+    padding:9px 12px;
+    font-size:14px;
   }
-  #canciones .num{color:var(--muted);width:22px;flex-shrink:0;}
-  #canciones .tit{flex:1;}
-  #canciones .dur{color:var(--muted);font-variant-numeric:tabular-nums;}
+  #canciones li:nth-child(odd){background:var(--panel-hi);}
+  #canciones .num{color:var(--muted);width:20px;flex-shrink:0;}
+  #canciones .tit{flex:1;font-weight:500;}
+  #canciones .dur{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px;}
   .btn-letra{
     background:transparent;
     border:1px solid var(--border);
@@ -203,6 +216,10 @@
     flex-shrink:0;
   }
   .btn-letra:hover{border-color:var(--accent);color:var(--accent);}
+
+  .det-particulares{font-size:13.5px;color:var(--muted);line-height:2;}
+  .det-particulares b{color:var(--text);font-weight:500;}
+  .det-particulares .vacio{opacity:.5;}
 
   .btn-ficha{
     display:inline-block;
@@ -231,7 +248,7 @@
     background-color:#1b1a15;
     background-image:linear-gradient(#1c1b16,#1c1b16);
     color:#e9e4d8;
-    width:min(780px,92vw);
+    width:min(860px,92vw);
     max-height:85vh;
     overflow-y:auto;
     padding:44px 52px;
@@ -248,7 +265,7 @@
     background-color:#16171e;
     background-image:linear-gradient(#1a1c24,#1a1c24);
     color:var(--text);
-    width:min(880px,94vw);
+    width:min(960px,94vw);
     max-height:85vh;
     overflow-y:auto;
     padding:44px 56px;
@@ -298,13 +315,27 @@
 
   <aside id="detalle">
     <span class="cerrar-detalle" id="cerrar-detalle">✕</span>
-    <div class="cover-grande" id="det-cover"></div>
+
+    <div class="det-cabecera">
+      <div class="cover-mediana" id="det-cover"></div>
+      <div class="det-info-top">
+        <div class="det-sello-anio" id="det-sello-anio"></div>
+        <div class="det-genero" id="det-genero"></div>
+        <div class="det-badges" id="det-badges"></div>
+        <div class="det-catalogo" id="det-catalogo"></div>
+        <div class="det-resumen" id="det-resumen"></div>
+      </div>
+    </div>
+
     <h2 id="det-titulo"></h2>
     <div class="artista-det" id="det-artista"></div>
-    <div id="rating-det"></div>
-    <div class="meta" id="det-meta"></div>
+
+    <div class="det-subtitulo">Canciones</div>
     <ol id="canciones"></ol>
     <button class="btn-ficha" id="btn-ficha">Ver ficha completa</button>
+
+    <div class="det-subtitulo">Detalles particulares</div>
+    <div class="det-particulares" id="det-particulares"></div>
   </aside>
 </div>
 
@@ -443,34 +474,47 @@ function abrirDetalle(album){
     ? `<img src="${escapeAttr(portada)}" alt="">`
     : escapeHTML(album["ALBUM"] || "Sin carátula");
 
-  // Rating en estrellas amarillas (Rating es sobre 10 -> lo pasamos a 5 estrellas)
+  const campoOVacio = (valor, sufijo) => valor ? `${escapeHTML(String(valor))}${sufijo||''}` : `<span class="vacio">—</span>`;
+
+  // Año a partir de "Fecha" (puede ser solo el año, o una fecha dd/mm/yyyy)
+  const fechaPub = album["Fecha"] ? String(album["Fecha"]) : "";
+  const anio = fechaPub.includes("/") ? fechaPub.split("/").pop() : fechaPub;
+
+  $("#det-sello-anio").innerHTML = album["Etiqueta"]
+    ? `${escapeHTML(album["Etiqueta"])}${anio ? ` (${escapeHTML(anio)})` : ""}`
+    : (anio ? escapeHTML(anio) : '<span class="vacio">—</span>');
+
+  $("#det-genero").innerHTML = campoOVacio(album["GENERO"]);
+
   const ratingNum = parseInt(album["Rating"]) || 0;
   const estrellasLlenas = Math.round(ratingNum / 2);
   let htmlEstrellas = "";
   for(let i=1;i<=5;i++){
-    htmlEstrellas += `<span class="${i<=estrellasLlenas ? 'llena':''}">★</span>`;
+    htmlEstrellas += `<span style="color:${i<=estrellasLlenas ? '#e6c84b':'#4a4d58'}">★</span>`;
   }
-  $("#rating-det").innerHTML = ratingNum > 0
-    ? `<span class="estrellas">${htmlEstrellas}</span><span class="num-rating">${ratingNum}/10</span>`
-    : `<span class="estrellas">${htmlEstrellas}</span><span class="num-rating vacio">Sin puntuar</span>`;
+  $("#det-badges").innerHTML = `
+    <span class="badge-id">#${escapeHTML(String(album["ALBUM_ID"]||""))}</span>
+    <span class="badge-rating">${htmlEstrellas} ${ratingNum > 0 ? ratingNum+'/10' : ''}</span>
+  `;
 
-  const campoOVacio = (valor, sufijo) => valor ? `${escapeHTML(String(valor))}${sufijo||''}` : `<span class="vacio">—</span>`;
-
-  const meta = [
-    `<b>Género:</b> ${campoOVacio(album["GENERO"])}`,
-    `<b>Año:</b> ${campoOVacio(album["Fecha"])}`,
-    `<b>Sello:</b> ${campoOVacio(album["Etiqueta"])}`,
-    `<b>Nº de catálogo:</b> ${campoOVacio(album["Número de Catalogo"])}`,
-    `<b>Duración total:</b> ${album["Total duración"] ? escapeHTML(formatearDuracion(album["Total duración"])) : '<span class="vacio">—</span>'}`,
-    `<b>Fecha de compra:</b> ${campoOVacio(album["Fecha de compra"])}`,
-    `<b>Precio:</b> ${campoOVacio(album["Precio"], " €")}`,
-    `<b>Tienda:</b> ${campoOVacio(album["Tienda"])}`,
-  ];
-  $("#det-meta").innerHTML = meta.join("<br>");
+  $("#det-catalogo").innerHTML = album["Número de Catalogo"]
+    ? `Nº de catálogo: ${escapeHTML(String(album["Número de Catalogo"]))}`
+    : "";
 
   const canciones = CANCIONES
     .filter(c => c.ALBUM_ID === album.ALBUM_ID)
     .sort((a,b)=> (parseInt(a["PISTA Nº"])||0) - (parseInt(b["PISTA Nº"])||0));
+
+  const duracionTotal = album["Total duración"] ? formatearDuracion(album["Total duración"]) : "";
+  $("#det-resumen").textContent = `CD · ${canciones.length} pista${canciones.length===1?'':'s'}${duracionTotal ? ' · '+duracionTotal : ''}`;
+
+  const particulares = [
+    `<b>Fecha de compra:</b> ${campoOVacio(album["Fecha de compra"])}`,
+    `<b>Precio:</b> ${campoOVacio(album["Precio"], " €")}`,
+    `<b>Tienda:</b> ${campoOVacio(album["Tienda"])}`,
+    `<b>Fecha de publicación:</b> ${fechaPub ? escapeHTML(fechaPub) : '<span class="vacio">—</span>'}`,
+  ];
+  $("#det-particulares").innerHTML = particulares.join("<br>");
 
   const ul = $("#canciones");
   ul.innerHTML = "";
