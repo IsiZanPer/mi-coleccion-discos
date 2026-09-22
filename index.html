@@ -59,6 +59,17 @@
     font-size:14px;
   }
   #buscador:focus{outline:none;border-color:var(--accent);}
+  #filtro-genero{
+    background:var(--bg);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:8px 10px;
+    border-radius:4px;
+    font-size:13.5px;
+    font-family:inherit;
+    max-width:180px;
+  }
+  #filtro-genero:focus{outline:none;border-color:var(--accent);}
   #contador{color:var(--muted);white-space:nowrap;}
   #estado-carga{color:var(--muted);font-size:13px;}
 
@@ -78,6 +89,31 @@
     overflow-y:auto;
     padding:8px 0;
   }
+  .sidebar-tabs{
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+    padding:0 12px 10px;
+    border-bottom:1px solid var(--border);
+    margin-bottom:6px;
+  }
+  .sidebar-tabs button{
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--muted);
+    padding:5px 9px;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:11.5px;
+    font-family:inherit;
+  }
+  .sidebar-tabs button.activo{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#14151a;
+    font-weight:600;
+  }
+  .sidebar-tabs button:not(.activo):hover{border-color:var(--accent);color:var(--accent);}
   .artista-item{
     display:flex;
     justify-content:space-between;
@@ -296,13 +332,22 @@
 <header>
   <h1>Mi colección</h1>
   <input id="buscador" type="text" placeholder="Buscar por álbum o artista…">
+  <select id="filtro-genero">
+    <option value="">Todos los géneros</option>
+  </select>
   <span id="contador"></span>
   <span id="estado-carga">Cargando datos…</span>
 </header>
 
 <div id="cuerpo">
   <nav id="sidebar">
-    <div class="artista-item activo" data-artista="__TODOS__">
+    <div class="sidebar-tabs" id="sidebar-tabs">
+      <button type="button" data-tab="artista" class="activo">Artistas</button>
+      <button type="button" data-tab="genero">Géneros</button>
+      <button type="button" data-tab="album">Álbumes</button>
+      <button type="button" data-tab="anio">Años</button>
+    </div>
+    <div class="artista-item activo" data-valor="__TODOS__">
       <span>Todos</span><span class="n" id="n-todos"></span>
     </div>
     <div id="lista-artistas"></div>
@@ -364,11 +409,20 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwjBPSQzS1HUC4fAl21wSon
 
 let ALBUMES = [];
 let CANCIONES = [];
-let artistaActivo = "__TODOS__";
+let tabActivo = "artista";       // 'artista' | 'genero' | 'album' | 'anio'
+let valorActivo = "__TODOS__";   // valor seleccionado dentro de la pestaña actual
+let generoTop = "";              // filtro rápido de género (cabecera), independiente de las pestañas
 let albumSeleccionado = null;
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+const ETIQUETAS_TAB = {
+  artista: "Artistas",
+  genero: "Géneros",
+  album: "Álbumes",
+  anio: "Años"
+};
 
 /* ---------- Carga de datos ---------- */
 async function cargarDatos(){
@@ -382,6 +436,7 @@ async function cargarDatos(){
     ALBUMES = json.albumes;
     CANCIONES = json.canciones;
     $("#estado-carga").textContent = "";
+    construirFiltroGenero();
     construirSidebar();
     pintarGrid();
   }catch(err){
@@ -390,48 +445,92 @@ async function cargarDatos(){
   }
 }
 
-/* ---------- Sidebar de artistas ---------- */
+/* Año a partir de "Fecha" (puede ser solo el año o una fecha dd/mm/yyyy) */
+function extraerAnio(fecha){
+  const f = fecha ? String(fecha) : "";
+  return f.includes("/") ? f.split("/").pop() : f;
+}
+
+function valorSegunTab(album, tab){
+  if(tab === "artista") return (album["ARTISTA ALBUM"]||"(Sin artista)").trim();
+  if(tab === "genero") return (album["GENERO"]||"(Sin género)").trim();
+  if(tab === "album") return (album["ALBUM"]||"(Sin título)").trim();
+  if(tab === "anio") return extraerAnio(album["Fecha"]) || "(Sin año)";
+  return "";
+}
+
+/* ---------- Selector de género (cabecera) ---------- */
+function construirFiltroGenero(){
+  const generos = [...new Set(ALBUMES.map(a=>(a["GENERO"]||"").trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,'es'));
+
+  const sel = $("#filtro-genero");
+  sel.innerHTML = '<option value="">Todos los géneros</option>' +
+    generos.map(g=>`<option value="${escapeAttr(g)}">${escapeHTML(g)}</option>`).join("");
+
+  sel.addEventListener("change", ()=>{
+    generoTop = sel.value;
+    pintarGrid();
+  });
+}
+
+/* ---------- Sidebar con pestañas (Artistas/Géneros/Álbumes/Años) ---------- */
 function construirSidebar(){
   const conteo = {};
   ALBUMES.forEach(a=>{
-    const nombre = (a["ARTISTA ALBUM"]||"(Sin artista)").trim();
-    conteo[nombre] = (conteo[nombre]||0)+1;
+    const valor = valorSegunTab(a, tabActivo);
+    conteo[valor] = (conteo[valor]||0)+1;
   });
-  const artistas = Object.keys(conteo).sort((a,b)=>a.localeCompare(b,'es'));
+
+  let claves = Object.keys(conteo);
+  claves = tabActivo === "anio"
+    ? claves.sort((a,b)=> b.localeCompare(a,'es', {numeric:true})) // años: más reciente primero
+    : claves.sort((a,b)=>a.localeCompare(b,'es'));
 
   $("#n-todos").textContent = ALBUMES.length;
 
   const cont = $("#lista-artistas");
   cont.innerHTML = "";
-  artistas.forEach(nombre=>{
+  claves.forEach(valor=>{
     const div = document.createElement("div");
     div.className = "artista-item";
-    div.dataset.artista = nombre;
-    div.innerHTML = `<span>${escapeHTML(nombre)}</span><span class="n">${conteo[nombre]}</span>`;
+    div.dataset.valor = valor;
+    div.innerHTML = `<span>${escapeHTML(valor)}</span><span class="n">${conteo[valor]}</span>`;
     div.addEventListener("click", ()=>{
-      artistaActivo = nombre;
+      valorActivo = valor;
       $$(".artista-item").forEach(el=>el.classList.remove("activo"));
       div.classList.add("activo");
       pintarGrid();
     });
     cont.appendChild(div);
   });
-
-  $('.artista-item[data-artista="__TODOS__"]').addEventListener("click", ()=>{
-    artistaActivo = "__TODOS__";
-    $$(".artista-item").forEach(el=>el.classList.remove("activo"));
-    $('.artista-item[data-artista="__TODOS__"]').classList.add("activo");
-    pintarGrid();
-  });
 }
+
+function cambiarTab(nuevoTab){
+  tabActivo = nuevoTab;
+  valorActivo = "__TODOS__";
+  $$(".sidebar-tabs button").forEach(b=>b.classList.toggle("activo", b.dataset.tab===nuevoTab));
+  construirSidebar();
+  $('.artista-item[data-valor="__TODOS__"]').classList.add("activo");
+  pintarGrid();
+}
+$$(".sidebar-tabs button").forEach(btn=>{
+  btn.addEventListener("click", ()=> cambiarTab(btn.dataset.tab));
+});
+$('.artista-item[data-valor="__TODOS__"]').addEventListener("click", ()=>{
+  valorActivo = "__TODOS__";
+  $$(".artista-item").forEach(el=>el.classList.remove("activo"));
+  $('.artista-item[data-valor="__TODOS__"]').classList.add("activo");
+  pintarGrid();
+});
 
 /* ---------- Grid de álbumes ---------- */
 function pintarGrid(){
   const texto = $("#buscador").value.trim().toLowerCase();
 
   let lista = ALBUMES.filter(a=>{
-    const okArtista = artistaActivo === "__TODOS__" || (a["ARTISTA ALBUM"]||"").trim() === artistaActivo;
-    if(!okArtista) return false;
+    if(valorActivo !== "__TODOS__" && valorSegunTab(a, tabActivo) !== valorActivo) return false;
+    if(generoTop && (a["GENERO"]||"").trim() !== generoTop) return false;
     if(!texto) return true;
     const campo = ((a["ALBUM"]||"") + " " + (a["ARTISTA ALBUM"]||"")).toLowerCase();
     return campo.includes(texto);
