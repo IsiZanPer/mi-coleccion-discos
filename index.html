@@ -257,6 +257,97 @@
   .det-particulares b{color:var(--text);font-weight:500;}
   .det-particulares .vacio{opacity:.5;}
 
+  /* --- Edición --- */
+  .btn-modificar{
+    float:right;
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--muted);
+    padding:5px 11px;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:12px;
+    font-family:inherit;
+    margin-top:-2px;
+  }
+  .btn-modificar:hover{border-color:var(--accent);color:var(--accent);}
+
+  .grupo-edicion{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px 12px;
+    margin-bottom:12px;
+  }
+  .campo-edicion{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .campo-edicion.campo-edicion-ancho{grid-column:1 / -1;}
+  .campo-edicion input, .campo-edicion textarea{
+    background:var(--bg);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:7px 9px;
+    border-radius:4px;
+    font-size:13.5px;
+    font-family:inherit;
+  }
+  .campo-edicion input:focus, .campo-edicion textarea:focus{outline:none;border-color:var(--accent);}
+  .campo-edicion textarea{resize:vertical;}
+
+  .cancion-edicion{
+    background:var(--panel-hi);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:10px;
+    margin-bottom:8px;
+  }
+  .cancion-edicion-fila{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+  .cancion-edicion-fila .num{color:var(--muted);width:20px;flex-shrink:0;font-size:13px;}
+  .cancion-edicion-fila input{
+    background:var(--bg);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:6px 8px;
+    border-radius:4px;
+    font-size:13px;
+    font-family:inherit;
+  }
+  .cancion-edicion-fila input:focus{outline:none;border-color:var(--accent);}
+  .ed-c-titulo{flex:2;min-width:0;}
+  .ed-c-artista{flex:1.4;min-width:0;}
+  .ed-c-duracion{width:64px;flex-shrink:0;text-align:center;}
+  .ed-c-anio{width:64px;flex-shrink:0;text-align:center;}
+  .ed-c-letras{
+    width:100%;
+    background:var(--bg);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:7px 9px;
+    border-radius:4px;
+    font-size:12.5px;
+    font-family:inherit;
+    resize:vertical;
+  }
+  .ed-c-letras:focus{outline:none;border-color:var(--accent);}
+
+  .acciones-edicion{display:flex;gap:8px;margin-top:16px;}
+  .acciones-edicion button{
+    padding:9px 16px;
+    border-radius:4px;
+    font-size:13.5px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  #btn-guardar-cambios{background:var(--accent);border:1px solid var(--accent);color:#14151a;font-weight:600;}
+  #btn-guardar-cambios:hover{background:#dba838;}
+  #btn-guardar-cambios:disabled{opacity:.6;cursor:default;}
+  #btn-cancelar-edicion{background:transparent;border:1px solid var(--border);color:var(--muted);}
+  #btn-cancelar-edicion:hover{border-color:var(--text);color:var(--text);}
+
   .btn-ficha{
     display:inline-block;
     background:transparent;
@@ -361,27 +452,38 @@
 
   <aside id="detalle">
     <span class="cerrar-detalle" id="cerrar-detalle">✕</span>
+    <button class="btn-modificar" id="btn-modificar" type="button">✎ Modificar</button>
 
-    <div class="det-cabecera">
-      <div class="cover-mediana" id="det-cover"></div>
-      <div class="det-info-top">
-        <div class="det-sello-anio" id="det-sello-anio"></div>
-        <div class="det-genero" id="det-genero"></div>
-        <div class="det-badges" id="det-badges"></div>
-        <div class="det-catalogo" id="det-catalogo"></div>
-        <div class="det-resumen" id="det-resumen"></div>
+    <div id="vista-album">
+      <div class="det-cabecera">
+        <div class="cover-mediana" id="det-cover"></div>
+        <div class="det-info-top">
+          <div class="det-sello-anio" id="det-sello-anio"></div>
+          <div class="det-genero" id="det-genero"></div>
+          <div class="det-badges" id="det-badges"></div>
+          <div class="det-catalogo" id="det-catalogo"></div>
+          <div class="det-resumen" id="det-resumen"></div>
+        </div>
       </div>
+
+      <h2 id="det-titulo"></h2>
+      <div class="artista-det" id="det-artista"></div>
+
+      <div class="det-subtitulo">Canciones</div>
+      <ol id="canciones"></ol>
+      <button class="btn-ficha" id="btn-ficha">Ver ficha completa</button>
+
+      <div class="det-subtitulo">Detalles particulares</div>
+      <div class="det-particulares" id="det-particulares"></div>
     </div>
 
-    <h2 id="det-titulo"></h2>
-    <div class="artista-det" id="det-artista"></div>
-
-    <div class="det-subtitulo">Canciones</div>
-    <ol id="canciones"></ol>
-    <button class="btn-ficha" id="btn-ficha">Ver ficha completa</button>
-
-    <div class="det-subtitulo">Detalles particulares</div>
-    <div class="det-particulares" id="det-particulares"></div>
+    <div id="edicion-album" style="display:none;">
+      <div id="ed-campos"></div>
+      <div class="acciones-edicion">
+        <button type="button" id="btn-guardar-cambios">Guardar cambios</button>
+        <button type="button" id="btn-cancelar-edicion">Cancelar</button>
+      </div>
+    </div>
   </aside>
 </div>
 
@@ -407,6 +509,9 @@
    CONFIGURACIÓN — pega aquí la URL /exec de tu Apps Script
    ========================================================= */
 const API_URL = "https://script.google.com/macros/s/AKfycbwjBPSQzS1HUC4fAl21wSonBf2qe5iNHLi8n-JVyQCt6VISRDpV-_VcUZM-se_Zabg2/exec";
+
+// ⚠️ Tiene que ser EXACTAMENTE el mismo valor que TOKEN_EDICION en Code.gs
+const TOKEN_EDICION = "IZPdiscosNVZ26";
 
 let ALBUMES = [];
 let CANCIONES = [];
@@ -564,6 +669,7 @@ function pintarGrid(){
 /* ---------- Panel de detalle ---------- */
 function abrirDetalle(album){
   albumSeleccionado = album;
+  cancelarEdicion();
   pintarGrid(); // para marcar seleccionado
 
   $("#det-titulo").textContent = album["ALBUM"] || "(Sin título)";
@@ -640,8 +746,149 @@ function abrirDetalle(album){
 
 function cerrarDetalle(){
   albumSeleccionado = null;
+  cancelarEdicion();
   $("#detalle").classList.remove("abierto");
   pintarGrid();
+}
+
+/* ---------- Edición de álbum y canciones ---------- */
+function entrarModoEdicion(){
+  if(!albumSeleccionado) return;
+  const a = albumSeleccionado;
+  const canciones = CANCIONES
+    .filter(c => c.ALBUM_ID === a.ALBUM_ID)
+    .sort((x,y)=> (parseInt(x["PISTA Nº"])||0) - (parseInt(y["PISTA Nº"])||0));
+
+  const campo = (id,label,valor,tipo="text") => `
+    <label class="campo-edicion">
+      <span>${label}</span>
+      <input type="${tipo}" id="${id}" value="${escapeAttr(valor==null?"":valor)}">
+    </label>`;
+  const campoAncho = (id,label,valor,filas) => `
+    <label class="campo-edicion campo-edicion-ancho">
+      <span>${label}</span>
+      <textarea id="${id}" rows="${filas}">${escapeHTML(valor||"")}</textarea>
+    </label>`;
+
+  let html = `
+    <div class="grupo-edicion">
+      ${campo("ed-artista","Artista",a["ARTISTA ALBUM"])}
+      ${campo("ed-album","Título del álbum",a["ALBUM"])}
+      ${campo("ed-genero","Género",a["GENERO"])}
+      ${campo("ed-etiqueta","Sello",a["Etiqueta"])}
+      ${campo("ed-fecha","Fecha de publicación",a["Fecha"])}
+      ${campo("ed-catalogo","Nº de catálogo",a["Número de Catalogo"])}
+      ${campo("ed-rating","Rating (0-10)",a["Rating"],"number")}
+      ${campo("ed-portada","URL de la carátula",a["PORTADA"])}
+      ${campo("ed-fecha-compra","Fecha de compra",a["Fecha de compra"])}
+      ${campo("ed-precio","Precio (€)",a["Precio"],"number")}
+      ${campo("ed-tienda","Tienda",a["Tienda"])}
+    </div>
+    ${campoAncho("ed-comentario","Comentario / ficha completa (admite Markdown)",a["Comentario"],6)}
+    <div class="det-subtitulo">Canciones</div>
+    <div id="ed-canciones"></div>
+  `;
+
+  $("#ed-campos").innerHTML = html;
+
+  const cont = $("#ed-canciones");
+  canciones.forEach(c=>{
+    const div = document.createElement("div");
+    div.className = "cancion-edicion";
+    div.innerHTML = `
+      <div class="cancion-edicion-fila">
+        <span class="num">${escapeHTML(String(c["PISTA Nº"]||""))}</span>
+        <input type="text" class="ed-c-titulo" data-pista="${escapeAttr(c["PISTA Nº"])}" value="${escapeAttr(c["TITULO"]||"")}" placeholder="Título">
+        <input type="text" class="ed-c-artista" data-pista="${escapeAttr(c["PISTA Nº"])}" value="${escapeAttr(c["ARTISTA"]||"")}" placeholder="Artista">
+        <input type="text" class="ed-c-duracion" data-pista="${escapeAttr(c["PISTA Nº"])}" value="${escapeAttr(formatearDuracion(c["Duración"]))}" placeholder="mm:ss">
+        <input type="number" class="ed-c-anio" data-pista="${escapeAttr(c["PISTA Nº"])}" value="${escapeAttr(c["Original Release Year"]||"")}" placeholder="Año orig.">
+      </div>
+      <textarea class="ed-c-letras" data-pista="${escapeAttr(c["PISTA Nº"])}" rows="3" placeholder="Letra">${escapeHTML(c["Letras"]||"")}</textarea>
+    `;
+    cont.appendChild(div);
+  });
+
+  $("#vista-album").style.display = "none";
+  $("#edicion-album").style.display = "block";
+  $("#btn-modificar").style.display = "none";
+}
+
+function cancelarEdicion(){
+  $("#vista-album").style.display = "";
+  $("#edicion-album").style.display = "none";
+  $("#btn-modificar").style.display = "";
+}
+
+async function guardarCambios(){
+  if(!albumSeleccionado) return;
+  const btn = $("#btn-guardar-cambios");
+  btn.disabled = true;
+  btn.textContent = "Guardando…";
+
+  const albumEditado = {
+    ALBUM_ID: albumSeleccionado.ALBUM_ID,
+    "ARTISTA ALBUM": $("#ed-artista").value.trim(),
+    "ALBUM": $("#ed-album").value.trim(),
+    "GENERO": $("#ed-genero").value.trim(),
+    "Etiqueta": $("#ed-etiqueta").value.trim(),
+    "Fecha": $("#ed-fecha").value.trim(),
+    "Número de Catalogo": $("#ed-catalogo").value.trim(),
+    "Rating": $("#ed-rating").value.trim(),
+    "PORTADA": $("#ed-portada").value.trim(),
+    "Fecha de compra": $("#ed-fecha-compra").value.trim(),
+    "Precio": $("#ed-precio").value.trim(),
+    "Tienda": $("#ed-tienda").value.trim(),
+    "Comentario": $("#ed-comentario").value
+  };
+
+  const cancionesEditadas = $$(".cancion-edicion").map(div=>({
+    ALBUM_ID: albumSeleccionado.ALBUM_ID,
+    "PISTA Nº": div.querySelector(".ed-c-titulo").dataset.pista,
+    "TITULO": div.querySelector(".ed-c-titulo").value.trim(),
+    "ARTISTA": div.querySelector(".ed-c-artista").value.trim(),
+    "Duración": div.querySelector(".ed-c-duracion").value.trim(),
+    "Original Release Year": div.querySelector(".ed-c-anio").value.trim(),
+    "Letras": div.querySelector(".ed-c-letras").value
+  }));
+
+  try{
+    const res = await fetch(API_URL, {
+      method: "POST",
+      // Sin Content-Type explícito a propósito: así el navegador lo manda
+      // como "text/plain", lo que evita que dispare una petición previa
+      // OPTIONS (preflight) que Apps Script no sabe responder.
+      body: JSON.stringify({ token: TOKEN_EDICION, album: albumEditado, canciones: cancionesEditadas })
+    });
+    const json = await res.json();
+
+    if(!json.ok){
+      alert("Error al guardar: " + json.error);
+      btn.disabled = false;
+      btn.textContent = "Guardar cambios";
+      return;
+    }
+
+    // Actualizamos los datos en memoria para no tener que recargar toda la colección
+    Object.assign(albumSeleccionado, albumEditado);
+    const idxAlbum = ALBUMES.findIndex(x=>x.ALBUM_ID===albumSeleccionado.ALBUM_ID);
+    if(idxAlbum>-1) Object.assign(ALBUMES[idxAlbum], albumEditado);
+
+    cancionesEditadas.forEach(ce=>{
+      const c = CANCIONES.find(x=> x.ALBUM_ID===ce.ALBUM_ID && String(x["PISTA Nº"])===String(ce["PISTA Nº"]));
+      if(c) Object.assign(c, ce);
+    });
+
+    construirFiltroGenero();
+    construirSidebar();
+    pintarGrid();
+    abrirDetalle(albumSeleccionado);
+    cancelarEdicion();
+  }catch(err){
+    alert("No se pudo conectar para guardar los cambios.");
+    console.error(err);
+    btn.disabled = false;
+    btn.textContent = "Guardar cambios";
+  }
 }
 
 /* ---------- Modal ficha (comentario en Markdown) ---------- */
@@ -727,6 +974,9 @@ function formatearDuracion(v){
 /* ---------- Eventos ---------- */
 $("#buscador").addEventListener("input", pintarGrid);
 $("#cerrar-detalle").addEventListener("click", cerrarDetalle);
+$("#btn-modificar").addEventListener("click", entrarModoEdicion);
+$("#btn-guardar-cambios").addEventListener("click", guardarCambios);
+$("#btn-cancelar-edicion").addEventListener("click", cancelarEdicion);
 $("#btn-ficha").addEventListener("click", abrirFicha);
 $("#cerrar-modal").addEventListener("click", cerrarFicha);
 $("#modal-fondo").addEventListener("click", (e)=>{ if(e.target.id==="modal-fondo") cerrarFicha(); });
