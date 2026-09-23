@@ -1063,6 +1063,9 @@ function cancelarEdicion(){
   $("#vista-album").style.display = "";
   $("#edicion-album").style.display = "none";
   $("#btn-modificar").style.display = "";
+  const btn = $("#btn-guardar-cambios");
+  btn.disabled = false;
+  btn.textContent = "Guardar cambios";
 }
 
 async function guardarCambios(){
