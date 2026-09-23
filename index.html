@@ -297,6 +297,11 @@
   }
   .campo-edicion input:focus, .campo-edicion textarea:focus{outline:none;border-color:var(--accent);}
   .campo-edicion textarea{resize:vertical;}
+  .campo-portada-archivo{background:var(--panel-hi);border:1px dashed var(--border);border-radius:4px;padding:10px;margin-bottom:12px;}
+  .campo-portada-archivo input[type="file"]{font-size:12px;color:var(--muted);}
+  #ed-portada-estado{font-size:11.5px;display:block;margin-top:4px;}
+  #ed-portada-estado.ok{color:#5fa88a;}
+  #ed-portada-estado.error{color:#c96a5a;}
 
   .cancion-edicion{
     background:var(--panel-hi);
@@ -317,10 +322,23 @@
     font-family:inherit;
   }
   .cancion-edicion-fila input:focus{outline:none;border-color:var(--accent);}
+  .ed-c-pista{width:40px;flex-shrink:0;text-align:center;}
   .ed-c-titulo{flex:2;min-width:0;}
   .ed-c-artista{flex:1.4;min-width:0;}
   .ed-c-duracion{width:64px;flex-shrink:0;text-align:center;}
   .ed-c-anio{width:64px;flex-shrink:0;text-align:center;}
+  .btn-eliminar-cancion{
+    background:transparent;
+    border:1px solid var(--border);
+    color:#c96a5a;
+    width:26px;height:26px;
+    border-radius:4px;
+    cursor:pointer;
+    flex-shrink:0;
+    font-size:14px;
+    line-height:1;
+  }
+  .btn-eliminar-cancion:hover{background:#c96a5a;border-color:#c96a5a;color:#fff;}
   .ed-c-letras{
     width:100%;
     background:var(--bg);
@@ -333,6 +351,19 @@
     resize:vertical;
   }
   .ed-c-letras:focus{outline:none;border-color:var(--accent);}
+  .btn-anadir-cancion{
+    width:100%;
+    background:transparent;
+    border:1px dashed var(--border);
+    color:var(--muted);
+    padding:9px;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:13px;
+    font-family:inherit;
+    margin-bottom:16px;
+  }
+  .btn-anadir-cancion:hover{border-color:var(--accent);color:var(--accent);}
 
   .acciones-edicion{display:flex;gap:8px;margin-top:16px;}
   .acciones-edicion button{
@@ -411,6 +442,40 @@
   ::-webkit-scrollbar{width:10px;}
   ::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;}
   ::-webkit-scrollbar-track{background:transparent;}
+
+  #modal-fondo-login{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.6);
+    z-index:60;
+    align-items:center;
+    justify-content:center;
+  }
+  #modal-fondo-login.abierto{display:flex;}
+  #modal-login{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:28px;
+    width:min(320px,90vw);
+  }
+  #modal-login h3{margin:0 0 4px;font-size:17px;}
+  #modal-login p{margin:0 0 16px;color:var(--muted);font-size:12.5px;}
+  #modal-login input{
+    width:100%;
+    background:var(--bg);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:9px 10px;
+    border-radius:4px;
+    font-size:14px;
+    font-family:inherit;
+    margin-bottom:12px;
+  }
+  #modal-login input:focus{outline:none;border-color:var(--accent);}
+  #modal-login .fila-botones{display:flex;gap:8px;}
+  #btn-login-enviar{flex:1;background:var(--accent);border:1px solid var(--accent);color:#14151a;font-weight:600;padding:9px;border-radius:4px;cursor:pointer;font-family:inherit;}
+  #btn-login-cancelar{background:transparent;border:1px solid var(--border);color:var(--muted);padding:9px 12px;border-radius:4px;cursor:pointer;font-family:inherit;}
 
   @media (max-width:820px){
     #sidebar{position:fixed;left:0;top:53px;bottom:0;z-index:30;transform:translateX(-100%);transition:transform .2s;}
@@ -504,14 +569,79 @@
   </div>
 </div>
 
+<div id="modal-fondo-login">
+  <div id="modal-login">
+    <h3>Contraseña de edición</h3>
+    <p>Solo hace falta para guardar cambios. No se guarda en el código.</p>
+    <input type="password" id="login-password" placeholder="Contraseña">
+    <div class="fila-botones">
+      <button type="button" id="btn-login-enviar">Entrar</button>
+      <button type="button" id="btn-login-cancelar">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =========================================================
    CONFIGURACIÓN — pega aquí la URL /exec de tu Apps Script
    ========================================================= */
 const API_URL = "https://script.google.com/macros/s/AKfycbwjBPSQzS1HUC4fAl21wSonBf2qe5iNHLi8n-JVyQCt6VISRDpV-_VcUZM-se_Zabg2/exec";
 
-// ⚠️ Tiene que ser EXACTAMENTE el mismo valor que TOKEN_EDICION en Code.gs
-const TOKEN_EDICION = "IZPdiscosNVZ26";
+// Repositorio de GitHub donde se suben las carátulas
+const GITHUB_OWNER = "IsiZanPer";
+const GITHUB_REPO = "mi-coleccion-discos";
+const GITHUB_RAMA = "main";
+const GITHUB_CARPETA_PORTADAS = "Covers";
+
+// Ninguno de los dos tokens (edición / GitHub) se guarda en el código:
+// se piden por contraseña la primera vez que hacen falta en esta sesión.
+let tokenSesion = sessionStorage.getItem("token_edicion") || null;
+let tokenGithub = sessionStorage.getItem("token_github") || null;
+
+function pedirClave(titulo, subtitulo){
+  return new Promise((resolve)=>{
+    $("#modal-login h3").textContent = titulo;
+    $("#modal-login p").textContent = subtitulo;
+    const input = $("#login-password");
+    input.value = "";
+    $("#modal-fondo-login").classList.add("abierto");
+    setTimeout(()=>input.focus(), 50);
+
+    const limpiar = ()=>{
+      $("#modal-fondo-login").classList.remove("abierto");
+      btnEnviar.removeEventListener("click", onEnviar);
+      btnCancelar.removeEventListener("click", onCancelar);
+      input.removeEventListener("keydown", onEnter);
+    };
+    const btnEnviar = $("#btn-login-enviar");
+    const btnCancelar = $("#btn-login-cancelar");
+    const onEnviar = ()=>{ const v = input.value.trim(); limpiar(); resolve(v || null); };
+    const onCancelar = ()=>{ limpiar(); resolve(null); };
+    const onEnter = (e)=>{ if(e.key==="Enter") onEnviar(); };
+
+    btnEnviar.addEventListener("click", onEnviar);
+    btnCancelar.addEventListener("click", onCancelar);
+    input.addEventListener("keydown", onEnter);
+  });
+}
+
+async function asegurarSesion(){
+  if(tokenSesion) return true;
+  const valor = await pedirClave("Contraseña de edición", "Solo hace falta para guardar cambios. No se guarda en el código.");
+  if(!valor) return false;
+  tokenSesion = valor;
+  sessionStorage.setItem("token_edicion", valor);
+  return true;
+}
+
+async function asegurarTokenGithub(){
+  if(tokenGithub) return true;
+  const valor = await pedirClave("Token de GitHub", "Para subir carátulas a tu repositorio. Solo se guarda en esta pestaña.");
+  if(!valor) return false;
+  tokenGithub = valor;
+  sessionStorage.setItem("token_github", valor);
+  return true;
+}
 
 let ALBUMES = [];
 let CANCIONES = [];
@@ -752,8 +882,37 @@ function cerrarDetalle(){
 }
 
 /* ---------- Edición de álbum y canciones ---------- */
-function entrarModoEdicion(){
+let cancionesAEliminar = []; // {ALBUM_ID, pista_original} marcadas para borrar en esta edición
+
+function crearFilaCancionEdicion(c, pistaOriginal){
+  const div = document.createElement("div");
+  div.className = "cancion-edicion";
+  if(pistaOriginal !== null) div.dataset.pistaOriginal = pistaOriginal;
+  div.innerHTML = `
+    <div class="cancion-edicion-fila">
+      <input type="number" class="ed-c-pista" value="${escapeAttr(c["PISTA Nº"]||"")}" placeholder="Nº">
+      <input type="text" class="ed-c-titulo" value="${escapeAttr(c["TITULO"]||"")}" placeholder="Título">
+      <input type="text" class="ed-c-artista" value="${escapeAttr(c["ARTISTA"]||"")}" placeholder="Artista">
+      <input type="text" class="ed-c-duracion" value="${escapeAttr(c["Duración"]||"")}" placeholder="mm:ss">
+      <input type="number" class="ed-c-anio" value="${escapeAttr(c["Original Release Year"]||"")}" placeholder="Año orig.">
+      <button type="button" class="btn-eliminar-cancion" title="Eliminar canción">✕</button>
+    </div>
+    <textarea class="ed-c-letras" rows="3" placeholder="Letra">${escapeHTML(c["Letras"]||"")}</textarea>
+  `;
+  div.querySelector(".btn-eliminar-cancion").addEventListener("click", ()=>{
+    if(div.dataset.pistaOriginal !== undefined){
+      cancionesAEliminar.push({ ALBUM_ID: albumSeleccionado.ALBUM_ID, pista_original: div.dataset.pistaOriginal });
+    }
+    div.remove();
+  });
+  return div;
+}
+
+async function entrarModoEdicion(){
   if(!albumSeleccionado) return;
+  if(!(await asegurarSesion())) return;
+
+  cancionesAEliminar = [];
   const a = albumSeleccionado;
   const canciones = CANCIONES
     .filter(c => c.ALBUM_ID === a.ALBUM_ID)
@@ -784,28 +943,41 @@ function entrarModoEdicion(){
       ${campo("ed-precio","Precio (€)",a["Precio"],"number")}
       ${campo("ed-tienda","Tienda",a["Tienda"])}
     </div>
+    <label class="campo-edicion campo-edicion-ancho campo-portada-archivo">
+      <span>O sube una carátula directamente desde tu ordenador (se guarda en tu repositorio y rellena la URL sola)</span>
+      <input type="file" id="ed-portada-file" accept="image/*">
+      <span id="ed-portada-estado"></span>
+    </label>
     ${campoAncho("ed-comentario","Comentario / ficha completa (admite Markdown)",a["Comentario"],6)}
     <div class="det-subtitulo">Canciones</div>
     <div id="ed-canciones"></div>
+    <button type="button" class="btn-anadir-cancion" id="btn-anadir-cancion">+ Añadir canción</button>
   `;
 
   $("#ed-campos").innerHTML = html;
+  $("#ed-portada-file").addEventListener("change", (e)=>{
+    const file = e.target.files[0];
+    if(file) subirCaratula(file);
+  });
 
   const cont = $("#ed-canciones");
   canciones.forEach(c=>{
-    const div = document.createElement("div");
-    div.className = "cancion-edicion";
-    div.innerHTML = `
-      <div class="cancion-edicion-fila">
-        <span class="num">${escapeHTML(String(c["PISTA Nº"]||""))}</span>
-        <input type="text" class="ed-c-titulo" data-pista="${escapeAttr(c["PISTA Nº"])}" value="${escapeAttr(c["TITULO"]||"")}" placeholder="Título">
-        <input type="text" class="ed-c-artista" data-pista="${escapeAttr(c["PISTA Nº"])}" value="${escapeAttr(c["ARTISTA"]||"")}" placeholder="Artista">
-        <input type="text" class="ed-c-duracion" data-pista="${escapeAttr(c["PISTA Nº"])}" value="${escapeAttr(formatearDuracion(c["Duración"]))}" placeholder="mm:ss">
-        <input type="number" class="ed-c-anio" data-pista="${escapeAttr(c["PISTA Nº"])}" value="${escapeAttr(c["Original Release Year"]||"")}" placeholder="Año orig.">
-      </div>
-      <textarea class="ed-c-letras" data-pista="${escapeAttr(c["PISTA Nº"])}" rows="3" placeholder="Letra">${escapeHTML(c["Letras"]||"")}</textarea>
-    `;
-    cont.appendChild(div);
+    cont.appendChild(crearFilaCancionEdicion({
+      "PISTA Nº": c["PISTA Nº"],
+      TITULO: c["TITULO"],
+      ARTISTA: c["ARTISTA"],
+      "Duración": formatearDuracion(c["Duración"]),
+      "Original Release Year": c["Original Release Year"],
+      Letras: c["Letras"]
+    }, String(c["PISTA Nº"])));
+  });
+
+  $("#btn-anadir-cancion").addEventListener("click", ()=>{
+    const siguiente = $$(".cancion-edicion .ed-c-pista")
+      .reduce((max,inp)=> Math.max(max, parseInt(inp.value)||0), 0) + 1;
+    const div = crearFilaCancionEdicion({ "PISTA Nº": siguiente, TITULO:"", ARTISTA:"", "Duración":"", "Original Release Year":"", Letras:"" }, null);
+    $("#ed-canciones").appendChild(div);
+    div.querySelector(".ed-c-titulo").focus();
   });
 
   $("#vista-album").style.display = "none";
@@ -813,7 +985,81 @@ function entrarModoEdicion(){
   $("#btn-modificar").style.display = "none";
 }
 
+function slugTexto(t){
+  return String(t||"")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g,"-")
+    .replace(/^-+|-+$/g,"") || "sin-titulo";
+}
+
+function leerArchivoComoBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function subirCaratula(file){
+  if(!albumSeleccionado) return;
+  if(!(await asegurarTokenGithub())) return;
+
+  const estado = $("#ed-portada-estado");
+  estado.textContent = "Subiendo…";
+  estado.className = "";
+
+  try{
+    const base64 = await leerArchivoComoBase64(file);
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const nombreArchivo = `${albumSeleccionado.ALBUM_ID}-${slugTexto(albumSeleccionado["ARTISTA ALBUM"])}-${slugTexto(albumSeleccionado["ALBUM"])}.${ext}`;
+    const ruta = `${GITHUB_CARPETA_PORTADAS}/${nombreArchivo}`;
+    const urlApi = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${ruta}`;
+
+    // Si ya existe una carátula con ese nombre, hace falta su "sha" para poder sobrescribirla
+    let sha = null;
+    const resGet = await fetch(urlApi, { headers: { Authorization: `Bearer ${tokenGithub}` } });
+    if(resGet.ok){
+      const existente = await resGet.json();
+      sha = existente.sha;
+    }
+
+    const cuerpo = { message: `Carátula: ${albumSeleccionado["ALBUM"]||nombreArchivo}`, content: base64, branch: GITHUB_RAMA };
+    if(sha) cuerpo.sha = sha;
+
+    const resPut = await fetch(urlApi, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${tokenGithub}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(cuerpo)
+    });
+    const datos = await resPut.json();
+
+    if(!resPut.ok){
+      if(resPut.status === 401){
+        tokenGithub = null;
+        sessionStorage.removeItem("token_github");
+      }
+      estado.textContent = "Error: " + (datos.message || resPut.status);
+      estado.className = "error";
+      return;
+    }
+
+    $("#ed-portada").value = datos.content.download_url;
+    estado.textContent = "Subida correctamente ✓";
+    estado.className = "ok";
+  }catch(err){
+    estado.textContent = "No se pudo subir la imagen.";
+    estado.className = "error";
+    console.error(err);
+  }
+}
+
 function cancelarEdicion(){
+  cancionesAEliminar = [];
   $("#vista-album").style.display = "";
   $("#edicion-album").style.display = "none";
   $("#btn-modificar").style.display = "";
@@ -841,15 +1087,25 @@ async function guardarCambios(){
     "Comentario": $("#ed-comentario").value
   };
 
-  const cancionesEditadas = $$(".cancion-edicion").map(div=>({
-    ALBUM_ID: albumSeleccionado.ALBUM_ID,
-    "PISTA Nº": div.querySelector(".ed-c-titulo").dataset.pista,
-    "TITULO": div.querySelector(".ed-c-titulo").value.trim(),
-    "ARTISTA": div.querySelector(".ed-c-artista").value.trim(),
-    "Duración": div.querySelector(".ed-c-duracion").value.trim(),
-    "Original Release Year": div.querySelector(".ed-c-anio").value.trim(),
-    "Letras": div.querySelector(".ed-c-letras").value
-  }));
+  const cancionesEditar = [];
+  const cancionesNuevas = [];
+  $$(".cancion-edicion").forEach(div=>{
+    const datos = {
+      ALBUM_ID: albumSeleccionado.ALBUM_ID,
+      "PISTA Nº": div.querySelector(".ed-c-pista").value.trim(),
+      "TITULO": div.querySelector(".ed-c-titulo").value.trim(),
+      "ARTISTA": div.querySelector(".ed-c-artista").value.trim(),
+      "Duración": div.querySelector(".ed-c-duracion").value.trim(),
+      "Original Release Year": div.querySelector(".ed-c-anio").value.trim(),
+      "Letras": div.querySelector(".ed-c-letras").value
+    };
+    if(div.dataset.pistaOriginal !== undefined){
+      datos.pista_original = div.dataset.pistaOriginal;
+      cancionesEditar.push(datos);
+    } else {
+      cancionesNuevas.push(datos);
+    }
+  });
 
   try{
     const res = await fetch(API_URL, {
@@ -857,11 +1113,21 @@ async function guardarCambios(){
       // Sin Content-Type explícito a propósito: así el navegador lo manda
       // como "text/plain", lo que evita que dispare una petición previa
       // OPTIONS (preflight) que Apps Script no sabe responder.
-      body: JSON.stringify({ token: TOKEN_EDICION, album: albumEditado, canciones: cancionesEditadas })
+      body: JSON.stringify({
+        token: tokenSesion,
+        album: albumEditado,
+        canciones_editar: cancionesEditar,
+        canciones_nuevas: cancionesNuevas,
+        canciones_eliminar: cancionesAEliminar
+      })
     });
     const json = await res.json();
 
     if(!json.ok){
+      if(String(json.error||"").includes("Token")){
+        tokenSesion = null;
+        sessionStorage.removeItem("token_edicion");
+      }
       alert("Error al guardar: " + json.error);
       btn.disabled = false;
       btn.textContent = "Guardar cambios";
@@ -873,9 +1139,21 @@ async function guardarCambios(){
     const idxAlbum = ALBUMES.findIndex(x=>x.ALBUM_ID===albumSeleccionado.ALBUM_ID);
     if(idxAlbum>-1) Object.assign(ALBUMES[idxAlbum], albumEditado);
 
-    cancionesEditadas.forEach(ce=>{
-      const c = CANCIONES.find(x=> x.ALBUM_ID===ce.ALBUM_ID && String(x["PISTA Nº"])===String(ce["PISTA Nº"]));
+    // Bajas
+    cancionesAEliminar.forEach(el=>{
+      const i = CANCIONES.findIndex(x=> x.ALBUM_ID===el.ALBUM_ID && String(x["PISTA Nº"])===String(el.pista_original));
+      if(i>-1) CANCIONES.splice(i,1);
+    });
+
+    // Modificaciones (incluye posible cambio de "PISTA Nº")
+    cancionesEditar.forEach(ce=>{
+      const c = CANCIONES.find(x=> x.ALBUM_ID===ce.ALBUM_ID && String(x["PISTA Nº"])===String(ce.pista_original));
       if(c) Object.assign(c, ce);
+    });
+
+    // Altas
+    cancionesNuevas.forEach(cn=>{
+      CANCIONES.push(Object.assign({}, cn));
     });
 
     construirFiltroGenero();
