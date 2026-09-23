@@ -167,7 +167,7 @@
 
   /* --- Panel detalle --- */
   #detalle{
-    width:520px;
+    width:600px;
     flex-shrink:0;
     border-left:1px solid var(--border);
     background:var(--panel);
@@ -239,6 +239,7 @@
   #canciones li:nth-child(odd){background:var(--panel-hi);}
   #canciones .num{color:var(--muted);width:20px;flex-shrink:0;}
   #canciones .tit{flex:1;font-weight:500;}
+  #canciones .tit em{font-weight:400;color:var(--muted);font-style:italic;}
   #canciones .dur{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px;}
   .btn-letra{
     background:transparent;
@@ -857,9 +858,10 @@ function abrirDetalle(album){
   canciones.forEach(c=>{
     const li = document.createElement("li");
     const tieneLetra = c["Letras"] && String(c["Letras"]).trim() !== "";
+    const artistaCancion = c["ARTISTA"] ? ` <em>(${escapeHTML(c["ARTISTA"])})</em>` : "";
     li.innerHTML = `
       <span class="num">${escapeHTML(String(c["PISTA Nº"]||""))}</span>
-      <span class="tit">${escapeHTML(c["TITULO"]||"")}</span>
+      <span class="tit">${escapeHTML(c["TITULO"]||"")}${artistaCancion}</span>
       ${tieneLetra ? `<button class="btn-letra" type="button">Letra</button>` : ""}
       <span class="dur">${escapeHTML(formatearDuracion(c["Duración"]))}</span>
     `;
@@ -893,7 +895,7 @@ function crearFilaCancionEdicion(c, pistaOriginal){
       <input type="number" class="ed-c-pista" value="${escapeAttr(c["PISTA Nº"]||"")}" placeholder="Nº">
       <input type="text" class="ed-c-titulo" value="${escapeAttr(c["TITULO"]||"")}" placeholder="Título">
       <input type="text" class="ed-c-artista" value="${escapeAttr(c["ARTISTA"]||"")}" placeholder="Artista">
-      <input type="text" class="ed-c-duracion" value="${escapeAttr(c["Duración"]||"")}" placeholder="mm:ss">
+      <input type="text" class="ed-c-duracion" value="${escapeAttr(c["Duración"]||"")}" placeholder="h:mm:ss">
       <input type="number" class="ed-c-anio" value="${escapeAttr(c["Original Release Year"]||"")}" placeholder="Año orig.">
       <button type="button" class="btn-eliminar-cancion" title="Eliminar canción">✕</button>
     </div>
@@ -966,7 +968,7 @@ async function entrarModoEdicion(){
       "PISTA Nº": c["PISTA Nº"],
       TITULO: c["TITULO"],
       ARTISTA: c["ARTISTA"],
-      "Duración": formatearDuracion(c["Duración"]),
+      "Duración": c["Duración"] || "",
       "Original Release Year": c["Original Release Year"],
       Letras: c["Letras"]
     }, String(c["PISTA Nº"])));
