@@ -325,7 +325,7 @@
     font-family:inherit;
   }
   .cancion-edicion-fila input:focus{outline:none;border-color:var(--accent);}
-  .ed-c-pista{width:40px;flex-shrink:0;text-align:center;}
+  .ed-c-pista{width:54px;flex-shrink:0;text-align:center;}
   .ed-c-titulo{flex:2;min-width:0;}
   .ed-c-artista{flex:1.4;min-width:0;}
   .ed-c-duracion{width:64px;flex-shrink:0;text-align:center;}
@@ -1041,6 +1041,17 @@ async function entrarModoEdicion(){
     .filter(c => c.ALBUM_ID === a.ALBUM_ID)
     .sort((x,y)=> (parseInt(x["PISTA Nº"])||0) - (parseInt(y["PISTA Nº"])||0));
 
+  const numerosVistos = new Set();
+  const numerosRepetidos = new Set();
+  canciones.forEach(c=>{
+    const n = String(c["PISTA Nº"]);
+    if(numerosVistos.has(n)) numerosRepetidos.add(n);
+    numerosVistos.add(n);
+  });
+  if(numerosRepetidos.size){
+    alert("Ojo: este álbum tiene canciones con el número de pista repetido (" + [...numerosRepetidos].join(", ") + "). Corrígelo antes de guardar, o los cambios pueden ir a la fila equivocada.");
+  }
+
   const campo = (id,label,valor,tipo="text") => `
     <label class="campo-edicion">
       <span>${label}</span>
@@ -1096,7 +1107,7 @@ async function entrarModoEdicion(){
   });
 
   $("#btn-anadir-cancion").addEventListener("click", ()=>{
-    const siguiente = $$(".cancion-edicion .ed-c-pista")
+    const siguiente = $$("#ed-canciones .ed-c-pista")
       .reduce((max,inp)=> Math.max(max, parseInt(inp.value)||0), 0) + 1;
     const div = crearFilaCancionEdicion({ "PISTA Nº": siguiente, TITULO:"", ARTISTA:"", "Duración":"", "Original Release Year":"", Letras:"" }, null);
     $("#ed-canciones").appendChild(div);
@@ -1186,6 +1197,7 @@ function cancelarEdicion(){
   $("#vista-album").style.display = "";
   $("#edicion-album").style.display = "none";
   $("#btn-modificar").style.display = "";
+  $("#ed-campos").innerHTML = "";
   const btn = $("#btn-guardar-cambios");
   btn.disabled = false;
   btn.textContent = "Guardar cambios";
@@ -1215,7 +1227,7 @@ async function guardarCambios(){
 
   const cancionesEditar = [];
   const cancionesNuevas = [];
-  $$(".cancion-edicion").forEach(div=>{
+  $$("#ed-canciones .cancion-edicion").forEach(div=>{
     const datos = {
       ALBUM_ID: albumSeleccionado.ALBUM_ID,
       "PISTA Nº": div.querySelector(".ed-c-pista").value.trim(),
@@ -1398,6 +1410,7 @@ function abrirModalNuevoAlbum(){
 }
 function cerrarModalNuevoAlbum(){
   $("#modal-fondo-nuevo").classList.remove("abierto");
+  $("#confirmar-campos").innerHTML = "";
   const btn = $("#btn-crear-album");
   btn.disabled = false;
   btn.textContent = "Añadir a mi colección";
@@ -1478,6 +1491,7 @@ function mapearReleaseDiscogs(r){
   const portada = (r.images && r.images[0]) ? (r.images[0].uri || r.images[0].resource_url) : "";
   const fecha = r.released || (r.year ? String(r.year) : "");
 
+  const vistas = new Set();
   const canciones = (r.tracklist||[])
     .filter(t=> !t.type_ || t.type_==="track")
     .map((t,i)=>({
@@ -1486,7 +1500,16 @@ function mapearReleaseDiscogs(r){
       "ARTISTA": (t.artists||[]).map(a=>limpiarNombreArtista(a.name)).join(", "),
       "Duración": t.duration || "",
       "Original Release Year": ""
-    }));
+    }))
+    .filter(c=>{
+      // Algunas fichas de Discogs repiten pistas en su propio listado
+      // (ediciones especiales, estructuras raras...). Descartamos
+      // cualquier pista que coincida en número + título con otra ya vista.
+      const clave = c["PISTA Nº"] + "|" + c["TITULO"].toLowerCase().trim();
+      if(vistas.has(clave)) return false;
+      vistas.add(clave);
+      return true;
+    });
 
   return {
     album: {
