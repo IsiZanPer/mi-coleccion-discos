@@ -886,6 +886,13 @@ function cerrarDetalle(){
 /* ---------- Edición de álbum y canciones ---------- */
 let cancionesAEliminar = []; // {ALBUM_ID, pista_original} marcadas para borrar en esta edición
 
+function formatearEntradaDuracion(e){
+  const digitos = e.target.value.replace(/\D/g,"").slice(0,6); // máx. 6 dígitos = hh mm ss
+  const bloques = [];
+  for(let i=0; i<digitos.length; i+=2) bloques.push(digitos.slice(i,i+2));
+  e.target.value = bloques.join(":");
+}
+
 function crearFilaCancionEdicion(c, pistaOriginal){
   const div = document.createElement("div");
   div.className = "cancion-edicion";
@@ -895,7 +902,7 @@ function crearFilaCancionEdicion(c, pistaOriginal){
       <input type="number" class="ed-c-pista" value="${escapeAttr(c["PISTA Nº"]||"")}" placeholder="Nº">
       <input type="text" class="ed-c-titulo" value="${escapeAttr(c["TITULO"]||"")}" placeholder="Título">
       <input type="text" class="ed-c-artista" value="${escapeAttr(c["ARTISTA"]||"")}" placeholder="Artista">
-      <input type="text" class="ed-c-duracion" value="${escapeAttr(c["Duración"]||"")}" placeholder="h:mm:ss">
+      <input type="text" class="ed-c-duracion" value="${escapeAttr(c["Duración"]||"")}" placeholder="h:mm:ss" maxlength="8" inputmode="numeric">
       <input type="number" class="ed-c-anio" value="${escapeAttr(c["Original Release Year"]||"")}" placeholder="Año orig.">
       <button type="button" class="btn-eliminar-cancion" title="Eliminar canción">✕</button>
     </div>
@@ -907,6 +914,7 @@ function crearFilaCancionEdicion(c, pistaOriginal){
     }
     div.remove();
   });
+  div.querySelector(".ed-c-duracion").addEventListener("input", formatearEntradaDuracion);
   return div;
 }
 
