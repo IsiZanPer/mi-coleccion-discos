@@ -59,17 +59,19 @@
     font-size:14px;
   }
   #buscador:focus{outline:none;border-color:var(--accent);}
-  #filtro-genero{
-    background:var(--bg);
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:8px 10px;
+  .btn-nuevo-album{
+    background:var(--accent);
+    border:1px solid var(--accent);
+    color:#14151a;
+    font-weight:600;
+    padding:8px 14px;
     border-radius:4px;
     font-size:13.5px;
     font-family:inherit;
-    max-width:180px;
+    cursor:pointer;
+    white-space:nowrap;
   }
-  #filtro-genero:focus{outline:none;border-color:var(--accent);}
+  .btn-nuevo-album:hover{background:#dba838;}
   #contador{color:var(--muted);white-space:nowrap;}
   #estado-carga{color:var(--muted);font-size:13px;}
 
@@ -380,6 +382,84 @@
   #btn-cancelar-edicion{background:transparent;border:1px solid var(--border);color:var(--muted);}
   #btn-cancelar-edicion:hover{border-color:var(--text);color:var(--text);}
 
+  /* --- Modal Añadir álbum --- */
+  #modal-fondo-nuevo{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.6);
+    z-index:55;
+    align-items:center;
+    justify-content:center;
+  }
+  #modal-fondo-nuevo.abierto{display:flex;}
+  #modal-nuevo-album{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:28px 32px;
+    width:min(700px,94vw);
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  #modal-nuevo-album h3{margin:0 0 18px;font-size:19px;}
+  .grupo-busqueda-nuevo{display:flex;gap:8px;margin-bottom:10px;}
+  .grupo-busqueda-nuevo input{
+    flex:1;
+    background:var(--bg);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:9px 10px;
+    border-radius:4px;
+    font-size:13.5px;
+    font-family:inherit;
+  }
+  .grupo-busqueda-nuevo input:focus{outline:none;border-color:var(--accent);}
+  .grupo-busqueda-nuevo button{
+    background:var(--accent);
+    border:1px solid var(--accent);
+    color:#14151a;
+    font-weight:600;
+    padding:9px 14px;
+    border-radius:4px;
+    cursor:pointer;
+    font-family:inherit;
+    font-size:13px;
+    white-space:nowrap;
+  }
+  .grupo-busqueda-nuevo button:hover{background:#dba838;}
+  .separador-o{text-align:center;color:var(--muted);font-size:12px;margin:14px 0;}
+  .btn-manual{
+    display:block;
+    width:100%;
+    background:transparent;
+    border:1px dashed var(--border);
+    color:var(--muted);
+    padding:9px;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:13px;
+    font-family:inherit;
+  }
+  .btn-manual:hover{border-color:var(--accent);color:var(--accent);}
+  #estado-busqueda{color:var(--muted);font-size:12.5px;margin-bottom:4px;min-height:16px;}
+
+  #resultados-busqueda{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;margin-bottom:4px;}
+  .resultado-busqueda{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--panel-hi);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:8px 10px;
+    cursor:pointer;
+  }
+  .resultado-busqueda:hover{border-color:var(--accent);}
+  .resultado-busqueda img{width:44px;height:44px;object-fit:cover;border-radius:3px;flex-shrink:0;background:var(--bg);}
+  .resultado-busqueda .info{min-width:0;}
+  .resultado-busqueda .info .tit{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .resultado-busqueda .info .sub{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
   .btn-ficha{
     display:inline-block;
     background:transparent;
@@ -490,9 +570,7 @@
 <header>
   <h1>Mi colección</h1>
   <input id="buscador" type="text" placeholder="Buscar por álbum o artista…">
-  <select id="filtro-genero">
-    <option value="">Todos los géneros</option>
-  </select>
+  <button class="btn-nuevo-album" id="btn-nuevo-album" type="button">+ Añadir álbum</button>
   <span id="contador"></span>
   <span id="estado-carga">Cargando datos…</span>
 </header>
@@ -567,6 +645,36 @@
     <h3 id="letra-titulo"></h3>
     <div class="subtitulo" id="letra-subtitulo"></div>
     <div id="letra-cuerpo"></div>
+  </div>
+</div>
+
+<div id="modal-fondo-nuevo">
+  <div id="modal-nuevo-album">
+    <span class="cerrar-detalle" id="cerrar-modal-nuevo">✕</span>
+    <h3>Añadir álbum nuevo</h3>
+
+    <div id="paso-busqueda">
+      <div class="grupo-busqueda-nuevo">
+        <input type="text" id="buscar-barcode" placeholder="Código de barras (EAN/UPC)">
+        <button type="button" id="btn-buscar-barcode">Buscar por código</button>
+      </div>
+      <div class="grupo-busqueda-nuevo">
+        <input type="text" id="buscar-texto" placeholder="Título del álbum y/o artista">
+        <button type="button" id="btn-buscar-texto">Buscar por título</button>
+      </div>
+      <div id="estado-busqueda"></div>
+      <div id="resultados-busqueda"></div>
+      <div class="separador-o">— o —</div>
+      <button type="button" class="btn-manual" id="btn-manual">Rellenar a mano, sin buscar</button>
+    </div>
+
+    <div id="paso-confirmar" style="display:none;">
+      <div id="confirmar-campos"></div>
+      <div class="acciones-edicion">
+        <button type="button" id="btn-crear-album">Añadir a mi colección</button>
+        <button type="button" id="btn-volver-busqueda">‹ Volver a la búsqueda</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -648,7 +756,6 @@ let ALBUMES = [];
 let CANCIONES = [];
 let tabActivo = "artista";       // 'artista' | 'genero' | 'album' | 'anio'
 let valorActivo = "__TODOS__";   // valor seleccionado dentro de la pestaña actual
-let generoTop = "";              // filtro rápido de género (cabecera), independiente de las pestañas
 let albumSeleccionado = null;
 
 const $ = (sel) => document.querySelector(sel);
@@ -673,7 +780,6 @@ async function cargarDatos(){
     ALBUMES = json.albumes;
     CANCIONES = json.canciones;
     $("#estado-carga").textContent = "";
-    construirFiltroGenero();
     construirSidebar();
     pintarGrid();
   }catch(err){
@@ -697,20 +803,6 @@ function valorSegunTab(album, tab){
 }
 
 /* ---------- Selector de género (cabecera) ---------- */
-function construirFiltroGenero(){
-  const generos = [...new Set(ALBUMES.map(a=>(a["GENERO"]||"").trim()).filter(Boolean))]
-    .sort((a,b)=>a.localeCompare(b,'es'));
-
-  const sel = $("#filtro-genero");
-  sel.innerHTML = '<option value="">Todos los géneros</option>' +
-    generos.map(g=>`<option value="${escapeAttr(g)}">${escapeHTML(g)}</option>`).join("");
-
-  sel.addEventListener("change", ()=>{
-    generoTop = sel.value;
-    pintarGrid();
-  });
-}
-
 /* ---------- Sidebar con pestañas (Artistas/Géneros/Álbumes/Años) ---------- */
 function construirSidebar(){
   const conteo = {};
@@ -767,7 +859,6 @@ function pintarGrid(){
 
   let lista = ALBUMES.filter(a=>{
     if(valorActivo !== "__TODOS__" && valorSegunTab(a, tabActivo) !== valorActivo) return false;
-    if(generoTop && (a["GENERO"]||"").trim() !== generoTop) return false;
     if(!texto) return true;
     const campo = ((a["ALBUM"]||"") + " " + (a["ARTISTA ALBUM"]||"")).toLowerCase();
     return campo.includes(texto);
@@ -914,6 +1005,28 @@ function crearFilaCancionEdicion(c, pistaOriginal){
     }
     div.remove();
   });
+  div.querySelector(".ed-c-duracion").addEventListener("input", formatearEntradaDuracion);
+  return div;
+}
+
+/* Variante de fila de canción para el flujo de "álbum nuevo": todas las
+   filas son siempre nuevas (no hay pista_original ni cruce con nada
+   existente), así que eliminar una fila es tan simple como quitarla del DOM. */
+function crearFilaCancionNueva(c){
+  const div = document.createElement("div");
+  div.className = "cancion-edicion";
+  div.innerHTML = `
+    <div class="cancion-edicion-fila">
+      <input type="number" class="ed-c-pista" value="${escapeAttr(c["PISTA Nº"]||"")}" placeholder="Nº">
+      <input type="text" class="ed-c-titulo" value="${escapeAttr(c["TITULO"]||"")}" placeholder="Título">
+      <input type="text" class="ed-c-artista" value="${escapeAttr(c["ARTISTA"]||"")}" placeholder="Artista">
+      <input type="text" class="ed-c-duracion" value="${escapeAttr(c["Duración"]||"")}" placeholder="h:mm:ss" maxlength="8" inputmode="numeric">
+      <input type="number" class="ed-c-anio" value="${escapeAttr(c["Original Release Year"]||"")}" placeholder="Año orig.">
+      <button type="button" class="btn-eliminar-cancion" title="Eliminar canción">✕</button>
+    </div>
+    <textarea class="ed-c-letras" rows="3" placeholder="Letra">${escapeHTML(c["Letras"]||"")}</textarea>
+  `;
+  div.querySelector(".btn-eliminar-cancion").addEventListener("click", ()=> div.remove());
   div.querySelector(".ed-c-duracion").addEventListener("input", formatearEntradaDuracion);
   return div;
 }
@@ -1169,7 +1282,6 @@ async function guardarCambios(){
       CANCIONES.push(Object.assign({}, cn));
     });
 
-    construirFiltroGenero();
     construirSidebar();
     pintarGrid();
     abrirDetalle(albumSeleccionado);
@@ -1273,6 +1385,233 @@ $("#cerrar-modal").addEventListener("click", cerrarFicha);
 $("#modal-fondo").addEventListener("click", (e)=>{ if(e.target.id==="modal-fondo") cerrarFicha(); });
 $("#cerrar-modal-letra").addEventListener("click", cerrarLetra);
 $("#modal-fondo-letra").addEventListener("click", (e)=>{ if(e.target.id==="modal-fondo-letra") cerrarLetra(); });
+
+/* ---------- Añadir álbum nuevo (búsqueda en Discogs) ---------- */
+function abrirModalNuevoAlbum(){
+  $("#buscar-barcode").value = "";
+  $("#buscar-texto").value = "";
+  $("#estado-busqueda").textContent = "";
+  $("#resultados-busqueda").innerHTML = "";
+  $("#paso-busqueda").style.display = "block";
+  $("#paso-confirmar").style.display = "none";
+  $("#modal-fondo-nuevo").classList.add("abierto");
+}
+function cerrarModalNuevoAlbum(){
+  $("#modal-fondo-nuevo").classList.remove("abierto");
+  const btn = $("#btn-crear-album");
+  btn.disabled = false;
+  btn.textContent = "Añadir a mi colección";
+}
+
+async function buscarPorBarcode(){
+  const codigo = $("#buscar-barcode").value.trim();
+  if(!codigo) return;
+  await buscarDiscogs(`barcode=${encodeURIComponent(codigo)}`);
+}
+async function buscarPorTexto(){
+  const texto = $("#buscar-texto").value.trim();
+  if(!texto) return;
+  await buscarDiscogs(`q=${encodeURIComponent(texto)}&type=release`);
+}
+
+async function buscarDiscogs(query){
+  const estado = $("#estado-busqueda");
+  const cont = $("#resultados-busqueda");
+  estado.textContent = "Buscando…";
+  cont.innerHTML = "";
+  try{
+    const res = await fetch(`https://api.discogs.com/database/search?${query}&per_page=15`);
+    const datos = await res.json();
+    const resultados = datos.results || [];
+    if(!resultados.length){
+      estado.textContent = "Sin resultados.";
+      return;
+    }
+    estado.textContent = `${resultados.length} resultado(s), elige el correcto:`;
+    resultados.forEach(r=>{
+      const div = document.createElement("div");
+      div.className = "resultado-busqueda";
+      const sub = [r.year, (r.format||[]).slice(0,2).join(", "), (r.label||[])[0]].filter(Boolean).join(" · ");
+      div.innerHTML = `
+        <img src="${escapeAttr(r.thumb||'')}" alt="" onerror="this.style.visibility='hidden'">
+        <div class="info">
+          <div class="tit">${escapeHTML(r.title||"")}</div>
+          <div class="sub">${escapeHTML(sub)}</div>
+        </div>
+      `;
+      div.addEventListener("click", ()=> seleccionarResultado(r.id, r.type));
+      cont.appendChild(div);
+    });
+  }catch(err){
+    estado.textContent = "Error al buscar en Discogs.";
+    console.error(err);
+  }
+}
+
+async function seleccionarResultado(id, tipo){
+  const estado = $("#estado-busqueda");
+  estado.textContent = "Cargando datos del álbum…";
+  try{
+    const url = tipo==="master"
+      ? `https://api.discogs.com/masters/${id}`
+      : `https://api.discogs.com/releases/${id}`;
+    const res = await fetch(url);
+    const release = await res.json();
+    mostrarConfirmacion(mapearReleaseDiscogs(release));
+  }catch(err){
+    estado.textContent = "No se pudo cargar ese álbum.";
+    console.error(err);
+  }
+}
+
+// Quita el sufijo de desambiguación que añade Discogs a nombres repetidos, ej. "Queen (2)" -> "Queen"
+function limpiarNombreArtista(nombre){
+  return String(nombre||"").replace(/\s*\(\d+\)$/,"").trim();
+}
+
+function mapearReleaseDiscogs(r){
+  const artistas = (r.artists||[]).map(a=>limpiarNombreArtista(a.name)).join(", ");
+  const generos = [...new Set([...(r.genres||[]), ...(r.styles||[])])].join(", ");
+  const etiqueta = (r.labels && r.labels[0]) ? r.labels[0].name : "";
+  const catalogo = (r.labels && r.labels[0]) ? r.labels[0].catno : "";
+  const barcode = (r.identifiers||[]).find(i=> String(i.type||"").toLowerCase().includes("barcode"));
+  const portada = (r.images && r.images[0]) ? (r.images[0].uri || r.images[0].resource_url) : "";
+  const fecha = r.released || (r.year ? String(r.year) : "");
+
+  const canciones = (r.tracklist||[])
+    .filter(t=> !t.type_ || t.type_==="track")
+    .map((t,i)=>({
+      "PISTA Nº": parseInt(t.position) || (i+1),
+      "TITULO": t.title || "",
+      "ARTISTA": (t.artists||[]).map(a=>limpiarNombreArtista(a.name)).join(", "),
+      "Duración": t.duration || "",
+      "Original Release Year": ""
+    }));
+
+  return {
+    album: {
+      "ARTISTA ALBUM": artistas,
+      "ALBUM": r.title || "",
+      "GENERO": generos,
+      "Etiqueta": etiqueta,
+      "Fecha": fecha,
+      "Número de Catalogo": catalogo,
+      "Código de barras": barcode ? barcode.value : "",
+      "PORTADA": portada
+    },
+    canciones: canciones
+  };
+}
+
+function mostrarConfirmacion(datos){
+  const a = datos.album || {};
+  const campo = (id,label,valor,tipo="text") => `
+    <label class="campo-edicion">
+      <span>${label}</span>
+      <input type="${tipo}" id="${id}" value="${escapeAttr(valor==null?"":valor)}">
+    </label>`;
+
+  const html = `
+    <div class="grupo-edicion">
+      ${campo("nv-artista","Artista",a["ARTISTA ALBUM"])}
+      ${campo("nv-album","Título del álbum",a["ALBUM"])}
+      ${campo("nv-genero","Género",a["GENERO"])}
+      ${campo("nv-etiqueta","Sello",a["Etiqueta"])}
+      ${campo("nv-fecha","Fecha de publicación",a["Fecha"])}
+      ${campo("nv-catalogo","Nº de catálogo",a["Número de Catalogo"])}
+      ${campo("nv-barcode","Código de barras",a["Código de barras"])}
+      ${campo("nv-portada","URL de la carátula",a["PORTADA"])}
+    </div>
+    <div class="det-subtitulo">Canciones</div>
+    <div id="nv-canciones"></div>
+    <button type="button" class="btn-anadir-cancion" id="btn-nv-anadir-cancion">+ Añadir canción</button>
+  `;
+  $("#confirmar-campos").innerHTML = html;
+
+  const cont = $("#nv-canciones");
+  (datos.canciones||[]).forEach(c=> cont.appendChild(crearFilaCancionNueva(c)));
+
+  $("#btn-nv-anadir-cancion").addEventListener("click", ()=>{
+    const siguiente = $$("#nv-canciones .ed-c-pista").reduce((max,inp)=>Math.max(max,parseInt(inp.value)||0),0) + 1;
+    cont.appendChild(crearFilaCancionNueva({ "PISTA Nº": siguiente }));
+  });
+
+  $("#paso-busqueda").style.display = "none";
+  $("#paso-confirmar").style.display = "block";
+}
+
+async function crearAlbumNuevo(){
+  if(!(await asegurarSesion())) return;
+  const btn = $("#btn-crear-album");
+  btn.disabled = true;
+  btn.textContent = "Guardando…";
+
+  const albumNuevo = {
+    "ARTISTA ALBUM": $("#nv-artista").value.trim(),
+    "ALBUM": $("#nv-album").value.trim(),
+    "GENERO": $("#nv-genero").value.trim(),
+    "Etiqueta": $("#nv-etiqueta").value.trim(),
+    "Fecha": $("#nv-fecha").value.trim(),
+    "Número de Catalogo": $("#nv-catalogo").value.trim(),
+    "Código de barras": $("#nv-barcode").value.trim(),
+    "PORTADA": $("#nv-portada").value.trim()
+  };
+  const cancionesNuevas = $$("#nv-canciones .cancion-edicion").map(div=>({
+    "PISTA Nº": div.querySelector(".ed-c-pista").value.trim(),
+    "TITULO": div.querySelector(".ed-c-titulo").value.trim(),
+    "ARTISTA": div.querySelector(".ed-c-artista").value.trim(),
+    "Duración": div.querySelector(".ed-c-duracion").value.trim(),
+    "Original Release Year": div.querySelector(".ed-c-anio").value.trim(),
+    "Letras": div.querySelector(".ed-c-letras").value
+  }));
+
+  try{
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ token: tokenSesion, nuevo_album: albumNuevo, nuevo_album_canciones: cancionesNuevas })
+    });
+    const json = await res.json();
+
+    if(!json.ok){
+      if(String(json.error||"").includes("Token")){
+        tokenSesion = null;
+        sessionStorage.removeItem("token_edicion");
+      }
+      alert("Error al crear el álbum: " + json.error);
+      btn.disabled = false;
+      btn.textContent = "Añadir a mi colección";
+      return;
+    }
+
+    const nuevoAlbumCompleto = Object.assign({ ALBUM_ID: json.album_id }, albumNuevo);
+    ALBUMES.push(nuevoAlbumCompleto);
+    cancionesNuevas.forEach(c=> CANCIONES.push(Object.assign({ ALBUM_ID: json.album_id }, c)));
+
+    construirSidebar();
+    pintarGrid();
+    cerrarModalNuevoAlbum();
+    abrirDetalle(nuevoAlbumCompleto);
+  }catch(err){
+    alert("No se pudo conectar para crear el álbum.");
+    console.error(err);
+    btn.disabled = false;
+    btn.textContent = "Añadir a mi colección";
+  }
+}
+
+$("#btn-nuevo-album").addEventListener("click", abrirModalNuevoAlbum);
+$("#cerrar-modal-nuevo").addEventListener("click", cerrarModalNuevoAlbum);
+$("#modal-fondo-nuevo").addEventListener("click", (e)=>{ if(e.target.id==="modal-fondo-nuevo") cerrarModalNuevoAlbum(); });
+$("#btn-buscar-barcode").addEventListener("click", buscarPorBarcode);
+$("#btn-buscar-texto").addEventListener("click", buscarPorTexto);
+$("#buscar-barcode").addEventListener("keydown", e=>{ if(e.key==="Enter") buscarPorBarcode(); });
+$("#buscar-texto").addEventListener("keydown", e=>{ if(e.key==="Enter") buscarPorTexto(); });
+$("#btn-manual").addEventListener("click", ()=> mostrarConfirmacion({album:{}, canciones:[]}));
+$("#btn-volver-busqueda").addEventListener("click", ()=>{
+  $("#paso-confirmar").style.display = "none";
+  $("#paso-busqueda").style.display = "block";
+});
+$("#btn-crear-album").addEventListener("click", crearAlbumNuevo);
 
 cargarDatos();
 </script>
