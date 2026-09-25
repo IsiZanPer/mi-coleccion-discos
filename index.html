@@ -134,10 +134,13 @@
     overflow-y:auto;
     padding:20px;
   }
-  #grid{
+  #grid.vista-covers{
     display:grid;
     grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
     gap:18px;
+  }
+  #grid.vista-card, #grid.vista-list{
+    display:block;
   }
   .album-card{
     cursor:pointer;
@@ -164,6 +167,69 @@
   .album-card.selec .cover{outline:2px solid var(--accent);outline-offset:2px;}
   .album-titulo{font-size:13px;font-weight:600;line-height:1.3;}
   .album-artista{font-size:12px;color:var(--muted);}
+
+  /* --- Selector de vista (Carátulas/Tarjetas/Lista) --- */
+  .vista-selector{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px;}
+  .vista-btn{
+    background:transparent;
+    border:none;
+    color:var(--muted);
+    width:30px;height:26px;
+    border-radius:3px;
+    cursor:pointer;
+    font-size:15px;
+    line-height:1;
+  }
+  .vista-btn.activo{background:var(--accent);color:#14151a;}
+  .vista-btn:not(.activo):hover{color:var(--text);}
+
+  /* --- Vista de tarjetas (fila tipo CLZ) --- */
+  .fila-card{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:5px;
+    padding:8px 14px;
+    margin-bottom:6px;
+    cursor:pointer;
+  }
+  .fila-card:hover{border-color:var(--accent);}
+  .fila-card.selec{background:var(--panel-hi);border-color:var(--accent);}
+  .fc-cover{
+    width:52px;height:52px;flex-shrink:0;
+    background:var(--panel-hi) linear-gradient(135deg,#2a2d38,#1a1c23);
+    border:1px solid var(--border);
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .fc-cover img{width:100%;height:100%;object-fit:cover;display:block;}
+  .fc-info{flex:1;min-width:0;}
+  .fc-titulo{font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fc-artista{font-size:13px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fc-formato{font-size:12px;color:var(--muted);margin-top:4px;}
+  .fc-meta{text-align:right;flex-shrink:0;font-size:12.5px;color:var(--muted);}
+  .fc-pistas{color:var(--text);}
+
+  /* --- Vista de lista (tabla) --- */
+  .tabla-albumes{width:100%;border-collapse:collapse;font-size:13px;}
+  .tabla-albumes thead th{
+    text-align:left;
+    color:var(--muted);
+    font-weight:600;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    padding:8px 10px;
+    border-bottom:1px solid var(--border);
+    position:sticky;top:0;background:var(--bg);
+  }
+  .tabla-albumes tbody tr{cursor:pointer;border-bottom:1px solid var(--border);}
+  .tabla-albumes tbody tr:hover{background:var(--panel-hi);}
+  .tabla-albumes tbody tr.selec{background:var(--panel-hi);color:var(--accent);}
+  .tabla-albumes td{padding:8px 10px;}
+  .tabla-albumes .td-album{font-weight:600;}
 
   #vacio{color:var(--muted);padding:40px;text-align:center;}
 
@@ -591,6 +657,11 @@
 <header>
   <h1>Mi colección</h1>
   <input id="buscador" type="text" placeholder="Buscar por álbum o artista…">
+  <div class="vista-selector" id="vista-selector">
+    <button type="button" class="vista-btn" data-vista="covers" title="Carátulas">▦</button>
+    <button type="button" class="vista-btn" data-vista="card" title="Tarjetas">☰</button>
+    <button type="button" class="vista-btn" data-vista="list" title="Lista">≡</button>
+  </div>
   <button class="btn-nuevo-album" id="btn-nuevo-album" type="button">+ Añadir álbum</button>
   <span id="contador"></span>
   <span id="estado-carga">Cargando datos…</span>
@@ -910,6 +981,34 @@ $('.artista-item[data-valor="__TODOS__"]').addEventListener("click", ()=>{
 });
 
 /* ---------- Grid de álbumes ---------- */
+let vistaActual = localStorage.getItem("vista_grid") || "covers"; // 'covers' | 'card' | 'list'
+
+/* Datos resumidos de un álbum (pistas, duración total, año), sea de un
+   solo disco o de un grupo multi-disco (suma ambos discos) */
+function resumenAlbum(a){
+  let pistas = 0, segundos = 0;
+  if(a._esGrupo){
+    a._discos.forEach(d=>{
+      pistas += CANCIONES.filter(c=>c.ALBUM_ID===d.ALBUM_ID).length;
+      const fila = ALBUMES.find(x=>x.ALBUM_ID===d.ALBUM_ID);
+      if(fila && fila["Total duración"]) segundos += segundosDeDuracion(fila["Total duración"]);
+    });
+  } else {
+    pistas = CANCIONES.filter(c=>c.ALBUM_ID===a.ALBUM_ID).length;
+    segundos = a["Total duración"] ? segundosDeDuracion(a["Total duración"]) : 0;
+  }
+  const fechaPub = a["Fecha"] ? String(a["Fecha"]) : "";
+  const anio = fechaPub.includes("/") ? fechaPub.split("/").pop() : fechaPub;
+  return { pistas, duracionTexto: segundos ? formatearSegundos(segundos) : "", anio };
+}
+
+function cambiarVista(nueva){
+  vistaActual = nueva;
+  localStorage.setItem("vista_grid", nueva);
+  $$(".vista-btn").forEach(b=> b.classList.toggle("activo", b.dataset.vista===nueva));
+  pintarGrid();
+}
+
 function pintarGrid(){
   const texto = $("#buscador").value.trim().toLowerCase();
 
@@ -926,22 +1025,81 @@ function pintarGrid(){
 
   const grid = $("#grid");
   grid.innerHTML = "";
+  grid.className = "vista-" + vistaActual;
   $("#vacio").style.display = lista.length ? "none" : "block";
 
-  lista.forEach(a=>{
-    const card = document.createElement("div");
-    card.className = "album-card";
-    if(albumSeleccionado && albumSeleccionado.ALBUM_ID === a.ALBUM_ID) card.classList.add("selec");
+  if(vistaActual === "list"){
+    pintarVistaLista(grid, lista);
+  } else {
+    lista.forEach(a=> grid.appendChild(
+      vistaActual === "card" ? construirFilaCard(a) : construirCoverCard(a)
+    ));
+  }
+}
 
-    const portada = a["PORTADA"];
-    card.innerHTML = `
-      <div class="cover">${portada ? `<img src="${escapeAttr(portada)}" loading="lazy" alt="">` : escapeHTML(a["ALBUM"]||"")}</div>
-      <div class="album-titulo">${escapeHTML(a["ALBUM"]||"(Sin título)")}</div>
-      <div class="album-artista">${escapeHTML(a["ARTISTA ALBUM"]||"")}</div>
+function construirCoverCard(a){
+  const card = document.createElement("div");
+  card.className = "album-card";
+  if(albumSeleccionado && albumSeleccionado.ALBUM_ID === a.ALBUM_ID) card.classList.add("selec");
+  const portada = a["PORTADA"];
+  card.innerHTML = `
+    <div class="cover">${portada ? `<img src="${escapeAttr(portada)}" loading="lazy" alt="">` : escapeHTML(a["ALBUM"]||"")}</div>
+    <div class="album-titulo">${escapeHTML(a["ALBUM"]||"(Sin título)")}</div>
+    <div class="album-artista">${escapeHTML(a["ARTISTA ALBUM"]||"")}</div>
+  `;
+  card.addEventListener("click", ()=> abrirDetalle(a));
+  return card;
+}
+
+function construirFilaCard(a){
+  const { pistas, duracionTexto, anio } = resumenAlbum(a);
+  const portada = a["PORTADA"];
+  const fila = document.createElement("div");
+  fila.className = "fila-card";
+  if(albumSeleccionado && albumSeleccionado.ALBUM_ID === a.ALBUM_ID) fila.classList.add("selec");
+  fila.innerHTML = `
+    <div class="fc-cover">${portada ? `<img src="${escapeAttr(portada)}" loading="lazy" alt="">` : ""}</div>
+    <div class="fc-info">
+      <div class="fc-titulo">${escapeHTML(a["ALBUM"]||"(Sin título)")}</div>
+      <div class="fc-artista">${escapeHTML(a["ARTISTA ALBUM"]||"")}</div>
+      <div class="fc-formato">CD${anio ? " – "+escapeHTML(anio) : ""}</div>
+    </div>
+    <div class="fc-meta">
+      <div class="fc-pistas">♫ ${pistas}</div>
+      <div class="fc-duracion">${escapeHTML(duracionTexto)}</div>
+    </div>
+  `;
+  fila.addEventListener("click", ()=> abrirDetalle(a));
+  return fila;
+}
+
+function pintarVistaLista(grid, lista){
+  const tabla = document.createElement("table");
+  tabla.className = "tabla-albumes";
+  tabla.innerHTML = `
+    <thead><tr>
+      <th>Álbum</th><th>Artista</th><th>Año</th><th>Género</th><th>Rating</th><th>Duración</th>
+    </tr></thead>
+  `;
+  const tbody = document.createElement("tbody");
+  lista.forEach(a=>{
+    const { duracionTexto, anio } = resumenAlbum(a);
+    const rating = parseInt(a["Rating"])||0;
+    const tr = document.createElement("tr");
+    if(albumSeleccionado && albumSeleccionado.ALBUM_ID === a.ALBUM_ID) tr.classList.add("selec");
+    tr.innerHTML = `
+      <td class="td-album">${escapeHTML(a["ALBUM"]||"(Sin título)")}</td>
+      <td>${escapeHTML(a["ARTISTA ALBUM"]||"")}</td>
+      <td>${escapeHTML(anio)}</td>
+      <td>${escapeHTML(a["GENERO"]||"")}</td>
+      <td>${rating ? rating+"/10" : ""}</td>
+      <td>${escapeHTML(duracionTexto)}</td>
     `;
-    card.addEventListener("click", ()=> abrirDetalle(a));
-    grid.appendChild(card);
+    tr.addEventListener("click", ()=> abrirDetalle(a));
+    tbody.appendChild(tr);
   });
+  tabla.appendChild(tbody);
+  grid.appendChild(tabla);
 }
 
 /* Construye un <ol> de canciones (reutilizable tanto para álbumes normales
@@ -1769,6 +1927,11 @@ $("#btn-volver-busqueda").addEventListener("click", ()=>{
   $("#paso-busqueda").style.display = "block";
 });
 $("#btn-crear-album").addEventListener("click", crearAlbumNuevo);
+
+$$(".vista-btn").forEach(btn=>{
+  btn.classList.toggle("activo", btn.dataset.vista===vistaActual);
+  btn.addEventListener("click", ()=> cambiarVista(btn.dataset.vista));
+});
 
 cargarDatos();
 </script>
