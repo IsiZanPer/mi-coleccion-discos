@@ -229,8 +229,8 @@
     font-weight:600;
   }
 
-  #canciones{list-style:none;margin:0 0 16px;padding:0;border-radius:4px;overflow:hidden;}
-  #canciones li{
+  .lista-canciones{list-style:none;margin:0 0 16px;padding:0;border-radius:4px;overflow:hidden;}
+  .lista-canciones li{
     display:flex;
     align-items:center;
     justify-content:space-between;
@@ -238,11 +238,32 @@
     padding:9px 12px;
     font-size:14px;
   }
-  #canciones li:nth-child(odd){background:var(--panel-hi);}
-  #canciones .num{color:var(--muted);width:20px;flex-shrink:0;}
-  #canciones .tit{flex:1;font-weight:500;}
-  #canciones .tit em{font-weight:400;color:var(--muted);font-style:italic;}
-  #canciones .dur{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px;}
+  .lista-canciones li:nth-child(odd){background:var(--panel-hi);}
+  .lista-canciones .num{color:var(--muted);width:20px;flex-shrink:0;}
+  .lista-canciones .tit{flex:1;font-weight:500;}
+  .lista-canciones .tit em{font-weight:400;color:var(--muted);font-style:italic;}
+  .lista-canciones .dur{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px;}
+  .disco-titulo{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-size:13px;
+    font-weight:600;
+    color:var(--text);
+    margin:14px 0 6px;
+  }
+  .disco-titulo:first-child{margin-top:0;}
+  .btn-editar-disco{
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--muted);
+    padding:3px 9px;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:11px;
+    font-family:inherit;
+  }
+  .btn-editar-disco:hover{border-color:var(--accent);color:var(--accent);}
   .btn-letra{
     background:transparent;
     border:1px solid var(--border);
@@ -614,7 +635,7 @@
       <div class="artista-det" id="det-artista"></div>
 
       <div class="det-subtitulo">Canciones</div>
-      <ol id="canciones"></ol>
+      <div id="canciones-wrap"></div>
       <button class="btn-ficha" id="btn-ficha">Ver ficha completa</button>
 
       <div class="det-subtitulo">Detalles particulares</div>
@@ -752,7 +773,8 @@ async function asegurarTokenGithub(){
   return true;
 }
 
-let ALBUMES = [];
+let ALBUMES = [];        // datos crudos, una fila por disco (tal cual la hoja)
+let ALBUMES_VISTA = [];  // para grid/sidebar: álbumes multi-disco fusionados en una sola entrada
 let CANCIONES = [];
 let tabActivo = "artista";       // 'artista' | 'genero' | 'album' | 'anio'
 let valorActivo = "__TODOS__";   // valor seleccionado dentro de la pestaña actual
@@ -768,6 +790,40 @@ const ETIQUETAS_TAB = {
   anio: "Años"
 };
 
+/* Fusiona en una sola entrada las filas de ALBUMES que compartan
+   Artista+Título y tengan ambas algo en "Disco #" (multi-disco).
+   Los álbumes de un solo disco (Disco # vacío) no se tocan. */
+function agruparAlbumesMultiDisco(albumes){
+  const grupos = {};
+  const resultado = [];
+
+  albumes.forEach(a=>{
+    const disco = String(a["Disco #"]||"").trim();
+    if(!disco){ resultado.push(a); return; }
+    const clave = (a["ARTISTA ALBUM"]||"").trim().toLowerCase() + "||" + (a["ALBUM"]||"").trim().toLowerCase();
+    (grupos[clave] = grupos[clave] || []).push(a);
+  });
+
+  Object.values(grupos).forEach(lista=>{
+    if(lista.length < 2){ resultado.push(lista[0]); return; }
+    lista.sort((x,y)=> (parseInt(x["Disco #"])||0) - (parseInt(y["Disco #"])||0));
+    resultado.push(Object.assign({}, lista[0], {
+      _esGrupo: true,
+      _discos: lista.map(a=>({ ALBUM_ID: a.ALBUM_ID, numero: a["Disco #"] }))
+    }));
+  });
+
+  return resultado;
+}
+
+// Encuentra la entrada de ALBUMES_VISTA correspondiente a un ALBUM_ID real
+// (ya sea su propia entrada suelta, o el grupo multi-disco que lo contiene)
+function encontrarEntradaVista(albumId){
+  return ALBUMES_VISTA.find(a=>
+    a._esGrupo ? a._discos.some(d=>d.ALBUM_ID===albumId) : a.ALBUM_ID===albumId
+  );
+}
+
 /* ---------- Carga de datos ---------- */
 async function cargarDatos(){
   try{
@@ -779,6 +835,7 @@ async function cargarDatos(){
     }
     ALBUMES = json.albumes;
     CANCIONES = json.canciones;
+    ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
     $("#estado-carga").textContent = "";
     construirSidebar();
     pintarGrid();
@@ -802,11 +859,10 @@ function valorSegunTab(album, tab){
   return "";
 }
 
-/* ---------- Selector de género (cabecera) ---------- */
 /* ---------- Sidebar con pestañas (Artistas/Géneros/Álbumes/Años) ---------- */
 function construirSidebar(){
   const conteo = {};
-  ALBUMES.forEach(a=>{
+  ALBUMES_VISTA.forEach(a=>{
     const valor = valorSegunTab(a, tabActivo);
     conteo[valor] = (conteo[valor]||0)+1;
   });
@@ -816,7 +872,7 @@ function construirSidebar(){
     ? claves.sort((a,b)=> b.localeCompare(a,'es', {numeric:true})) // años: más reciente primero
     : claves.sort((a,b)=>a.localeCompare(b,'es'));
 
-  $("#n-todos").textContent = ALBUMES.length;
+  $("#n-todos").textContent = ALBUMES_VISTA.length;
 
   const cont = $("#lista-artistas");
   cont.innerHTML = "";
@@ -857,7 +913,7 @@ $('.artista-item[data-valor="__TODOS__"]').addEventListener("click", ()=>{
 function pintarGrid(){
   const texto = $("#buscador").value.trim().toLowerCase();
 
-  let lista = ALBUMES.filter(a=>{
+  let lista = ALBUMES_VISTA.filter(a=>{
     if(valorActivo !== "__TODOS__" && valorSegunTab(a, tabActivo) !== valorActivo) return false;
     if(!texto) return true;
     const campo = ((a["ALBUM"]||"") + " " + (a["ARTISTA ALBUM"]||"")).toLowerCase();
@@ -886,6 +942,29 @@ function pintarGrid(){
     card.addEventListener("click", ()=> abrirDetalle(a));
     grid.appendChild(card);
   });
+}
+
+/* Construye un <ol> de canciones (reutilizable tanto para álbumes normales
+   como para cada disco de un álbum multi-disco agrupado) */
+function construirOlCanciones(canciones){
+  const ol = document.createElement("ol");
+  ol.className = "lista-canciones";
+  canciones.forEach(c=>{
+    const li = document.createElement("li");
+    const tieneLetra = c["Letras"] && String(c["Letras"]).trim() !== "";
+    const artistaCancion = c["ARTISTA"] ? ` <em>(${escapeHTML(c["ARTISTA"])})</em>` : "";
+    li.innerHTML = `
+      <span class="num">${escapeHTML(String(c["PISTA Nº"]||""))}</span>
+      <span class="tit">${escapeHTML(c["TITULO"]||"")}${artistaCancion}</span>
+      ${tieneLetra ? `<button class="btn-letra" type="button">Letra</button>` : ""}
+      <span class="dur">${escapeHTML(formatearDuracion(c["Duración"]))}</span>
+    `;
+    if(tieneLetra){
+      li.querySelector(".btn-letra").addEventListener("click", ()=> abrirLetra(c));
+    }
+    ol.appendChild(li);
+  });
+  return ol;
 }
 
 /* ---------- Panel de detalle ---------- */
@@ -929,14 +1008,8 @@ function abrirDetalle(album){
     ? `Nº de catálogo: ${escapeHTML(String(album["Número de Catalogo"]))}`
     : "";
 
-  const canciones = CANCIONES
-    .filter(c => c.ALBUM_ID === album.ALBUM_ID)
-    .sort((a,b)=> (parseInt(a["PISTA Nº"])||0) - (parseInt(b["PISTA Nº"])||0));
-
-  const duracionTotal = album["Total duración"] ? formatearDuracion(album["Total duración"]) : "";
-  $("#det-resumen").textContent = `CD · ${canciones.length} pista${canciones.length===1?'':'s'}${duracionTotal ? ' · '+duracionTotal : ''}`;
-
   const particulares = [
+    `<b>Código de barras:</b> ${campoOVacio(album["Código de barras"])}`,
     `<b>Fecha de compra:</b> ${campoOVacio(album["Fecha de compra"])}`,
     `<b>Precio:</b> ${campoOVacio(album["Precio"], " €")}`,
     `<b>Tienda:</b> ${campoOVacio(album["Tienda"])}`,
@@ -944,23 +1017,55 @@ function abrirDetalle(album){
   ];
   $("#det-particulares").innerHTML = particulares.join("<br>");
 
-  const ul = $("#canciones");
-  ul.innerHTML = "";
-  canciones.forEach(c=>{
-    const li = document.createElement("li");
-    const tieneLetra = c["Letras"] && String(c["Letras"]).trim() !== "";
-    const artistaCancion = c["ARTISTA"] ? ` <em>(${escapeHTML(c["ARTISTA"])})</em>` : "";
-    li.innerHTML = `
-      <span class="num">${escapeHTML(String(c["PISTA Nº"]||""))}</span>
-      <span class="tit">${escapeHTML(c["TITULO"]||"")}${artistaCancion}</span>
-      ${tieneLetra ? `<button class="btn-letra" type="button">Letra</button>` : ""}
-      <span class="dur">${escapeHTML(formatearDuracion(c["Duración"]))}</span>
-    `;
-    if(tieneLetra){
-      li.querySelector(".btn-letra").addEventListener("click", ()=> abrirLetra(c));
-    }
-    ul.appendChild(li);
-  });
+  const wrap = $("#canciones-wrap");
+  wrap.innerHTML = "";
+
+  if(album._esGrupo){
+    // Álbum multi-disco: una sección por disco, cada una con su propio
+    // enlace para editar ESE disco en concreto (metadatos + canciones).
+    let totalCanciones = 0;
+    let sumaSegundos = 0;
+
+    album._discos.forEach(d=>{
+      const canciones = CANCIONES
+        .filter(c => c.ALBUM_ID === d.ALBUM_ID)
+        .sort((a,b)=> (parseInt(a["PISTA Nº"])||0) - (parseInt(b["PISTA Nº"])||0));
+      totalCanciones += canciones.length;
+
+      const filaReal = ALBUMES.find(a=> a.ALBUM_ID === d.ALBUM_ID);
+      if(filaReal && filaReal["Total duración"]){
+        sumaSegundos += segundosDeDuracion(filaReal["Total duración"]);
+      }
+
+      const cabecera = document.createElement("div");
+      cabecera.className = "disco-titulo";
+      cabecera.innerHTML = `
+        <span>Disco ${escapeHTML(String(d.numero))}</span>
+        <button type="button" class="btn-editar-disco">✎ Editar este disco</button>
+      `;
+      cabecera.querySelector(".btn-editar-disco").addEventListener("click", ()=>{
+        const fila = ALBUMES.find(a=> a.ALBUM_ID === d.ALBUM_ID);
+        if(fila){
+          albumSeleccionado = fila;
+          entrarModoEdicion();
+        }
+      });
+      wrap.appendChild(cabecera);
+      wrap.appendChild(construirOlCanciones(canciones));
+    });
+
+    $("#det-resumen").textContent = `CD · ${album._discos.length} discos · ${totalCanciones} pistas${sumaSegundos ? ' · ' + formatearSegundos(sumaSegundos) : ''}`;
+    $("#btn-modificar").style.display = "none"; // se edita disco a disco (ver enlaces de cada sección)
+  } else {
+    const canciones = CANCIONES
+      .filter(c => c.ALBUM_ID === album.ALBUM_ID)
+      .sort((a,b)=> (parseInt(a["PISTA Nº"])||0) - (parseInt(b["PISTA Nº"])||0));
+
+    const duracionTotal = album["Total duración"] ? formatearDuracion(album["Total duración"]) : "";
+    $("#det-resumen").textContent = `CD · ${canciones.length} pista${canciones.length===1?'':'s'}${duracionTotal ? ' · '+duracionTotal : ''}`;
+    wrap.appendChild(construirOlCanciones(canciones));
+    $("#btn-modificar").style.display = "";
+  }
 
   $("#btn-ficha").style.display = album["Comentario"] ? "inline-block" : "none";
 
@@ -1071,6 +1176,7 @@ async function entrarModoEdicion(){
       ${campo("ed-etiqueta","Sello",a["Etiqueta"])}
       ${campo("ed-fecha","Fecha de publicación",a["Fecha"])}
       ${campo("ed-catalogo","Nº de catálogo",a["Número de Catalogo"])}
+      ${campo("ed-barcode","Código de barras",a["Código de barras"])}
       ${campo("ed-rating","Rating (0-10)",a["Rating"],"number")}
       ${campo("ed-portada","URL de la carátula",a["PORTADA"])}
       ${campo("ed-fecha-compra","Fecha de compra",a["Fecha de compra"])}
@@ -1217,6 +1323,7 @@ async function guardarCambios(){
     "Etiqueta": $("#ed-etiqueta").value.trim(),
     "Fecha": $("#ed-fecha").value.trim(),
     "Número de Catalogo": $("#ed-catalogo").value.trim(),
+    "Código de barras": $("#ed-barcode").value.trim(),
     "Rating": $("#ed-rating").value.trim(),
     "PORTADA": $("#ed-portada").value.trim(),
     "Fecha de compra": $("#ed-fecha-compra").value.trim(),
@@ -1294,9 +1401,11 @@ async function guardarCambios(){
       CANCIONES.push(Object.assign({}, cn));
     });
 
+    const idAlbumEditado = albumSeleccionado.ALBUM_ID;
+    ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
     construirSidebar();
     pintarGrid();
-    abrirDetalle(albumSeleccionado);
+    abrirDetalle(encontrarEntradaVista(idAlbumEditado) || albumSeleccionado);
     cancelarEdicion();
   }catch(err){
     alert("No se pudo conectar para guardar los cambios.");
@@ -1384,6 +1493,22 @@ function formatearDuracion(v){
   // El script ya envía "HH:mm:ss"; si la hora es 00, la recortamos (ej. "00:04:33" -> "04:33")
   const m = String(v).match(/^00:(\d{2}:\d{2})$/);
   return m ? m[1] : String(v);
+}
+
+// Convierte "HH:mm:ss" a segundos totales (para poder sumar duraciones de varios discos)
+function segundosDeDuracion(v){
+  if(!v) return 0;
+  const partes = String(v).split(":").map(n=>parseInt(n,10)||0);
+  if(partes.length===3) return partes[0]*3600 + partes[1]*60 + partes[2];
+  if(partes.length===2) return partes[0]*60 + partes[1];
+  return 0;
+}
+function formatearSegundos(total){
+  const h = Math.floor(total/3600);
+  const m = Math.floor((total%3600)/60);
+  const s = total%60;
+  const mmss = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  return h>0 ? `${h}:${mmss}` : mmss;
 }
 
 /* ---------- Eventos ---------- */
@@ -1617,11 +1742,12 @@ async function crearAlbumNuevo(){
     const nuevoAlbumCompleto = Object.assign({ ALBUM_ID: json.album_id }, albumNuevo);
     ALBUMES.push(nuevoAlbumCompleto);
     cancionesNuevas.forEach(c=> CANCIONES.push(Object.assign({ ALBUM_ID: json.album_id }, c)));
+    ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
 
     construirSidebar();
     pintarGrid();
     cerrarModalNuevoAlbum();
-    abrirDetalle(nuevoAlbumCompleto);
+    abrirDetalle(encontrarEntradaVista(json.album_id) || nuevoAlbumCompleto);
   }catch(err){
     alert("No se pudo conectar para crear el álbum.");
     console.error(err);
