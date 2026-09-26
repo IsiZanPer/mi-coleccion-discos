@@ -5,106 +5,692 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mi Colección de Discos - Nueva Versión</title>
 <style>
-  /* --- ESTILOS BASE (Copia aquí los estilos de tu OLD.html para mantener el diseño) --- */
-  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f9; margin: 0; padding: 20px; }
-  .container { max-width: 1200px; margin: 0 auto; }
-  h1 { text-align: center; color: #1e3c72; }
-  
-  /* --- ESTILOS NUEVOS PARA ELIMINAR --- */
-  .detalle-botones { display: flex; gap: 10px; margin-top: 20px; }
-  
-  .btn-modificar {
-    background: #007bff; color: white; border: none; padding: 10px 20px;
-    border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: 600;
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
-  .btn-modificar:hover { background: #0056b3; }
-  
-  .btn-eliminar {
-    background: #dc3545; color: white; border: none; padding: 10px 20px;
-    border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: 600;
-  }
-  .btn-eliminar:hover { background: #c82333; }
 
-  /* Modal de Confirmación */
-  .modal-confirmacion {
-    display: none; position: fixed; z-index: 1001; left: 0; top: 0;
-    width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
-    justify-content: center; align-items: center;
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f4f4f9;
+    padding: 20px;
+    color: #333;
   }
-  .modal-confirmacion.active { display: flex; }
-  
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  h1 {
+    color: #1e3c72;
+    font-size: 36px;
+    margin-bottom: 10px;
+  }
+
+  .controles {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+
+  .btn-primario {
+    background: #007bff;
+    color: white;
+  }
+
+  .btn-primario:hover {
+    background: #0056b3;
+  }
+
+  .btn-secundario {
+    background: #6c757d;
+    color: white;
+  }
+
+  .btn-secundario:hover {
+    background: #5a6268;
+  }
+
+  .btn-peligro {
+    background: #dc3545;
+    color: white;
+  }
+
+  .btn-peligro:hover {
+    background: #c82333;
+  }
+
+  .filtros {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+  }
+
+  .filtro-btn {
+    padding: 8px 16px;
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .filtro-btn:hover, .filtro-btn.activo {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+  }
+
+  .vista-caratulas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .album-card {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+
+  .album-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  }
+
+  .album-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+  }
+
+  .album-card-info {
+    padding: 15px;
+  }
+
+  .album-card-info h3 {
+    font-size: 16px;
+    margin-bottom: 5px;
+    color: #333;
+  }
+
+  .album-card-info p {
+    font-size: 14px;
+    color: #666;
+  }
+
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+    overflow-y: auto;
+  }
+
+  .modal.activo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal-contenido {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-cerrar {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #666;
+  }
+
+  .modal-cerrar:hover {
+    color: #333;
+  }
+
+  .detalle-album {
+    text-align: center;
+  }
+
+  .detalle-album img {
+    max-width: 300px;
+    width: 100%;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+
+  .detalle-album h2 {
+    color: #1e3c72;
+    margin-bottom: 10px;
+  }
+
+  .detalle-album p {
+    margin-bottom: 10px;
+    color: #666;
+  }
+
+  .detalle-botones {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: center;
+  }
+
+  .btn-modificar {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .btn-modificar:hover {
+    background: #0056b3;
+  }
+
+  .btn-eliminar {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .btn-eliminar:hover {
+    background: #c82333;
+  }
+
+  .canciones-lista {
+    margin-top: 20px;
+    text-align: left;
+  }
+
+  .canciones-lista h3 {
+    margin-bottom: 15px;
+    color: #1e3c72;
+  }
+
+  .cancion-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .cancion-item:last-child {
+    border-bottom: none;
+  }
+
+  /* Modal de Confirmación de Eliminación */
+  .modal-confirmacion {
+    display: none;
+    position: fixed;
+    z-index: 1001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal-confirmacion.activo {
+    display: flex;
+  }
+
   .confirmacion-content {
-    background: white; padding: 30px; border-radius: 10px;
-    max-width: 400px; width: 90%; text-align: center;
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
   }
-  .confirmacion-content h3 { margin-bottom: 20px; color: #333; }
-  .confirmacion-content p { margin-bottom: 25px; color: #666; line-height: 1.5; }
-  
-  .confirmacion-botones { display: flex; flex-direction: column; gap: 10px; }
-  
-  .btn-confirmar-solo, .btn-confirmar-completo, .btn-cancelar-eliminacion {
-    padding: 12px; border: none; border-radius: 5px; cursor: pointer;
-    font-size: 14px; font-weight: 600; transition: background 0.3s;
+
+  .confirmacion-content h3 {
+    margin-bottom: 20px;
+    color: #333;
   }
-  .btn-confirmar-solo { background: #ffc107; color: #000; }
-  .btn-confirmar-solo:hover { background: #e0a800; }
-  .btn-confirmar-completo { background: #dc3545; color: white; }
-  .btn-confirmar-completo:hover { background: #c82333; }
-  .btn-cancelar-eliminacion { background: #6c757d; color: white; }
-  .btn-cancelar-eliminacion:hover { background: #5a6268; }
-  
+
+  .confirmacion-content p {
+    margin-bottom: 25px;
+    color: #666;
+    line-height: 1.5;
+  }
+
+  .confirmacion-botones {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn-confirmar-solo, .btn-confirmar-completo, .btn-cancelar-eliminacion {
+    padding: 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.3s;
+  }
+
+  .btn-confirmar-solo {
+    background: #ffc107;
+    color: #000;
+  }
+
+  .btn-confirmar-solo:hover {
+    background: #e0a800;
+  }
+
+  .btn-confirmar-completo {
+    background: #dc3545;
+    color: white;
+  }
+
+  .btn-confirmar-completo:hover {
+    background: #c82333;
+  }
+
+  .btn-cancelar-eliminacion {
+    background: #6c757d;
+    color: white;
+  }
+
+  .btn-cancelar-eliminacion:hover {
+    background: #5a6268;
+  }
+
   .btn-confirmar-solo:disabled, .btn-confirmar-completo:disabled {
-    opacity: 0.6; cursor: not-allowed;
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 40px;
+    font-size: 18px;
+    color: #666;
+  }
+
+  @media (max-width: 768px) {
+    .vista-caratulas {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+
+    h1 {
+      font-size: 28px;
+    }
+
+    .modal-contenido {
+      padding: 20px;
+    }
   }
 </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>🎵 Mi Colección de Discos (Nueva Versión)</h1>
-  
-  <!-- Aquí iría el resto de tu HTML original: vistas de carátulas, lista, modal de detalle, etc. -->
-  <!-- Por brevedad, solo muestro la estructura del modal de confirmación que debes añadir -->
-  
-  <!-- Modal de Detalle (Ejemplo simplificado) -->
-  <div id="modal-detalle" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
-    <div style="background:white; padding:30px; border-radius:10px; max-width:500px; width:90%;">
-      <h2 id="detalle-titulo"></h2>
-      <p id="detalle-artista"></p>
-      <div class="detalle-botones">
-        <button class="btn-modificar">✎ Modificar</button>
-        <button class="btn-eliminar" onclick="confirmarEliminacion(albumActual)">🗑️ Eliminar</button>
-      </div>
-      <button onclick="document.getElementById('modal-detalle').style.display='none'" style="margin-top:15px;">Cerrar</button>
+  <header>
+    <h1>🎵 Mi Colección de Discos</h1>
+    <div class="controles">
+      <button class="btn btn-primario" onclick="abrirModalAñadir()">+ Añadir álbum</button>
+      <button class="btn btn-secundario" onclick="cambiarVista('caratulas')">Carátulas</button>
+      <button class="btn btn-secundario" onclick="cambiarVista('lista')">Lista</button>
     </div>
+  </header>
+
+  <div class="filtros">
+    <button class="filtro-btn activo" onclick="filtrarPor('todos')">Todos</button>
+    <button class="filtro-btn" onclick="filtrarPor('artistas')">Artistas</button>
+    <button class="filtro-btn" onclick="filtrarPor('generos')">Géneros</button>
+    <button class="filtro-btn" onclick="filtrarPor('anios')">Años</button>
   </div>
 
-  <!-- NUEVO: Modal de Confirmación de Eliminación -->
-  <div id="modal-confirmacion" class="modal-confirmacion">
-    <div class="confirmacion-content">
-      <h3>¿Eliminar álbum?</h3>
-      <p id="confirmacion-mensaje"></p>
-      <div class="confirmacion-botones">
-        <button class="btn-confirmar-solo" onclick="ejecutarEliminacion('solo')">🗑️ Solo este disco</button>
-        <button class="btn-confirmar-completo" onclick="ejecutarEliminacion('completo')">💥 Álbum completo (todos los discos)</button>
-        <button class="btn-cancelar-eliminacion" onclick="cerrarModalConfirmacion()">Cancelar</button>
-      </div>
+  <div id="contenido">
+    <div class="loading">Cargando datos…</div>
+  </div>
+</div>
+
+<!-- Modal de Detalle del Álbum -->
+<div id="modal-detalle" class="modal">
+  <div class="modal-contenido">
+    <span class="modal-cerrar" onclick="cerrarModal('modal-detalle')">&times;</span>
+    <div id="detalle-contenido"></div>
+  </div>
+</div>
+
+<!-- Modal de Modificación -->
+<div id="modal-modificar" class="modal">
+  <div class="modal-contenido">
+    <span class="modal-cerrar" onclick="cerrarModal('modal-modificar')">&times;</span>
+    <h2> Modificar Álbum</h2>
+    <div id="modificar-contenido"></div>
+  </div>
+</div>
+
+<!-- Modal de Añadir Álbum -->
+<div id="modal-anadir" class="modal">
+  <div class="modal-contenido">
+    <span class="modal-cerrar" onclick="cerrarModal('modal-anadir')">&times;</span>
+    <h2>+ Añadir álbum nuevo</h2>
+    <div id="anadir-contenido"></div>
+  </div>
+</div>
+
+<!-- Modal de Contraseña -->
+<div id="modal-password" class="modal">
+  <div class="modal-contenido">
+    <span class="modal-cerrar" onclick="cerrarModal('modal-password')">&times;</span>
+    <h2>Contraseña de edición</h2>
+    <p>Solo hace falta para guardar cambios. No se guarda en el código.</p>
+    <input type="password" id="password-input" placeholder="Introduce la contraseña" style="width: 100%; padding: 10px; margin: 15px 0; border: 2px solid #ddd; border-radius: 5px;">
+    <div style="display: flex; gap: 10px;">
+      <button class="btn btn-primario" onclick="guardarPassword()">Entrar</button>
+      <button class="btn btn-secundario" onclick="cerrarModal('modal-password')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO: Modal de Confirmación de Eliminación -->
+<div id="modal-confirmacion" class="modal-confirmacion">
+  <div class="confirmacion-content">
+    <h3>¿Eliminar álbum?</h3>
+    <p id="confirmacion-mensaje"></p>
+    <div class="confirmacion-botones">
+      <button class="btn-confirmar-solo" onclick="ejecutarEliminacion('solo')">🗑️ Solo este disco</button>
+      <button class="btn-confirmar-completo" onclick="ejecutarEliminacion('completo')">💥 Álbum completo (todos los discos)</button>
+      <button class="btn-cancelar-eliminacion" onclick="cerrarModalConfirmacion()">Cancelar</button>
     </div>
   </div>
 </div>
 
 <script>
-  // ️ PEGA AQUÍ LA URL DE TU NUEVO APP SCRIPT
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxcylID0DKYCWBzaevFd4aL4Dy_WLz0oxx_nT3oJ-Yz-m7MvRB0e_Ixfw4XIUtZsHLm/exec';
-  const TOKEN_EDICION = 'IZPdiscosNVZ26'; // Mantenlo para las operaciones de escritura
-  
-  let albumes = []; // Aquí cargarás los datos desde doGet
-  let albumActual = null; // Variable temporal para el modal de detalle
+  // ️ IMPORTANTE: Reemplaza esta URL con la URL de tu NUEVO Apps Script
+  const API_URL = 'https://script.google.com/macros/s/AKfycbx-riPZrlbBIvyDOp4INIWaIGRa4F3Z9YY0TvyAlS9qvhnq9ASBUGx-cfrMHxC6-8nbZw/exec';
+  const TOKEN_EDICION = 'IZPdiscosNVZ26';
 
-  // --- FUNCIONES NUEVAS DE ELIMINACIÓN ---
-  
+  let albumes = [];
+  let canciones = [];
+  let albumActual = null;
   let albumAEliminar = null;
+  let vistaActual = 'caratulas';
+  let filtroActual = 'todos';
+
+  // Cargar datos al iniciar
+  window.addEventListener('DOMContentLoaded', () => {
+    cargarDatos();
+  });
+
+  async function cargarDatos() {
+    try {
+      const response = await fetch(API_URL, {
+        method: 'GET',
+        redirect: 'follow'
+      });
+      const data = await response.json();
+      
+      if (data.ok) {
+        albumes = data.albumes || [];
+        canciones = data.canciones || [];
+        renderizarVista();
+      } else {
+        document.getElementById('contenido').innerHTML = '<div class="loading">Error al cargar datos</div>';
+      }
+    } catch (err) {
+      console.error('Error al cargar datos:', err);
+      document.getElementById('contenido').innerHTML = '<div class="loading">Error de conexión</div>';
+    }
+  }
+
+  function renderizarVista() {
+    const contenido = document.getElementById('contenido');
+    
+    if (albumes.length === 0) {
+      contenido.innerHTML = '<div class="loading">No se han encontrado álbumes.</div>';
+      return;
+    }
+
+    if (vistaActual === 'caratulas') {
+      renderizarCaratulas(contenido);
+    } else if (vistaActual === 'lista') {
+      renderizarLista(contenido);
+    }
+  }
+
+  function renderizarCaratulas(contenedor) {
+    let html = '<div class="vista-caratulas">';
+    
+    albumes.forEach(album => {
+      const caratula = album['Carátula URL'] || 'https://via.placeholder.com/200x200?text=Sin+Imagen';
+      html += `
+        <div class="album-card" onclick="mostrarDetalle(${album.ALBUM_ID})">
+          <img src="${caratula}" alt="${album.Título}" onerror="this.src='https://via.placeholder.com/200x200?text=Error'">
+          <div class="album-card-info">
+            <h3>${album.Título}</h3>
+            <p>${album.Artista}</p>
+          </div>
+        </div>
+      `;
+    });
+    
+    html += '</div>';
+    contenedor.innerHTML = html;
+  }
+
+  function renderizarLista(contenedor) {
+    let html = '<div style="background: white; padding: 20px; border-radius: 10px;">';
+    html += '<table style="width: 100%; border-collapse: collapse;">';
+    html += '<thead><tr style="background: #f4f4f9;"><th style="padding: 10px; text-align: left;">Título</th><th style="padding: 10px; text-align: left;">Artista</th><th style="padding: 10px; text-align: left;">Año</th></tr></thead>';
+    html += '<tbody>';
+    
+    albumes.forEach(album => {
+      html += `
+        <tr style="cursor: pointer; border-bottom: 1px solid #eee;" onclick="mostrarDetalle(${album.ALBUM_ID})">
+          <td style="padding: 10px;">${album.Título}</td>
+          <td style="padding: 10px;">${album.Artista}</td>
+          <td style="padding: 10px;">${album.Año || ''}</td>
+        </tr>
+      `;
+    });
+    
+    html += '</tbody></table></div>';
+    contenedor.innerHTML = html;
+  }
+
+  function mostrarDetalle(albumId) {
+    albumActual = albumes.find(a => a.ALBUM_ID === albumId);
+    if (!albumActual) return;
+
+    const caratula = albumActual['Carátula URL'] || 'https://via.placeholder.com/300x300?text=Sin+Imagen';
+    const cancionesAlbum = canciones.filter(c => c.ALBUM_ID === albumId);
+    
+    let html = `
+      <div class="detalle-album">
+        <img src="${caratula}" alt="${albumActual.Título}" onerror="this.src='https://via.placeholder.com/300x300?text=Error'">
+        <h2>${albumActual.Título}</h2>
+        <p><strong>Artista:</strong> ${albumActual.Artista}</p>
+        <p><strong>Año:</strong> ${albumActual.Año || 'N/A'}</p>
+        <p><strong>Género:</strong> ${albumActual.Género || 'N/A'}</p>
+        <p><strong>Disco #:</strong> ${albumActual['Disco #'] || '1'}</p>
+        <p><strong>Total duración:</strong> ${albumActual['Total duración'] || 'N/A'}</p>
+        
+        <div class="detalle-botones">
+          <button class="btn-modificar" onclick="abrirModificacion()">✎ Modificar</button>
+          <button class="btn-eliminar" onclick="confirmarEliminacion(albumActual)">️ Eliminar</button>
+        </div>
+        
+        <div class="canciones-lista">
+          <h3>Canciones (${cancionesAlbum.length})</h3>
+          ${cancionesAlbum.map(c => `
+            <div class="cancion-item">
+              <span>${c['PISTA Nº']}. ${c.Título}</span>
+              <span>${c.Duración || ''}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    
+    document.getElementById('detalle-contenido').innerHTML = html;
+    document.getElementById('modal-detalle').classList.add('activo');
+  }
+
+  function abrirModificacion() {
+    if (!albumActual) return;
+    
+    let html = `
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Título:</label>
+        <input type="text" id="mod-titulo" value="${albumActual.Título}" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 5px;">
+      </div>
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Artista:</label>
+        <input type="text" id="mod-artista" value="${albumActual.Artista}" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 5px;">
+      </div>
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Año:</label>
+        <input type="number" id="mod-anio" value="${albumActual.Año || ''}" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 5px;">
+      </div>
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Género:</label>
+        <input type="text" id="mod-genero" value="${albumActual.Género || ''}" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 5px;">
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-primario" onclick="guardarCambios()">Guardar cambios</button>
+        <button class="btn btn-secundario" onclick="cerrarModal('modal-modificar')">Cancelar</button>
+      </div>
+    `;
+    
+    document.getElementById('modificar-contenido').innerHTML = html;
+    document.getElementById('modal-detalle').classList.remove('activo');
+    document.getElementById('modal-modificar').classList.add('activo');
+  }
+
+  async function guardarCambios() {
+    const titulo = document.getElementById('mod-titulo').value;
+    const artista = document.getElementById('mod-artista').value;
+    const anio = document.getElementById('mod-anio').value;
+    const genero = document.getElementById('mod-genero').value;
+    
+    const datos = {
+      token: TOKEN_EDICION,
+      album: {
+        ALBUM_ID: albumActual.ALBUM_ID,
+        Título: titulo,
+        Artista: artista,
+        Año: anio,
+        Género: genero
+      }
+    };
+    
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        redirect: 'follow',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body: JSON.stringify(datos)
+      });
+      
+      const data = await response.json();
+      
+      if (data.ok) {
+        alert('Cambios guardados correctamente');
+        cerrarModal('modal-modificar');
+        await cargarDatos();
+      } else {
+        alert('Error: ' + data.error);
+      }
+    } catch (err) {
+      alert('Error de conexión: ' + err.message);
+    }
+  }
+
+  function abrirModalAñadir() {
+    let html = `
+      <p style="margin-bottom: 20px;">Funcionalidad en desarrollo. Próximamente podrás añadir álbumes buscando en Discogs o rellenando manualmente.</p>
+      <button class="btn btn-secundario" onclick="cerrarModal('modal-anadir')">Cerrar</button>
+    `;
+    
+    document.getElementById('anadir-contenido').innerHTML = html;
+    document.getElementById('modal-anadir').classList.add('activo');
+  }
+
+  function cambiarVista(vista) {
+    vistaActual = vista;
+    renderizarVista();
+  }
+
+  function filtrarPor(filtro) {
+    filtroActual = filtro;
+    document.querySelectorAll('.filtro-btn').forEach(btn => btn.classList.remove('activo'));
+    event.target.classList.add('activo');
+    // Aquí iría la lógica de filtrado
+  }
+
+  function cerrarModal(id) {
+    document.getElementById(id).classList.remove('activo');
+  }
+
+  function guardarPassword() {
+    const password = document.getElementById('password-input').value;
+    if (password === TOKEN_EDICION) {
+      alert('Contraseña correcta');
+      cerrarModal('modal-password');
+    } else {
+      alert('Contraseña incorrecta');
+    }
+  }
+
+  // === FUNCIONES DE ELIMINACIÓN ===
 
   function confirmarEliminacion(album) {
     albumAEliminar = album;
@@ -117,7 +703,7 @@
       mensaje.innerHTML = `¿Seguro que quieres eliminar <strong>${album.Título}</strong> de ${album.Artista}?`;
     }
     
-    document.getElementById('modal-confirmacion').classList.add('active');
+    document.getElementById('modal-confirmacion').classList.add('activo');
   }
 
   function contarDiscosAlbum(titulo, artista) {
@@ -134,19 +720,28 @@
     const btnCompleto = document.querySelector('.btn-confirmar-completo');
     const btnCancelar = document.querySelector('.btn-cancelar-eliminacion');
     
-    btnSolo.disabled = true; btnCompleto.disabled = true; btnCancelar.disabled = true;
+    btnSolo.disabled = true;
+    btnCompleto.disabled = true;
+    btnCancelar.disabled = true;
     const textoOriginalSolo = btnSolo.textContent;
     const textoOriginalCompleto = btnCompleto.textContent;
-    btnSolo.textContent = 'Eliminando...'; btnCompleto.textContent = 'Eliminando...';
+    btnSolo.textContent = 'Eliminando...';
+    btnCompleto.textContent = 'Eliminando...';
     
     try {
       const response = await fetch(API_URL, {
-        method: 'POST', mode: 'cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        method: 'POST',
+        redirect: 'follow',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
         body: JSON.stringify({
-          token: TOKEN_EDICION, accion: 'eliminar_album',
-          album_id: albumAEliminar.ALBUM_ID, modo: modo,
-          titulo: albumAEliminar.Título, artista: albumAEliminar.Artista
+          token: TOKEN_EDICION,
+          accion: 'eliminar_album',
+          album_id: albumAEliminar.ALBUM_ID,
+          modo: modo,
+          titulo: albumAEliminar.Título,
+          artista: albumAEliminar.Artista
         })
       });
       
@@ -155,25 +750,34 @@
       if (data.ok) {
         alert('Álbum eliminado correctamente');
         cerrarModalConfirmacion();
-        // Aquí deberías recargar los datos: await cargarDatos();
+        cerrarModal('modal-detalle');
+        await cargarDatos();
       } else {
         alert('Error al eliminar: ' + data.error);
       }
     } catch (err) {
       alert('Error de conexión: ' + err.message);
     } finally {
-      btnSolo.disabled = false; btnCompleto.disabled = false; btnCancelar.disabled = false;
-      btnSolo.textContent = textoOriginalSolo; btnCompleto.textContent = textoOriginalCompleto;
+      btnSolo.disabled = false;
+      btnCompleto.disabled = false;
+      btnCancelar.disabled = false;
+      btnSolo.textContent = textoOriginalSolo;
+      btnCompleto.textContent = textoOriginalCompleto;
       albumAEliminar = null;
     }
   }
 
   function cerrarModalConfirmacion() {
-    document.getElementById('modal-confirmacion').classList.remove('active');
+    document.getElementById('modal-confirmacion').classList.remove('activo');
   }
 
-  // --- AQUÍ IRÍA EL RESTO DE TU JAVASCRIPT ORIGINAL ---
-  // (Funciones para cargar datos, mostrar vistas, etc.)
+  // Cerrar modales al hacer clic fuera
+  window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+      event.target.classList.remove('activo');
+    }
+  }
 </script>
+
 </body>
 </html>

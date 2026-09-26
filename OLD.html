@@ -374,6 +374,8 @@
     margin-top:-2px;
   }
   .btn-modificar:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-eliminar-album{margin-right:6px;color:#d97070;}
+  .btn-eliminar-album:hover{border-color:#d97070;color:#d97070;}
 
   .grupo-edicion{
     display:grid;
@@ -715,6 +717,7 @@
   <aside id="detalle">
     <span class="cerrar-detalle" id="cerrar-detalle">✕</span>
     <button class="btn-modificar" id="btn-modificar" type="button">✎ Modificar</button>
+    <button class="btn-modificar btn-eliminar-album" id="btn-eliminar-album" type="button">🗑 Eliminar álbum</button>
 
     <div id="vista-album">
       <div class="det-cabecera">
@@ -1411,6 +1414,7 @@ async function entrarModoEdicion(){
   $("#vista-album").style.display = "none";
   $("#edicion-album").style.display = "block";
   $("#btn-modificar").style.display = "none";
+  $("#btn-eliminar-album").style.display = "none";
 }
 
 function slugTexto(t){
@@ -1491,10 +1495,65 @@ function cancelarEdicion(){
   $("#vista-album").style.display = "";
   $("#edicion-album").style.display = "none";
   $("#btn-modificar").style.display = "";
+  $("#btn-eliminar-album").style.display = "";
   $("#ed-campos").innerHTML = "";
   const btn = $("#btn-guardar-cambios");
   btn.disabled = false;
   btn.textContent = "Guardar cambios";
+}
+
+/* Borra el álbum abierto en el detalle. Si es un grupo multi-disco, borra
+   TODAS sus fichas (una por disco) y todas sus canciones en un único aviso;
+   si es de un solo disco, borra esa única ficha y sus canciones. */
+async function eliminarAlbumActual(){
+  if(!albumSeleccionado) return;
+  if(!(await asegurarSesion())) return;
+
+  const album = albumSeleccionado;
+  const ids = album._esGrupo ? album._discos.map(d=>d.ALBUM_ID) : [album.ALBUM_ID];
+  const totalCanciones = CANCIONES.filter(c=> ids.includes(c.ALBUM_ID)).length;
+  const titulo = album["ALBUM"] || "(sin título)";
+
+  const aviso = ids.length > 1
+    ? `¿Eliminar "${titulo}" completo?\n\nSe borrarán sus ${ids.length} discos y ${totalCanciones} canciones. Esta acción no se puede deshacer.`
+    : `¿Eliminar "${titulo}"?\n\nSe borrarán sus ${totalCanciones} canciones. Esta acción no se puede deshacer.`;
+  if(!confirm(aviso)) return;
+
+  const btn = $("#btn-eliminar-album");
+  btn.disabled = true;
+  btn.textContent = "Eliminando…";
+
+  try{
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ token: tokenSesion, eliminar_album: { album_ids: ids } })
+    });
+    const json = await res.json();
+
+    if(!json.ok){
+      if(String(json.error||"").includes("Token")){
+        tokenSesion = null;
+        sessionStorage.removeItem("token_edicion");
+      }
+      alert("Error al eliminar el álbum: " + json.error);
+      return;
+    }
+
+    ALBUMES = ALBUMES.filter(a=> !ids.includes(a.ALBUM_ID));
+    CANCIONES = CANCIONES.filter(c=> !ids.includes(c.ALBUM_ID));
+    ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
+
+    albumSeleccionado = null;
+    $("#detalle").classList.remove("abierto");
+    construirSidebar();
+    pintarGrid();
+  }catch(err){
+    alert("No se pudo conectar para eliminar el álbum.");
+    console.error(err);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "🗑 Eliminar álbum";
+  }
 }
 
 async function guardarCambios(){
@@ -1719,6 +1778,7 @@ function formatearSegundos(total){
 $("#buscador").addEventListener("input", pintarGrid);
 $("#cerrar-detalle").addEventListener("click", cerrarDetalle);
 $("#btn-modificar").addEventListener("click", entrarModoEdicion);
+$("#btn-eliminar-album").addEventListener("click", eliminarAlbumActual);
 $("#btn-guardar-cambios").addEventListener("click", guardarCambios);
 $("#btn-cancelar-edicion").addEventListener("click", cancelarEdicion);
 $("#btn-ficha").addEventListener("click", abrirFicha);
