@@ -1,2071 +1,279 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mi colección</title>
-<style>
-  :root{
-    --bg:#14151a;
-    --panel:#1c1e26;
-    --panel-hi:#21242e;
-    --border:#2c2f3a;
-    --text:#ece9e2;
-    --muted:#8c8fa0;
-    --accent:#c99a3c;
-    --accent-dim:#8a6d2c;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;height:100%;}
-  body{
-    background:var(--bg);
-    color:var(--text);
-    font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-    font-size:14px;
-    display:flex;
-    flex-direction:column;
-    height:100vh;
-    overflow:hidden;
-  }
-  h1,h2,h3,.serif{
-    font-family:Fraunces,Georgia,serif;
-    font-weight:600;
-  }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Colección de Discos - Acceso</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  /* ---------- Barra superior ---------- */
-  header{
-    display:flex;
-    align-items:center;
-    gap:16px;
-    padding:12px 20px;
-    border-bottom:1px solid var(--border);
-    background:var(--panel);
-    flex-shrink:0;
-  }
-  header h1{
-    font-size:20px;
-    margin:0;
-    color:var(--accent);
-    white-space:nowrap;
-  }
-  #buscador{
-    flex:1;
-    max-width:420px;
-    background:var(--bg);
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:8px 12px;
-    border-radius:4px;
-    font-size:14px;
-  }
-  #buscador:focus{outline:none;border-color:var(--accent);}
-  .btn-nuevo-album{
-    background:var(--accent);
-    border:1px solid var(--accent);
-    color:#14151a;
-    font-weight:600;
-    padding:8px 14px;
-    border-radius:4px;
-    font-size:13.5px;
-    font-family:inherit;
-    cursor:pointer;
-    white-space:nowrap;
-  }
-  .btn-nuevo-album:hover{background:#dba838;}
-  #contador{color:var(--muted);white-space:nowrap;}
-  #estado-carga{color:var(--muted);font-size:13px;}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
 
-  /* ---------- Cuerpo: 3 columnas ---------- */
-  #cuerpo{
-    flex:1;
-    display:flex;
-    min-height:0;
-  }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
 
-  /* --- Sidebar artistas --- */
-  #sidebar{
-    width:220px;
-    flex-shrink:0;
-    border-right:1px solid var(--border);
-    background:var(--panel);
-    overflow-y:auto;
-    padding:8px 0;
-  }
-  .sidebar-tabs{
-    display:flex;
-    flex-wrap:wrap;
-    gap:4px;
-    padding:0 12px 10px;
-    border-bottom:1px solid var(--border);
-    margin-bottom:6px;
-  }
-  .sidebar-tabs button{
-    background:transparent;
-    border:1px solid var(--border);
-    color:var(--muted);
-    padding:5px 9px;
-    border-radius:4px;
-    cursor:pointer;
-    font-size:11.5px;
-    font-family:inherit;
-  }
-  .sidebar-tabs button.activo{
-    background:var(--accent);
-    border-color:var(--accent);
-    color:#14151a;
-    font-weight:600;
-  }
-  .sidebar-tabs button:not(.activo):hover{border-color:var(--accent);color:var(--accent);}
-  .tabs-discos-nuevo{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;}
-  .tabs-discos-nuevo button{
-    background:transparent;border:1px solid var(--border);color:var(--muted);
-    padding:5px 10px;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit;
-  }
-  .tabs-discos-nuevo button.activo{background:var(--accent);border-color:var(--accent);color:#14151a;font-weight:600;}
-  .tabs-discos-nuevo button:not(.activo):hover{border-color:var(--accent);color:var(--accent);}
-  .artista-item{
-    display:flex;
-    justify-content:space-between;
-    gap:8px;
-    padding:6px 16px;
-    cursor:pointer;
-    color:var(--muted);
-  }
-  .artista-item:hover{background:var(--panel-hi);color:var(--text);}
-  .artista-item.activo{background:var(--panel-hi);color:var(--accent);font-weight:600;}
-  .artista-item .n{opacity:.6;font-variant-numeric:tabular-nums;}
+        h1 {
+            text-align: center;
+            color: #1e3c72;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
 
-  /* --- Grid álbumes --- */
-  #grid-wrap{
-    flex:1;
-    overflow-y:auto;
-    padding:0;
-  }
-  #grid.vista-covers, #grid.vista-card{
-    padding:20px;
-  }
-  #grid.vista-list{
-    padding:0 20px 20px;
-  }
-  #grid.vista-covers{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
-    gap:18px;
-  }
-  #grid.vista-card, #grid.vista-list{
-    display:block;
-  }
-  .album-card{
-    cursor:pointer;
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-  }
-  .cover{
-    width:100%;
-    aspect-ratio:1/1;
-    background:var(--panel-hi) linear-gradient(135deg,#2a2d38,#1a1c23);
-    border:1px solid var(--border);
-    border-radius:4px;
-    overflow:hidden;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:var(--muted);
-    font-size:11px;
-    text-align:center;
-    padding:8px;
-  }
-  .cover img{width:100%;height:100%;object-fit:cover;display:block;}
-  .album-card.selec .cover{outline:2px solid var(--accent);outline-offset:2px;}
-  .album-titulo{font-size:13px;font-weight:600;line-height:1.3;}
-  .album-artista{font-size:12px;color:var(--muted);}
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
 
-  /* --- Selector de vista (Carátulas/Tarjetas/Lista) --- */
-  .vista-selector{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px;}
-  .vista-btn{
-    background:transparent;
-    border:none;
-    color:var(--muted);
-    width:30px;height:26px;
-    border-radius:3px;
-    cursor:pointer;
-    font-size:15px;
-    line-height:1;
-  }
-  .vista-btn.activo{background:var(--accent);color:#14151a;}
-  .vista-btn:not(.activo):hover{color:var(--text);}
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
 
-  /* --- Vista de tarjetas (fila tipo CLZ) --- */
-  .fila-card{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:5px;
-    padding:8px 14px;
-    margin-bottom:6px;
-    cursor:pointer;
-  }
-  .fila-card:hover{border-color:var(--accent);}
-  .fila-card.selec{background:var(--panel-hi);border-color:var(--accent);}
-  .fc-cover{
-    width:52px;height:52px;flex-shrink:0;
-    background:var(--panel-hi) linear-gradient(135deg,#2a2d38,#1a1c23);
-    border:1px solid var(--border);
-    border-radius:4px;
-    overflow:hidden;
-  }
-  .fc-cover img{width:100%;height:100%;object-fit:cover;display:block;}
-  .fc-info{flex:1;min-width:0;}
-  .fc-titulo{font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .fc-artista{font-size:13px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .fc-formato{font-size:12px;color:var(--muted);margin-top:4px;}
-  .fc-meta{text-align:right;flex-shrink:0;font-size:12.5px;color:var(--muted);}
-  .fc-pistas{color:var(--text);}
+        label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
 
-  /* --- Vista de lista (tabla) --- */
-  .tabla-albumes{width:100%;border-collapse:collapse;font-size:13px;}
-  .tabla-albumes thead th{
-    text-align:left;
-    color:var(--muted);
-    font-weight:600;
-    font-size:11.5px;
-    text-transform:uppercase;
-    letter-spacing:.04em;
-    padding:8px 10px;
-    border-bottom:1px solid var(--border);
-    position:sticky;top:0;background:var(--bg);
-  }
-  .tabla-albumes tbody tr{cursor:pointer;border-bottom:1px solid var(--border);}
-  .tabla-albumes tbody tr:hover{background:var(--panel-hi);}
-  .tabla-albumes tbody tr.selec{background:var(--panel-hi);color:var(--accent);}
-  .tabla-albumes td{padding:8px 10px;}
-  .tabla-albumes .td-album{font-weight:600;}
+        input {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
 
-  #vacio{color:var(--muted);padding:40px;text-align:center;}
+        input:focus {
+            outline: none;
+            border-color: #2a5298;
+        }
 
-  /* --- Panel detalle --- */
-  #detalle{
-    width:600px;
-    flex-shrink:0;
-    border-left:1px solid var(--border);
-    background:var(--panel);
-    overflow-y:auto;
-    padding:24px;
-    display:none;
-  }
-  #detalle.abierto{display:block;}
-  .cerrar-detalle{
-    float:right;
-    cursor:pointer;
-    color:var(--muted);
-    font-size:20px;
-    line-height:1;
-  }
-  .cerrar-detalle:hover{color:var(--text);}
-  #detalle .cerrar-detalle{position:relative;top:0;}
+        .btn-login {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
 
-  #detalle h2{font-size:23px;margin:16px 0 2px;line-height:1.2;}
-  #detalle .artista-det{color:var(--accent);font-size:14px;margin-bottom:16px;}
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 60, 114, 0.4);
+        }
 
-  .det-cabecera{display:flex;gap:16px;margin-bottom:8px;}
-  .cover-mediana{
-    width:170px;height:170px;flex-shrink:0;
-    background:var(--panel-hi) linear-gradient(135deg,#2a2d38,#1a1c23);
-    border:1px solid var(--border);
-    border-radius:4px;overflow:hidden;
-    display:flex;align-items:center;justify-content:center;
-    color:var(--muted);font-family:Fraunces,Georgia,serif;font-size:12px;text-align:center;padding:6px;
-  }
-  .cover-mediana img{width:100%;height:100%;object-fit:cover;}
+        .btn-login:active {
+            transform: translateY(0);
+        }
 
-  .det-info-top{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;}
-  .det-sello-anio{font-size:15px;font-weight:600;color:var(--text);}
-  .det-genero{font-size:13px;color:var(--muted);}
-  .det-badges{display:flex;gap:8px;margin:4px 0 2px;}
-  .badge-id, .badge-rating{
-    display:inline-flex;align-items:center;gap:5px;
-    background:var(--panel-hi);
-    border:1px solid var(--border);
-    padding:4px 10px;
-    border-radius:5px;
-    font-size:12.5px;
-    font-weight:600;
-  }
-  .badge-rating{color:#e6c84b;}
-  .det-catalogo{font-size:12.5px;color:var(--muted);}
-  .det-resumen{font-size:12.5px;color:var(--muted);margin-top:2px;}
+        .error-msg {
+            color: #d32f2f;
+            text-align: center;
+            font-size: 14px;
+            display: none;
+        }
 
-  .det-subtitulo{
-    font-size:13px;
-    text-transform:uppercase;
-    letter-spacing:.06em;
-    color:var(--accent);
-    margin:22px 0 8px;
-    font-family:Inter,system-ui,sans-serif;
-    font-weight:600;
-  }
+        .version-selector {
+            display: none;
+            flex-direction: column;
+            gap: 30px;
+        }
 
-  .lista-canciones{list-style:none;margin:0 0 16px;padding:0;border-radius:4px;overflow:hidden;}
-  .lista-canciones li{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
-    padding:9px 12px;
-    font-size:14px;
-  }
-  .lista-canciones li:nth-child(odd){background:var(--panel-hi);}
-  .lista-canciones .num{color:var(--muted);width:20px;flex-shrink:0;}
-  .lista-canciones .tit{flex:1;font-weight:500;}
-  .lista-canciones .tit em{font-weight:400;color:var(--muted);font-style:italic;}
-  .lista-canciones .dur{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px;}
-  .disco-titulo{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    font-size:13px;
-    font-weight:600;
-    color:var(--text);
-    margin:14px 0 6px;
-  }
-  .disco-titulo:first-child{margin-top:0;}
-  .btn-editar-disco{
-    background:transparent;
-    border:1px solid var(--border);
-    color:var(--muted);
-    padding:3px 9px;
-    border-radius:4px;
-    cursor:pointer;
-    font-size:11px;
-    font-family:inherit;
-  }
-  .btn-editar-disco:hover{border-color:var(--accent);color:var(--accent);}
-  .btn-letra{
-    background:transparent;
-    border:1px solid var(--border);
-    color:var(--muted);
-    padding:3px 9px;
-    border-radius:4px;
-    cursor:pointer;
-    font-size:11.5px;
-    font-family:inherit;
-    flex-shrink:0;
-  }
-  .btn-letra:hover{border-color:var(--accent);color:var(--accent);}
+        .version-selector.active {
+            display: flex;
+        }
 
-  .det-particulares{font-size:13.5px;color:var(--muted);line-height:2;}
-  .det-particulares b{color:var(--text);font-weight:500;}
-  .det-particulares .vacio{opacity:.5;}
+        .welcome-msg {
+            text-align: center;
+            color: #666;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
 
-  /* --- Edición --- */
-  .btn-modificar{
-    float:right;
-    background:transparent;
-    border:1px solid var(--border);
-    color:var(--muted);
-    padding:5px 11px;
-    border-radius:4px;
-    cursor:pointer;
-    font-size:12px;
-    font-family:inherit;
-    margin-top:-2px;
-  }
-  .btn-modificar:hover{border-color:var(--accent);color:var(--accent);}
+        .version-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
 
-  .grupo-edicion{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px 12px;
-    margin-bottom:12px;
-  }
-  .campo-edicion{
-    display:flex;
-    flex-direction:column;
-    gap:4px;
-    font-size:12px;
-    color:var(--muted);
-  }
-  .campo-edicion.campo-edicion-ancho{grid-column:1 / -1;}
-  .campo-edicion input, .campo-edicion textarea{
-    background:var(--bg);
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:7px 9px;
-    border-radius:4px;
-    font-size:13.5px;
-    font-family:inherit;
-  }
-  .campo-edicion input:focus, .campo-edicion textarea:focus{outline:none;border-color:var(--accent);}
-  .campo-edicion textarea{resize:vertical;}
-  .campo-portada-archivo{background:var(--panel-hi);border:1px dashed var(--border);border-radius:4px;padding:10px;margin-bottom:12px;}
-  .campo-portada-archivo input[type="file"]{font-size:12px;color:var(--muted);}
-  #ed-portada-estado{font-size:11.5px;display:block;margin-top:4px;}
-  #ed-portada-estado.ok{color:#5fa88a;}
-  #ed-portada-estado.error{color:#c96a5a;}
+        .version-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            text-decoration: none;
+            color: #333;
+        }
 
-  .cancion-edicion{
-    background:var(--panel-hi);
-    border:1px solid var(--border);
-    border-radius:4px;
-    padding:10px;
-    margin-bottom:8px;
-  }
-  .cancion-edicion-fila{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
-  .cancion-edicion-fila .num{color:var(--muted);width:20px;flex-shrink:0;font-size:13px;}
-  .cancion-edicion-fila input{
-    background:var(--bg);
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:6px 8px;
-    border-radius:4px;
-    font-size:13px;
-    font-family:inherit;
-  }
-  .cancion-edicion-fila input:focus{outline:none;border-color:var(--accent);}
-  .ed-c-pista{width:54px;flex-shrink:0;text-align:center;}
-  .ed-c-titulo{flex:2;min-width:0;}
-  .ed-c-artista{flex:1.4;min-width:0;}
-  .ed-c-duracion{width:64px;flex-shrink:0;text-align:center;}
-  .ed-c-anio{width:64px;flex-shrink:0;text-align:center;}
-  .btn-eliminar-cancion{
-    background:transparent;
-    border:1px solid var(--border);
-    color:#c96a5a;
-    width:26px;height:26px;
-    border-radius:4px;
-    cursor:pointer;
-    flex-shrink:0;
-    font-size:14px;
-    line-height:1;
-  }
-  .btn-eliminar-cancion:hover{background:#c96a5a;border-color:#c96a5a;color:#fff;}
-  .ed-c-letras{
-    width:100%;
-    background:var(--bg);
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:7px 9px;
-    border-radius:4px;
-    font-size:12.5px;
-    font-family:inherit;
-    resize:vertical;
-  }
-  .ed-c-letras:focus{outline:none;border-color:var(--accent);}
-  .btn-anadir-cancion{
-    width:100%;
-    background:transparent;
-    border:1px dashed var(--border);
-    color:var(--muted);
-    padding:9px;
-    border-radius:4px;
-    cursor:pointer;
-    font-size:13px;
-    font-family:inherit;
-    margin-bottom:16px;
-  }
-  .btn-anadir-cancion:hover{border-color:var(--accent);color:var(--accent);}
+        .version-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
 
-  .acciones-edicion{display:flex;gap:8px;margin-top:16px;}
-  .acciones-edicion button{
-    padding:9px 16px;
-    border-radius:4px;
-    font-size:13.5px;
-    cursor:pointer;
-    font-family:inherit;
-  }
-  #btn-guardar-cambios{background:var(--accent);border:1px solid var(--accent);color:#14151a;font-weight:600;}
-  #btn-guardar-cambios:hover{background:#dba838;}
-  #btn-guardar-cambios:disabled{opacity:.6;cursor:default;}
-  #btn-cancelar-edicion{background:transparent;border:1px solid var(--border);color:var(--muted);}
-  #btn-cancelar-edicion:hover{border-color:var(--text);color:var(--text);}
+        .version-card.old {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        }
 
-  /* --- Modal Añadir álbum --- */
-  #modal-fondo-nuevo{
-    display:none;
-    position:fixed;inset:0;
-    background:rgba(0,0,0,.6);
-    z-index:55;
-    align-items:center;
-    justify-content:center;
-  }
-  #modal-fondo-nuevo.abierto{display:flex;}
-  #modal-nuevo-album{
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:6px;
-    padding:28px 32px;
-    width:min(700px,94vw);
-    max-height:88vh;
-    overflow-y:auto;
-  }
-  #modal-nuevo-album h3{margin:0 0 18px;font-size:19px;}
-  .grupo-busqueda-nuevo{display:flex;gap:8px;margin-bottom:10px;}
-  .grupo-busqueda-nuevo input{
-    flex:1;
-    background:var(--bg);
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:9px 10px;
-    border-radius:4px;
-    font-size:13.5px;
-    font-family:inherit;
-  }
-  .grupo-busqueda-nuevo input:focus{outline:none;border-color:var(--accent);}
-  .grupo-busqueda-nuevo button{
-    background:var(--accent);
-    border:1px solid var(--accent);
-    color:#14151a;
-    font-weight:600;
-    padding:9px 14px;
-    border-radius:4px;
-    cursor:pointer;
-    font-family:inherit;
-    font-size:13px;
-    white-space:nowrap;
-  }
-  .grupo-busqueda-nuevo button:hover{background:#dba838;}
-  .separador-o{text-align:center;color:var(--muted);font-size:12px;margin:14px 0;}
-  .btn-manual{
-    display:block;
-    width:100%;
-    background:transparent;
-    border:1px dashed var(--border);
-    color:var(--muted);
-    padding:9px;
-    border-radius:4px;
-    cursor:pointer;
-    font-size:13px;
-    font-family:inherit;
-  }
-  .btn-manual:hover{border-color:var(--accent);color:var(--accent);}
-  #estado-busqueda{color:var(--muted);font-size:12.5px;margin-bottom:4px;min-height:16px;}
+        .version-card.new {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
 
-  #resultados-busqueda{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;margin-bottom:4px;}
-  .resultado-busqueda{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    background:var(--panel-hi);
-    border:1px solid var(--border);
-    border-radius:4px;
-    padding:8px 10px;
-    cursor:pointer;
-  }
-  .resultado-busqueda:hover{border-color:var(--accent);}
-  .resultado-busqueda img{width:44px;height:44px;object-fit:cover;border-radius:3px;flex-shrink:0;background:var(--bg);}
-  .resultado-busqueda .info{min-width:0;}
-  .resultado-busqueda .info .tit{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .resultado-busqueda .info .sub{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .version-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
 
-  .btn-ficha{
-    display:inline-block;
-    background:transparent;
-    border:1px solid var(--accent-dim);
-    color:var(--accent);
-    padding:8px 14px;
-    border-radius:4px;
-    cursor:pointer;
-    font-size:13px;
-    font-family:inherit;
-  }
-  .btn-ficha:hover{background:var(--accent);color:#14151a;}
+        .version-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
 
-  /* --- Modal ficha (comentario en modo lectura) --- */
-  #modal-fondo, #modal-fondo-letra{
-    display:none;
-    position:fixed;inset:0;
-    background:rgba(0,0,0,.6);
-    z-index:50;
-    align-items:center;
-    justify-content:center;
-  }
-  #modal-fondo.abierto, #modal-fondo-letra.abierto{display:flex;}
-  #modal-ficha{
-    background-color:#1b1a15;
-    background-image:linear-gradient(#1c1b16,#1c1b16);
-    color:#e9e4d8;
-    width:min(860px,92vw);
-    max-height:85vh;
-    overflow-y:auto;
-    padding:44px 52px;
-    border-radius:6px;
-    font-family:Fraunces,Georgia,serif;
-    font-size:17px;
-    line-height:1.75;
-  }
-  #modal-ficha h3{margin-top:0;font-size:26px;}
-  #modal-ficha img{max-width:100%;border-radius:4px;margin:12px 0;}
-  #modal-ficha .cerrar-detalle{color:#8c8776;}
+        .version-desc {
+            font-size: 13px;
+            color: #666;
+        }
 
-  #modal-letra{
-    background-color:#16171e;
-    background-image:linear-gradient(#1a1c24,#1a1c24);
-    color:var(--text);
-    width:min(1300px,98vw);
-    max-height:85vh;
-    overflow-y:auto;
-    padding:44px 56px;
-    border-radius:6px;
-    font-family:Fraunces,Georgia,serif;
-    font-size:15.5px;
-    line-height:1.5;
-    white-space:pre-wrap;
-  }
-  #modal-letra p{margin:0 0 10px;}
-  #modal-letra h3{margin-top:0;font-size:24px;color:var(--accent);font-family:Fraunces,Georgia,serif;}
-  #modal-letra .subtitulo{color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:13px;margin:-12px 0 20px;}
-  #modal-letra .cerrar-detalle{color:var(--muted);}
-  .letra-nav{display:flex;justify-content:space-between;margin-bottom:18px;font-family:Inter,system-ui,sans-serif;}
-  .letra-nav button{
-    background:transparent;
-    border:1px solid var(--border);
-    color:var(--muted);
-    padding:7px 14px;
-    border-radius:4px;
-    cursor:pointer;
-    font-size:13px;
-    font-family:inherit;
-  }
-  .letra-nav button:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
-  .letra-nav button:disabled{opacity:.35;cursor:default;}
+        .logout-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
 
-  /* Scrollbars discretas */
-  ::-webkit-scrollbar{width:10px;}
-  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;}
-  ::-webkit-scrollbar-track{background:transparent;}
+        .logout-btn:hover {
+            background: #d32f2f;
+        }
 
-  #modal-fondo-login{
-    display:none;
-    position:fixed;inset:0;
-    background:rgba(0,0,0,.6);
-    z-index:60;
-    align-items:center;
-    justify-content:center;
-  }
-  #modal-fondo-login.abierto{display:flex;}
-  #modal-login{
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:6px;
-    padding:28px;
-    width:min(320px,90vw);
-  }
-  #modal-login h3{margin:0 0 4px;font-size:17px;}
-  #modal-login p{margin:0 0 16px;color:var(--muted);font-size:12.5px;}
-  #modal-login input{
-    width:100%;
-    background:var(--bg);
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:9px 10px;
-    border-radius:4px;
-    font-size:14px;
-    font-family:inherit;
-    margin-bottom:12px;
-  }
-  #modal-login input:focus{outline:none;border-color:var(--accent);}
-  #modal-login .fila-botones{display:flex;gap:8px;}
-  #btn-login-enviar{flex:1;background:var(--accent);border:1px solid var(--accent);color:#14151a;font-weight:600;padding:9px;border-radius:4px;cursor:pointer;font-family:inherit;}
-  #btn-login-cancelar{background:transparent;border:1px solid var(--border);color:var(--muted);padding:9px 12px;border-radius:4px;cursor:pointer;font-family:inherit;}
-
-  @media (max-width:820px){
-    #sidebar{position:fixed;left:0;top:53px;bottom:0;z-index:30;transform:translateX(-100%);transition:transform .2s;}
-    #sidebar.abierto{transform:translateX(0);}
-    #detalle{position:fixed;right:0;top:53px;bottom:0;width:100%;z-index:30;}
-  }
-</style>
+        @media (max-width: 480px) {
+            .version-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-
-<header>
-  <h1>Mi colección</h1>
-  <input id="buscador" type="text" placeholder="Buscar por álbum o artista…">
-  <div class="vista-selector" id="vista-selector">
-    <button type="button" class="vista-btn" data-vista="covers" title="Carátulas">▦</button>
-    <button type="button" class="vista-btn" data-vista="card" title="Tarjetas">☰</button>
-    <button type="button" class="vista-btn" data-vista="list" title="Lista">≡</button>
-  </div>
-  <button class="btn-nuevo-album" id="btn-nuevo-album" type="button">+ Añadir álbum</button>
-  <span id="contador"></span>
-  <span id="estado-carga">Cargando datos…</span>
-</header>
-
-<div id="cuerpo">
-  <nav id="sidebar">
-    <div class="sidebar-tabs" id="sidebar-tabs">
-      <button type="button" data-tab="artista" class="activo">Artistas</button>
-      <button type="button" data-tab="genero">Géneros</button>
-      <button type="button" data-tab="album">Álbumes</button>
-      <button type="button" data-tab="anio">Años</button>
-    </div>
-    <div class="artista-item activo" data-valor="__TODOS__">
-      <span>Todos</span><span class="n" id="n-todos"></span>
-    </div>
-    <div id="lista-artistas"></div>
-  </nav>
-
-  <div id="grid-wrap">
-    <div id="grid"></div>
-    <div id="vacio" style="display:none;">No se han encontrado álbumes.</div>
-  </div>
-
-  <aside id="detalle">
-    <span class="cerrar-detalle" id="cerrar-detalle">✕</span>
-    <button class="btn-modificar" id="btn-modificar" type="button">✎ Modificar</button>
-
-    <div id="vista-album">
-      <div class="det-cabecera">
-        <div class="cover-mediana" id="det-cover"></div>
-        <div class="det-info-top">
-          <div class="det-sello-anio" id="det-sello-anio"></div>
-          <div class="det-genero" id="det-genero"></div>
-          <div class="det-badges" id="det-badges"></div>
-          <div class="det-catalogo" id="det-catalogo"></div>
-          <div class="det-resumen" id="det-resumen"></div>
+    <div class="container">
+        <h1>🎵 Mi Colección de Discos</h1>
+        
+        <!-- Formulario de Login -->
+        <div id="loginSection" class="login-form">
+            <div class="form-group">
+                <label for="username">Usuario</label>
+                <input type="text" id="username" placeholder="Introduce tu usuario" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" placeholder="Introduce tu contraseña" autocomplete="current-password">
+            </div>
+            <div id="errorMsg" class="error-msg">Usuario o contraseña incorrectos</div>
+            <button class="btn-login" onclick="handleLogin()">Entrar</button>
         </div>
-      </div>
 
-      <h2 id="det-titulo"></h2>
-      <div class="artista-det" id="det-artista"></div>
-
-      <div class="det-subtitulo">Canciones</div>
-      <div id="canciones-wrap"></div>
-      <button class="btn-ficha" id="btn-ficha">Ver ficha completa</button>
-
-      <div class="det-subtitulo">Detalles particulares</div>
-      <div class="det-particulares" id="det-particulares"></div>
-    </div>
-
-    <div id="edicion-album" style="display:none;">
-      <div id="ed-campos"></div>
-      <div class="acciones-edicion">
-        <button type="button" id="btn-guardar-cambios">Guardar cambios</button>
-        <button type="button" id="btn-cancelar-edicion">Cancelar</button>
-      </div>
-    </div>
-  </aside>
-</div>
-
-<div id="modal-fondo">
-  <div id="modal-ficha">
-    <span class="cerrar-detalle" id="cerrar-modal">✕</span>
-    <h3 id="modal-titulo"></h3>
-    <div id="modal-cuerpo"></div>
-  </div>
-</div>
-
-<div id="modal-fondo-letra">
-  <div id="modal-letra">
-    <span class="cerrar-detalle" id="cerrar-modal-letra">✕</span>
-    <div class="letra-nav">
-      <button type="button" id="btn-letra-anterior" title="Canción anterior">‹ Anterior</button>
-      <button type="button" id="btn-letra-siguiente" title="Canción siguiente">Siguiente ›</button>
-    </div>
-    <h3 id="letra-titulo"></h3>
-    <div class="subtitulo" id="letra-subtitulo"></div>
-    <div id="letra-cuerpo"></div>
-  </div>
-</div>
-
-<div id="modal-fondo-nuevo">
-  <div id="modal-nuevo-album">
-    <span class="cerrar-detalle" id="cerrar-modal-nuevo">✕</span>
-    <h3>Añadir álbum nuevo</h3>
-
-    <div id="paso-busqueda">
-      <div class="grupo-busqueda-nuevo">
-        <input type="text" id="buscar-barcode" placeholder="Código de barras (EAN/UPC)">
-        <button type="button" id="btn-buscar-barcode">Buscar por código</button>
-      </div>
-      <div class="grupo-busqueda-nuevo">
-        <input type="text" id="buscar-texto" placeholder="Título del álbum y/o artista">
-        <button type="button" id="btn-buscar-texto">Buscar por título</button>
-      </div>
-      <div id="estado-busqueda"></div>
-      <div id="resultados-busqueda"></div>
-      <div class="separador-o">— o —</div>
-      <button type="button" class="btn-manual" id="btn-manual">Rellenar a mano, sin buscar</button>
-    </div>
-
-    <div id="paso-confirmar" style="display:none;">
-      <div id="confirmar-campos"></div>
-      <div class="acciones-edicion">
-        <button type="button" id="btn-crear-album">Añadir a mi colección</button>
-        <button type="button" id="btn-volver-busqueda">‹ Volver a la búsqueda</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="modal-fondo-login">
-  <div id="modal-login">
-    <h3>Contraseña de edición</h3>
-    <p>Solo hace falta para guardar cambios. No se guarda en el código.</p>
-    <input type="password" id="login-password" placeholder="Contraseña">
-    <div class="fila-botones">
-      <button type="button" id="btn-login-enviar">Entrar</button>
-      <button type="button" id="btn-login-cancelar">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<script>
-/* =========================================================
-   CONFIGURACIÓN — pega aquí la URL /exec de tu Apps Script
-   ========================================================= */
-const API_URL = "https://script.google.com/macros/s/AKfycbwjBPSQzS1HUC4fAl21wSonBf2qe5iNHLi8n-JVyQCt6VISRDpV-_VcUZM-se_Zabg2/exec";
-
-// Repositorio de GitHub donde se suben las carátulas
-const GITHUB_OWNER = "IsiZanPer";
-const GITHUB_REPO = "mi-coleccion-discos";
-const GITHUB_RAMA = "main";
-const GITHUB_CARPETA_PORTADAS = "Covers";
-
-// Ninguno de los dos tokens (edición / GitHub) se guarda en el código:
-// se piden por contraseña la primera vez que hacen falta en esta sesión.
-let tokenSesion = sessionStorage.getItem("token_edicion") || null;
-let tokenGithub = sessionStorage.getItem("token_github") || null;
-
-function pedirClave(titulo, subtitulo){
-  return new Promise((resolve)=>{
-    $("#modal-login h3").textContent = titulo;
-    $("#modal-login p").textContent = subtitulo;
-    const input = $("#login-password");
-    input.value = "";
-    $("#modal-fondo-login").classList.add("abierto");
-    setTimeout(()=>input.focus(), 50);
-
-    const limpiar = ()=>{
-      $("#modal-fondo-login").classList.remove("abierto");
-      btnEnviar.removeEventListener("click", onEnviar);
-      btnCancelar.removeEventListener("click", onCancelar);
-      input.removeEventListener("keydown", onEnter);
-    };
-    const btnEnviar = $("#btn-login-enviar");
-    const btnCancelar = $("#btn-login-cancelar");
-    const onEnviar = ()=>{ const v = input.value.trim(); limpiar(); resolve(v || null); };
-    const onCancelar = ()=>{ limpiar(); resolve(null); };
-    const onEnter = (e)=>{ if(e.key==="Enter") onEnviar(); };
-
-    btnEnviar.addEventListener("click", onEnviar);
-    btnCancelar.addEventListener("click", onCancelar);
-    input.addEventListener("keydown", onEnter);
-  });
-}
-
-async function asegurarSesion(){
-  if(tokenSesion) return true;
-  const valor = await pedirClave("Contraseña de edición", "Solo hace falta para guardar cambios. No se guarda en el código.");
-  if(!valor) return false;
-  tokenSesion = valor;
-  sessionStorage.setItem("token_edicion", valor);
-  return true;
-}
-
-async function asegurarTokenGithub(){
-  if(tokenGithub) return true;
-  const valor = await pedirClave("Token de GitHub", "Para subir carátulas a tu repositorio. Solo se guarda en esta pestaña.");
-  if(!valor) return false;
-  tokenGithub = valor;
-  sessionStorage.setItem("token_github", valor);
-  return true;
-}
-
-let ALBUMES = [];        // datos crudos, una fila por disco (tal cual la hoja)
-let ALBUMES_VISTA = [];  // para grid/sidebar: álbumes multi-disco fusionados en una sola entrada
-let CANCIONES = [];
-let tabActivo = "artista";       // 'artista' | 'genero' | 'album' | 'anio'
-let valorActivo = "__TODOS__";   // valor seleccionado dentro de la pestaña actual
-let albumSeleccionado = null;
-
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => Array.from(document.querySelectorAll(sel));
-
-const ETIQUETAS_TAB = {
-  artista: "Artistas",
-  genero: "Géneros",
-  album: "Álbumes",
-  anio: "Años"
-};
-
-/* Fusiona en una sola entrada las filas de ALBUMES que compartan
-   Artista+Título y tengan ambas algo en "Disco #" (multi-disco).
-   Los álbumes de un solo disco (Disco # vacío) no se tocan. */
-function agruparAlbumesMultiDisco(albumes){
-  const grupos = {};
-  const resultado = [];
-
-  albumes.forEach(a=>{
-    const disco = String(a["Disco #"]||"").trim();
-    if(!disco){ resultado.push(a); return; }
-    const clave = (a["ARTISTA ALBUM"]||"").trim().toLowerCase() + "||" + (a["ALBUM"]||"").trim().toLowerCase();
-    (grupos[clave] = grupos[clave] || []).push(a);
-  });
-
-  Object.values(grupos).forEach(lista=>{
-    if(lista.length < 2){ resultado.push(lista[0]); return; }
-    lista.sort((x,y)=> (parseInt(x["Disco #"])||0) - (parseInt(y["Disco #"])||0));
-    resultado.push(Object.assign({}, lista[0], {
-      _esGrupo: true,
-      _discos: lista.map(a=>({ ALBUM_ID: a.ALBUM_ID, numero: a["Disco #"] }))
-    }));
-  });
-
-  return resultado;
-}
-
-// Encuentra la entrada de ALBUMES_VISTA correspondiente a un ALBUM_ID real
-// (ya sea su propia entrada suelta, o el grupo multi-disco que lo contiene)
-function encontrarEntradaVista(albumId){
-  return ALBUMES_VISTA.find(a=>
-    a._esGrupo ? a._discos.some(d=>d.ALBUM_ID===albumId) : a.ALBUM_ID===albumId
-  );
-}
-
-/* ---------- Carga de datos ---------- */
-async function cargarDatos(){
-  try{
-    const res = await fetch(API_URL);
-    const json = await res.json();
-    if(!json.ok){
-      $("#estado-carga").textContent = "Error: " + json.error;
-      return;
-    }
-    ALBUMES = json.albumes;
-    CANCIONES = json.canciones;
-    ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
-    $("#estado-carga").textContent = "";
-    construirSidebar();
-    pintarGrid();
-  }catch(err){
-    $("#estado-carga").textContent = "No se pudo conectar con la hoja de datos.";
-    console.error(err);
-  }
-}
-
-/* Año a partir de "Fecha" (puede ser solo el año o una fecha dd/mm/yyyy) */
-function extraerAnio(fecha){
-  const f = fecha ? String(fecha) : "";
-  return f.includes("/") ? f.split("/").pop() : f;
-}
-
-function valorSegunTab(album, tab){
-  if(tab === "artista") return (album["ARTISTA ALBUM"]||"(Sin artista)").trim();
-  if(tab === "genero") return (album["GENERO"]||"(Sin género)").trim();
-  if(tab === "album") return (album["ALBUM"]||"(Sin título)").trim();
-  if(tab === "anio") return extraerAnio(album["Fecha"]) || "(Sin año)";
-  return "";
-}
-
-/* ---------- Sidebar con pestañas (Artistas/Géneros/Álbumes/Años) ---------- */
-function construirSidebar(){
-  const conteo = {};
-  ALBUMES_VISTA.forEach(a=>{
-    const valor = valorSegunTab(a, tabActivo);
-    conteo[valor] = (conteo[valor]||0)+1;
-  });
-
-  let claves = Object.keys(conteo);
-  claves = tabActivo === "anio"
-    ? claves.sort((a,b)=> b.localeCompare(a,'es', {numeric:true})) // años: más reciente primero
-    : claves.sort((a,b)=>a.localeCompare(b,'es'));
-
-  $("#n-todos").textContent = ALBUMES_VISTA.length;
-
-  const cont = $("#lista-artistas");
-  cont.innerHTML = "";
-  claves.forEach(valor=>{
-    const div = document.createElement("div");
-    div.className = "artista-item";
-    div.dataset.valor = valor;
-    div.innerHTML = `<span>${escapeHTML(valor)}</span><span class="n">${conteo[valor]}</span>`;
-    div.addEventListener("click", ()=>{
-      valorActivo = valor;
-      $$(".artista-item").forEach(el=>el.classList.remove("activo"));
-      div.classList.add("activo");
-      pintarGrid();
-    });
-    cont.appendChild(div);
-  });
-}
-
-function cambiarTab(nuevoTab){
-  tabActivo = nuevoTab;
-  valorActivo = "__TODOS__";
-  $$(".sidebar-tabs button").forEach(b=>b.classList.toggle("activo", b.dataset.tab===nuevoTab));
-  construirSidebar();
-  $('.artista-item[data-valor="__TODOS__"]').classList.add("activo");
-  pintarGrid();
-}
-$$(".sidebar-tabs button").forEach(btn=>{
-  btn.addEventListener("click", ()=> cambiarTab(btn.dataset.tab));
-});
-$('.artista-item[data-valor="__TODOS__"]').addEventListener("click", ()=>{
-  valorActivo = "__TODOS__";
-  $$(".artista-item").forEach(el=>el.classList.remove("activo"));
-  $('.artista-item[data-valor="__TODOS__"]').classList.add("activo");
-  pintarGrid();
-});
-
-/* ---------- Grid de álbumes ---------- */
-let vistaActual = localStorage.getItem("vista_grid") || "covers"; // 'covers' | 'card' | 'list'
-
-/* Datos resumidos de un álbum (pistas, duración total, año), sea de un
-   solo disco o de un grupo multi-disco (suma ambos discos) */
-function resumenAlbum(a){
-  let pistas = 0, segundos = 0;
-  if(a._esGrupo){
-    a._discos.forEach(d=>{
-      pistas += CANCIONES.filter(c=>c.ALBUM_ID===d.ALBUM_ID).length;
-      const fila = ALBUMES.find(x=>x.ALBUM_ID===d.ALBUM_ID);
-      if(fila && fila["Total duración"]) segundos += segundosDeDuracion(fila["Total duración"]);
-    });
-  } else {
-    pistas = CANCIONES.filter(c=>c.ALBUM_ID===a.ALBUM_ID).length;
-    segundos = a["Total duración"] ? segundosDeDuracion(a["Total duración"]) : 0;
-  }
-  const fechaPub = a["Fecha"] ? String(a["Fecha"]) : "";
-  const anio = fechaPub.includes("/") ? fechaPub.split("/").pop() : fechaPub;
-  return { pistas, duracionTexto: segundos ? formatearSegundos(segundos) : "", anio };
-}
-
-function cambiarVista(nueva){
-  vistaActual = nueva;
-  localStorage.setItem("vista_grid", nueva);
-  $$(".vista-btn").forEach(b=> b.classList.toggle("activo", b.dataset.vista===nueva));
-  pintarGrid();
-}
-
-function pintarGrid(){
-  const texto = $("#buscador").value.trim().toLowerCase();
-
-  let lista = ALBUMES_VISTA.filter(a=>{
-    if(valorActivo !== "__TODOS__" && valorSegunTab(a, tabActivo) !== valorActivo) return false;
-    if(!texto) return true;
-    const campo = ((a["ALBUM"]||"") + " " + (a["ARTISTA ALBUM"]||"")).toLowerCase();
-    return campo.includes(texto);
-  });
-
-  lista.sort((a,b)=> (a["ALBUM"]||"").localeCompare(b["ALBUM"]||"", 'es'));
-
-  $("#contador").textContent = lista.length + (lista.length===1 ? " álbum" : " álbumes");
-
-  const grid = $("#grid");
-  grid.innerHTML = "";
-  grid.className = "vista-" + vistaActual;
-  $("#vacio").style.display = lista.length ? "none" : "block";
-
-  if(vistaActual === "list"){
-    pintarVistaLista(grid, lista);
-  } else {
-    lista.forEach(a=> grid.appendChild(
-      vistaActual === "card" ? construirFilaCard(a) : construirCoverCard(a)
-    ));
-  }
-}
-
-function construirCoverCard(a){
-  const card = document.createElement("div");
-  card.className = "album-card";
-  if(albumSeleccionado && albumSeleccionado.ALBUM_ID === a.ALBUM_ID) card.classList.add("selec");
-  const portada = a["PORTADA"];
-  card.innerHTML = `
-    <div class="cover">${portada ? `<img src="${escapeAttr(portada)}" loading="lazy" alt="">` : escapeHTML(a["ALBUM"]||"")}</div>
-    <div class="album-titulo">${escapeHTML(a["ALBUM"]||"(Sin título)")}</div>
-    <div class="album-artista">${escapeHTML(a["ARTISTA ALBUM"]||"")}</div>
-  `;
-  card.addEventListener("click", ()=> abrirDetalle(a));
-  return card;
-}
-
-function construirFilaCard(a){
-  const { pistas, duracionTexto, anio } = resumenAlbum(a);
-  const portada = a["PORTADA"];
-  const fila = document.createElement("div");
-  fila.className = "fila-card";
-  if(albumSeleccionado && albumSeleccionado.ALBUM_ID === a.ALBUM_ID) fila.classList.add("selec");
-  fila.innerHTML = `
-    <div class="fc-cover">${portada ? `<img src="${escapeAttr(portada)}" loading="lazy" alt="">` : ""}</div>
-    <div class="fc-info">
-      <div class="fc-titulo">${escapeHTML(a["ALBUM"]||"(Sin título)")}</div>
-      <div class="fc-artista">${escapeHTML(a["ARTISTA ALBUM"]||"")}</div>
-      <div class="fc-formato">CD${anio ? " – "+escapeHTML(anio) : ""}</div>
-    </div>
-    <div class="fc-meta">
-      <div class="fc-pistas">♫ ${pistas}</div>
-      <div class="fc-duracion">${escapeHTML(duracionTexto)}</div>
-    </div>
-  `;
-  fila.addEventListener("click", ()=> abrirDetalle(a));
-  return fila;
-}
-
-function pintarVistaLista(grid, lista){
-  const tabla = document.createElement("table");
-  tabla.className = "tabla-albumes";
-  tabla.innerHTML = `
-    <thead><tr>
-      <th>Álbum</th><th>Artista</th><th>Año</th><th>Género</th><th>Rating</th><th>Duración</th>
-    </tr></thead>
-  `;
-  const tbody = document.createElement("tbody");
-  lista.forEach(a=>{
-    const { duracionTexto, anio } = resumenAlbum(a);
-    const rating = parseInt(a["Rating"])||0;
-    const tr = document.createElement("tr");
-    if(albumSeleccionado && albumSeleccionado.ALBUM_ID === a.ALBUM_ID) tr.classList.add("selec");
-    tr.innerHTML = `
-      <td class="td-album">${escapeHTML(a["ALBUM"]||"(Sin título)")}</td>
-      <td>${escapeHTML(a["ARTISTA ALBUM"]||"")}</td>
-      <td>${escapeHTML(anio)}</td>
-      <td>${escapeHTML(a["GENERO"]||"")}</td>
-      <td>${rating ? rating+"/10" : ""}</td>
-      <td>${escapeHTML(duracionTexto)}</td>
-    `;
-    tr.addEventListener("click", ()=> abrirDetalle(a));
-    tbody.appendChild(tr);
-  });
-  tabla.appendChild(tbody);
-  grid.appendChild(tabla);
-}
-
-/* Construye un <ol> de canciones (reutilizable tanto para álbumes normales
-   como para cada disco de un álbum multi-disco agrupado) */
-function construirOlCanciones(canciones){
-  const ol = document.createElement("ol");
-  ol.className = "lista-canciones";
-  canciones.forEach(c=>{
-    const li = document.createElement("li");
-    const tieneLetra = c["Letras"] && String(c["Letras"]).trim() !== "";
-    const artistaCancion = c["ARTISTA"] ? ` <em>(${escapeHTML(c["ARTISTA"])})</em>` : "";
-    li.innerHTML = `
-      <span class="num">${escapeHTML(String(c["PISTA Nº"]||""))}</span>
-      <span class="tit">${escapeHTML(c["TITULO"]||"")}${artistaCancion}</span>
-      ${tieneLetra ? `<button class="btn-letra" type="button">Letra</button>` : ""}
-      <span class="dur">${escapeHTML(formatearDuracion(c["Duración"]))}</span>
-    `;
-    if(tieneLetra){
-      li.querySelector(".btn-letra").addEventListener("click", ()=> abrirLetra(c, canciones));
-    }
-    ol.appendChild(li);
-  });
-  return ol;
-}
-
-/* ---------- Panel de detalle ---------- */
-function abrirDetalle(album){
-  albumSeleccionado = album;
-  cancelarEdicion();
-  pintarGrid(); // para marcar seleccionado
-
-  $("#det-titulo").textContent = album["ALBUM"] || "(Sin título)";
-  $("#det-artista").textContent = album["ARTISTA ALBUM"] || "";
-
-  const portada = album["PORTADA"];
-  $("#det-cover").innerHTML = portada
-    ? `<img src="${escapeAttr(portada)}" alt="">`
-    : escapeHTML(album["ALBUM"] || "Sin carátula");
-
-  const campoOVacio = (valor, sufijo) => valor ? `${escapeHTML(String(valor))}${sufijo||''}` : `<span class="vacio">—</span>`;
-
-  // Año a partir de "Fecha" (puede ser solo el año, o una fecha dd/mm/yyyy)
-  const fechaPub = album["Fecha"] ? String(album["Fecha"]) : "";
-  const anio = fechaPub.includes("/") ? fechaPub.split("/").pop() : fechaPub;
-
-  $("#det-sello-anio").innerHTML = album["Etiqueta"]
-    ? `${escapeHTML(album["Etiqueta"])}${anio ? ` (${escapeHTML(anio)})` : ""}`
-    : (anio ? escapeHTML(anio) : '<span class="vacio">—</span>');
-
-  $("#det-genero").innerHTML = campoOVacio(album["GENERO"]);
-
-  const ratingNum = parseInt(album["Rating"]) || 0;
-  const estrellasLlenas = Math.round(ratingNum / 2);
-  let htmlEstrellas = "";
-  for(let i=1;i<=5;i++){
-    htmlEstrellas += `<span style="color:${i<=estrellasLlenas ? '#e6c84b':'#4a4d58'}">★</span>`;
-  }
-  $("#det-badges").innerHTML = `
-    <span class="badge-id">#${escapeHTML(String(album["ALBUM_ID"]||""))}</span>
-    <span class="badge-rating">${htmlEstrellas} ${ratingNum > 0 ? ratingNum+'/10' : ''}</span>
-  `;
-
-  $("#det-catalogo").innerHTML = album["Número de Catalogo"]
-    ? `Nº de catálogo: ${escapeHTML(String(album["Número de Catalogo"]))}`
-    : "";
-
-  const particulares = [
-    `<b>Código de barras:</b> ${campoOVacio(album["Código de barras"])}`,
-    `<b>Fecha de compra:</b> ${campoOVacio(album["Fecha de compra"])}`,
-    `<b>Precio:</b> ${campoOVacio(album["Precio"], " €")}`,
-    `<b>Tienda:</b> ${campoOVacio(album["Tienda"])}`,
-    `<b>Fecha de publicación:</b> ${fechaPub ? escapeHTML(fechaPub) : '<span class="vacio">—</span>'}`,
-  ];
-  $("#det-particulares").innerHTML = particulares.join("<br>");
-
-  const wrap = $("#canciones-wrap");
-  wrap.innerHTML = "";
-
-  if(album._esGrupo){
-    // Álbum multi-disco: una sección por disco, cada una con su propio
-    // enlace para editar ESE disco en concreto (metadatos + canciones).
-    let totalCanciones = 0;
-    let sumaSegundos = 0;
-
-    album._discos.forEach(d=>{
-      const canciones = CANCIONES
-        .filter(c => c.ALBUM_ID === d.ALBUM_ID)
-        .sort((a,b)=> (parseInt(a["PISTA Nº"])||0) - (parseInt(b["PISTA Nº"])||0));
-      totalCanciones += canciones.length;
-
-      const filaReal = ALBUMES.find(a=> a.ALBUM_ID === d.ALBUM_ID);
-      if(filaReal && filaReal["Total duración"]){
-        sumaSegundos += segundosDeDuracion(filaReal["Total duración"]);
-      }
-
-      const cabecera = document.createElement("div");
-      cabecera.className = "disco-titulo";
-      cabecera.innerHTML = `
-        <span>Disco ${escapeHTML(String(d.numero))}</span>
-        <button type="button" class="btn-editar-disco">✎ Editar este disco</button>
-      `;
-      cabecera.querySelector(".btn-editar-disco").addEventListener("click", ()=>{
-        const fila = ALBUMES.find(a=> a.ALBUM_ID === d.ALBUM_ID);
-        if(fila){
-          albumSeleccionado = fila;
-          entrarModoEdicion();
-        }
-      });
-      wrap.appendChild(cabecera);
-      wrap.appendChild(construirOlCanciones(canciones));
-    });
-
-    $("#det-resumen").textContent = `CD · ${album._discos.length} discos · ${totalCanciones} pistas${sumaSegundos ? ' · ' + formatearSegundos(sumaSegundos) : ''}`;
-    $("#btn-modificar").style.display = "none"; // se edita disco a disco (ver enlaces de cada sección)
-  } else {
-    const canciones = CANCIONES
-      .filter(c => c.ALBUM_ID === album.ALBUM_ID)
-      .sort((a,b)=> (parseInt(a["PISTA Nº"])||0) - (parseInt(b["PISTA Nº"])||0));
-
-    const duracionTotal = album["Total duración"] ? formatearDuracion(album["Total duración"]) : "";
-    $("#det-resumen").textContent = `CD · ${canciones.length} pista${canciones.length===1?'':'s'}${duracionTotal ? ' · '+duracionTotal : ''}`;
-    wrap.appendChild(construirOlCanciones(canciones));
-    $("#btn-modificar").style.display = "";
-  }
-
-  $("#btn-ficha").style.display = album["Comentario"] ? "inline-block" : "none";
-
-  $("#detalle").classList.add("abierto");
-}
-
-function cerrarDetalle(){
-  albumSeleccionado = null;
-  cancelarEdicion();
-  $("#detalle").classList.remove("abierto");
-  pintarGrid();
-}
-
-/* ---------- Edición de álbum y canciones ---------- */
-let cancionesAEliminar = []; // {ALBUM_ID, pista_original} marcadas para borrar en esta edición
-
-function formatearEntradaDuracion(e){
-  const digitos = e.target.value.replace(/\D/g,"").slice(0,6); // máx. 6 dígitos = hh mm ss
-  const bloques = [];
-  for(let i=0; i<digitos.length; i+=2) bloques.push(digitos.slice(i,i+2));
-  e.target.value = bloques.join(":");
-}
-
-function crearFilaCancionEdicion(c, pistaOriginal){
-  const div = document.createElement("div");
-  div.className = "cancion-edicion";
-  if(pistaOriginal !== null) div.dataset.pistaOriginal = pistaOriginal;
-  div.innerHTML = `
-    <div class="cancion-edicion-fila">
-      <input type="number" class="ed-c-pista" value="${escapeAttr(c["PISTA Nº"]||"")}" placeholder="Nº">
-      <input type="text" class="ed-c-titulo" value="${escapeAttr(c["TITULO"]||"")}" placeholder="Título">
-      <input type="text" class="ed-c-artista" value="${escapeAttr(c["ARTISTA"]||"")}" placeholder="Artista">
-      <input type="text" class="ed-c-duracion" value="${escapeAttr(c["Duración"]||"")}" placeholder="h:mm:ss" maxlength="8" inputmode="numeric">
-      <input type="number" class="ed-c-anio" value="${escapeAttr(c["Original Release Year"]||"")}" placeholder="Año orig.">
-      <button type="button" class="btn-eliminar-cancion" title="Eliminar canción">✕</button>
-    </div>
-    <textarea class="ed-c-letras" rows="3" placeholder="Letra">${escapeHTML(c["Letras"]||"")}</textarea>
-  `;
-  div.querySelector(".btn-eliminar-cancion").addEventListener("click", ()=>{
-    if(div.dataset.pistaOriginal !== undefined){
-      cancionesAEliminar.push({ ALBUM_ID: albumSeleccionado.ALBUM_ID, pista_original: div.dataset.pistaOriginal });
-    }
-    div.remove();
-  });
-  div.querySelector(".ed-c-duracion").addEventListener("input", formatearEntradaDuracion);
-  return div;
-}
-
-/* Variante de fila de canción para el flujo de "álbum nuevo": todas las
-   filas son siempre nuevas (no hay pista_original ni cruce con nada
-   existente), así que eliminar una fila es tan simple como quitarla del DOM. */
-function crearFilaCancionNueva(c){
-  const div = document.createElement("div");
-  div.className = "cancion-edicion";
-  div.innerHTML = `
-    <div class="cancion-edicion-fila">
-      <input type="number" class="ed-c-pista" value="${escapeAttr(c["PISTA Nº"]||"")}" placeholder="Nº">
-      <input type="text" class="ed-c-titulo" value="${escapeAttr(c["TITULO"]||"")}" placeholder="Título">
-      <input type="text" class="ed-c-artista" value="${escapeAttr(c["ARTISTA"]||"")}" placeholder="Artista">
-      <input type="text" class="ed-c-duracion" value="${escapeAttr(c["Duración"]||"")}" placeholder="h:mm:ss" maxlength="8" inputmode="numeric">
-      <input type="number" class="ed-c-anio" value="${escapeAttr(c["Original Release Year"]||"")}" placeholder="Año orig.">
-      <button type="button" class="btn-eliminar-cancion" title="Eliminar canción">✕</button>
-    </div>
-    <textarea class="ed-c-letras" rows="3" placeholder="Letra">${escapeHTML(c["Letras"]||"")}</textarea>
-  `;
-  div.querySelector(".btn-eliminar-cancion").addEventListener("click", ()=> div.remove());
-  div.querySelector(".ed-c-duracion").addEventListener("input", formatearEntradaDuracion);
-  return div;
-}
-
-async function entrarModoEdicion(){
-  if(!albumSeleccionado) return;
-  if(!(await asegurarSesion())) return;
-
-  cancionesAEliminar = [];
-  const a = albumSeleccionado;
-  const canciones = CANCIONES
-    .filter(c => c.ALBUM_ID === a.ALBUM_ID)
-    .sort((x,y)=> (parseInt(x["PISTA Nº"])||0) - (parseInt(y["PISTA Nº"])||0));
-
-  const numerosVistos = new Set();
-  const numerosRepetidos = new Set();
-  canciones.forEach(c=>{
-    const n = String(c["PISTA Nº"]);
-    if(numerosVistos.has(n)) numerosRepetidos.add(n);
-    numerosVistos.add(n);
-  });
-  if(numerosRepetidos.size){
-    alert("Ojo: este álbum tiene canciones con el número de pista repetido (" + [...numerosRepetidos].join(", ") + "). Corrígelo antes de guardar, o los cambios pueden ir a la fila equivocada.");
-  }
-
-  const campo = (id,label,valor,tipo="text") => `
-    <label class="campo-edicion">
-      <span>${label}</span>
-      <input type="${tipo}" id="${id}" value="${escapeAttr(valor==null?"":valor)}">
-    </label>`;
-  const campoAncho = (id,label,valor,filas) => `
-    <label class="campo-edicion campo-edicion-ancho">
-      <span>${label}</span>
-      <textarea id="${id}" rows="${filas}">${escapeHTML(valor||"")}</textarea>
-    </label>`;
-
-  let html = `
-    <div class="grupo-edicion">
-      ${campo("ed-artista","Artista",a["ARTISTA ALBUM"])}
-      ${campo("ed-album","Título del álbum",a["ALBUM"])}
-      ${campo("ed-genero","Género",a["GENERO"])}
-      ${campo("ed-etiqueta","Sello",a["Etiqueta"])}
-      ${campo("ed-fecha","Fecha de publicación",a["Fecha"])}
-      ${campo("ed-catalogo","Nº de catálogo",a["Número de Catalogo"])}
-      ${campo("ed-barcode","Código de barras",a["Código de barras"])}
-      ${campo("ed-rating","Rating (0-10)",a["Rating"],"number")}
-      ${campo("ed-portada","URL de la carátula",a["PORTADA"])}
-      ${campo("ed-fecha-compra","Fecha de compra",a["Fecha de compra"])}
-      ${campo("ed-precio","Precio (€)",a["Precio"],"number")}
-      ${campo("ed-tienda","Tienda",a["Tienda"])}
-    </div>
-    <label class="campo-edicion campo-edicion-ancho campo-portada-archivo">
-      <span>O sube una carátula directamente desde tu ordenador (se guarda en tu repositorio y rellena la URL sola)</span>
-      <input type="file" id="ed-portada-file" accept="image/*">
-      <span id="ed-portada-estado"></span>
-    </label>
-    ${campoAncho("ed-comentario","Comentario / ficha completa (admite Markdown)",a["Comentario"],6)}
-    <div class="det-subtitulo">Canciones</div>
-    <div id="ed-canciones"></div>
-    <button type="button" class="btn-anadir-cancion" id="btn-anadir-cancion">+ Añadir canción</button>
-  `;
-
-  $("#ed-campos").innerHTML = html;
-  $("#ed-portada-file").addEventListener("change", (e)=>{
-    const file = e.target.files[0];
-    if(file) subirCaratula(file);
-  });
-
-  const cont = $("#ed-canciones");
-  canciones.forEach(c=>{
-    cont.appendChild(crearFilaCancionEdicion({
-      "PISTA Nº": c["PISTA Nº"],
-      TITULO: c["TITULO"],
-      ARTISTA: c["ARTISTA"],
-      "Duración": c["Duración"] || "",
-      "Original Release Year": c["Original Release Year"],
-      Letras: c["Letras"]
-    }, String(c["PISTA Nº"])));
-  });
-
-  $("#btn-anadir-cancion").addEventListener("click", ()=>{
-    const siguiente = $$("#ed-canciones .ed-c-pista")
-      .reduce((max,inp)=> Math.max(max, parseInt(inp.value)||0), 0) + 1;
-    const div = crearFilaCancionEdicion({ "PISTA Nº": siguiente, TITULO:"", ARTISTA:"", "Duración":"", "Original Release Year":"", Letras:"" }, null);
-    $("#ed-canciones").appendChild(div);
-    div.querySelector(".ed-c-titulo").focus();
-  });
-
-  $("#vista-album").style.display = "none";
-  $("#edicion-album").style.display = "block";
-  $("#btn-modificar").style.display = "none";
-}
-
-function slugTexto(t){
-  return String(t||"")
-    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g,"-")
-    .replace(/^-+|-+$/g,"") || "sin-titulo";
-}
-
-function leerArchivoComoBase64(file){
-  return new Promise((resolve,reject)=>{
-    const reader = new FileReader();
-    reader.onload = ()=> resolve(reader.result.split(",")[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-async function subirCaratula(file){
-  if(!albumSeleccionado) return;
-  if(!(await asegurarTokenGithub())) return;
-
-  const estado = $("#ed-portada-estado");
-  estado.textContent = "Subiendo…";
-  estado.className = "";
-
-  try{
-    const base64 = await leerArchivoComoBase64(file);
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-    const nombreArchivo = `${albumSeleccionado.ALBUM_ID}-${slugTexto(albumSeleccionado["ARTISTA ALBUM"])}-${slugTexto(albumSeleccionado["ALBUM"])}.${ext}`;
-    const ruta = `${GITHUB_CARPETA_PORTADAS}/${nombreArchivo}`;
-    const urlApi = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${ruta}`;
-
-    // Si ya existe una carátula con ese nombre, hace falta su "sha" para poder sobrescribirla
-    let sha = null;
-    const resGet = await fetch(urlApi, { headers: { Authorization: `Bearer ${tokenGithub}` } });
-    if(resGet.ok){
-      const existente = await resGet.json();
-      sha = existente.sha;
-    }
-
-    const cuerpo = { message: `Carátula: ${albumSeleccionado["ALBUM"]||nombreArchivo}`, content: base64, branch: GITHUB_RAMA };
-    if(sha) cuerpo.sha = sha;
-
-    const resPut = await fetch(urlApi, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${tokenGithub}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(cuerpo)
-    });
-    const datos = await resPut.json();
-
-    if(!resPut.ok){
-      if(resPut.status === 401){
-        tokenGithub = null;
-        sessionStorage.removeItem("token_github");
-      }
-      estado.textContent = "Error: " + (datos.message || resPut.status);
-      estado.className = "error";
-      return;
-    }
-
-    $("#ed-portada").value = datos.content.download_url;
-    estado.textContent = "Subida correctamente ✓";
-    estado.className = "ok";
-  }catch(err){
-    estado.textContent = "No se pudo subir la imagen.";
-    estado.className = "error";
-    console.error(err);
-  }
-}
-
-function cancelarEdicion(){
-  cancionesAEliminar = [];
-  $("#vista-album").style.display = "";
-  $("#edicion-album").style.display = "none";
-  $("#btn-modificar").style.display = "";
-  $("#ed-campos").innerHTML = "";
-  const btn = $("#btn-guardar-cambios");
-  btn.disabled = false;
-  btn.textContent = "Guardar cambios";
-}
-
-async function guardarCambios(){
-  if(!albumSeleccionado) return;
-  const btn = $("#btn-guardar-cambios");
-  btn.disabled = true;
-  btn.textContent = "Guardando…";
-
-  const albumEditado = {
-    ALBUM_ID: albumSeleccionado.ALBUM_ID,
-    "ARTISTA ALBUM": $("#ed-artista").value.trim(),
-    "ALBUM": $("#ed-album").value.trim(),
-    "GENERO": $("#ed-genero").value.trim(),
-    "Etiqueta": $("#ed-etiqueta").value.trim(),
-    "Fecha": $("#ed-fecha").value.trim(),
-    "Número de Catalogo": $("#ed-catalogo").value.trim(),
-    "Código de barras": $("#ed-barcode").value.trim(),
-    "Rating": $("#ed-rating").value.trim(),
-    "PORTADA": $("#ed-portada").value.trim(),
-    "Fecha de compra": $("#ed-fecha-compra").value.trim(),
-    "Precio": $("#ed-precio").value.trim(),
-    "Tienda": $("#ed-tienda").value.trim(),
-    "Comentario": $("#ed-comentario").value
-  };
-
-  const cancionesEditar = [];
-  const cancionesNuevas = [];
-  $$("#ed-canciones .cancion-edicion").forEach(div=>{
-    const datos = {
-      ALBUM_ID: albumSeleccionado.ALBUM_ID,
-      "PISTA Nº": div.querySelector(".ed-c-pista").value.trim(),
-      "TITULO": div.querySelector(".ed-c-titulo").value.trim(),
-      "ARTISTA": div.querySelector(".ed-c-artista").value.trim(),
-      "Duración": div.querySelector(".ed-c-duracion").value.trim(),
-      "Original Release Year": div.querySelector(".ed-c-anio").value.trim(),
-      "Letras": div.querySelector(".ed-c-letras").value
-    };
-    if(div.dataset.pistaOriginal !== undefined){
-      datos.pista_original = div.dataset.pistaOriginal;
-      cancionesEditar.push(datos);
-    } else {
-      cancionesNuevas.push(datos);
-    }
-  });
-
-  try{
-    const res = await fetch(API_URL, {
-      method: "POST",
-      // Sin Content-Type explícito a propósito: así el navegador lo manda
-      // como "text/plain", lo que evita que dispare una petición previa
-      // OPTIONS (preflight) que Apps Script no sabe responder.
-      body: JSON.stringify({
-        token: tokenSesion,
-        album: albumEditado,
-        canciones_editar: cancionesEditar,
-        canciones_nuevas: cancionesNuevas,
-        canciones_eliminar: cancionesAEliminar
-      })
-    });
-    const json = await res.json();
-
-    if(!json.ok){
-      if(String(json.error||"").includes("Token")){
-        tokenSesion = null;
-        sessionStorage.removeItem("token_edicion");
-      }
-      alert("Error al guardar: " + json.error);
-      btn.disabled = false;
-      btn.textContent = "Guardar cambios";
-      return;
-    }
-
-    // Actualizamos los datos en memoria para no tener que recargar toda la colección
-    Object.assign(albumSeleccionado, albumEditado);
-    const idxAlbum = ALBUMES.findIndex(x=>x.ALBUM_ID===albumSeleccionado.ALBUM_ID);
-    if(idxAlbum>-1) Object.assign(ALBUMES[idxAlbum], albumEditado);
-
-    // Bajas
-    cancionesAEliminar.forEach(el=>{
-      const i = CANCIONES.findIndex(x=> x.ALBUM_ID===el.ALBUM_ID && String(x["PISTA Nº"])===String(el.pista_original));
-      if(i>-1) CANCIONES.splice(i,1);
-    });
-
-    // Modificaciones (incluye posible cambio de "PISTA Nº")
-    cancionesEditar.forEach(ce=>{
-      const c = CANCIONES.find(x=> x.ALBUM_ID===ce.ALBUM_ID && String(x["PISTA Nº"])===String(ce.pista_original));
-      if(c) Object.assign(c, ce);
-    });
-
-    // Altas
-    cancionesNuevas.forEach(cn=>{
-      CANCIONES.push(Object.assign({}, cn));
-    });
-
-    const idAlbumEditado = albumSeleccionado.ALBUM_ID;
-    ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
-    construirSidebar();
-    pintarGrid();
-    abrirDetalle(encontrarEntradaVista(idAlbumEditado) || albumSeleccionado);
-    cancelarEdicion();
-  }catch(err){
-    alert("No se pudo conectar para guardar los cambios.");
-    console.error(err);
-    btn.disabled = false;
-    btn.textContent = "Guardar cambios";
-  }
-}
-
-/* ---------- Modal ficha (comentario en Markdown) ---------- */
-function abrirFicha(){
-  if(!albumSeleccionado) return;
-  $("#modal-titulo").textContent = albumSeleccionado["ALBUM"] || "";
-  $("#modal-cuerpo").innerHTML = markdownASimpleHTML(albumSeleccionado["Comentario"] || "");
-  $("#modal-fondo").classList.add("abierto");
-}
-function cerrarFicha(){
-  $("#modal-fondo").classList.remove("abierto");
-}
-
-/* ---------- Modal de letra (con navegación anterior/siguiente) ---------- */
-let letraListaActual = [];
-let letraIndiceActual = -1;
-
-function abrirLetra(cancion, lista){
-  letraListaActual = lista || [cancion];
-  letraIndiceActual = letraListaActual.indexOf(cancion);
-  mostrarLetraEnIndice(letraIndiceActual);
-  $("#modal-fondo-letra").classList.add("abierto");
-}
-
-function mostrarLetraEnIndice(i){
-  if(i<0 || i>=letraListaActual.length) return;
-  letraIndiceActual = i;
-  const cancion = letraListaActual[i];
-  $("#letra-titulo").textContent = cancion["TITULO"] || "";
-  $("#letra-subtitulo").textContent = albumSeleccionado ? (albumSeleccionado["ARTISTA ALBUM"] || "") : "";
-  const letra = (cancion["Letras"]||"").trim();
-  $("#letra-cuerpo").innerHTML = letra ? markdownASimpleHTML(letra) : '<p style="color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:14px;">Esta canción no tiene letra guardada.</p>';
-  $("#btn-letra-anterior").disabled = (i<=0);
-  $("#btn-letra-siguiente").disabled = (i>=letraListaActual.length-1);
-}
-
-function cerrarLetra(){
-  $("#modal-fondo-letra").classList.remove("abierto");
-}
-
-/* Conversor Markdown -> HTML muy simple, sin dependencias externas.
-   Soporta: # ## ### encabezados, **negrita**, *cursiva*, listas con "- ",
-   imágenes ![alt](url), enlaces [texto](url), párrafos. */
-function markdownASimpleHTML(md){
-  if(!md) return "";
-  const lineas = md.split("\n");
-  let html = "";
-  let enLista = false;
-
-  lineas.forEach(linea=>{
-    let l = linea.trim();
-
-    if(l === ""){
-      if(enLista){ html += "</ul>"; enLista = false; }
-      return;
-    }
-
-    const encabezado = l.match(/^(#{1,3})\s+(.*)/);
-    if(encabezado){
-      if(enLista){ html += "</ul>"; enLista = false; }
-      const nivel = encabezado[1].length + 2; // #->h3, ##->h4, ###->h5
-      html += `<h${nivel}>${inlineMD(encabezado[2])}</h${nivel}>`;
-      return;
-    }
-
-    if(l.startsWith("- ")){
-      if(!enLista){ html += "<ul>"; enLista = true; }
-      html += `<li>${inlineMD(l.slice(2))}</li>`;
-      return;
-    }
-
-    if(enLista){ html += "</ul>"; enLista = false; }
-    html += `<p>${inlineMD(l)}</p>`;
-  });
-  if(enLista) html += "</ul>";
-  return html;
-}
-function inlineMD(texto){
-  let t = escapeHTML(texto);
-  t = t.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m,alt,url)=>`<img src="${url}" alt="${alt}">`);
-  t = t.replace(/\[([^\]]*)\]\(([^)]+)\)/g, (m,txt,url)=>`<a href="${url}" target="_blank" rel="noopener">${txt}</a>`);
-  t = t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  t = t.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-  return t;
-}
-
-/* ---------- Utilidades ---------- */
-function escapeHTML(s){
-  return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
-function escapeAttr(s){ return escapeHTML(s); }
-function formatearDuracion(v){
-  if(!v) return "";
-  // El script ya envía "HH:mm:ss"; si la hora es 00, la recortamos (ej. "00:04:33" -> "04:33")
-  const m = String(v).match(/^00:(\d{2}:\d{2})$/);
-  return m ? m[1] : String(v);
-}
-
-// Convierte "HH:mm:ss" a segundos totales (para poder sumar duraciones de varios discos)
-function segundosDeDuracion(v){
-  if(!v) return 0;
-  const partes = String(v).split(":").map(n=>parseInt(n,10)||0);
-  if(partes.length===3) return partes[0]*3600 + partes[1]*60 + partes[2];
-  if(partes.length===2) return partes[0]*60 + partes[1];
-  return 0;
-}
-function formatearSegundos(total){
-  const h = Math.floor(total/3600);
-  const m = Math.floor((total%3600)/60);
-  const s = total%60;
-  const mmss = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-  return h>0 ? `${h}:${mmss}` : mmss;
-}
-
-/* ---------- Eventos ---------- */
-$("#buscador").addEventListener("input", pintarGrid);
-$("#cerrar-detalle").addEventListener("click", cerrarDetalle);
-$("#btn-modificar").addEventListener("click", entrarModoEdicion);
-$("#btn-guardar-cambios").addEventListener("click", guardarCambios);
-$("#btn-cancelar-edicion").addEventListener("click", cancelarEdicion);
-$("#btn-ficha").addEventListener("click", abrirFicha);
-$("#cerrar-modal").addEventListener("click", cerrarFicha);
-$("#modal-fondo").addEventListener("click", (e)=>{ if(e.target.id==="modal-fondo") cerrarFicha(); });
-$("#cerrar-modal-letra").addEventListener("click", cerrarLetra);
-$("#btn-letra-anterior").addEventListener("click", ()=> mostrarLetraEnIndice(letraIndiceActual-1));
-$("#btn-letra-siguiente").addEventListener("click", ()=> mostrarLetraEnIndice(letraIndiceActual+1));
-$("#modal-fondo-letra").addEventListener("click", (e)=>{ if(e.target.id==="modal-fondo-letra") cerrarLetra(); });
-
-/* ---------- Añadir álbum nuevo (búsqueda en Discogs) ---------- */
-function abrirModalNuevoAlbum(){
-  $("#buscar-barcode").value = "";
-  $("#buscar-texto").value = "";
-  $("#estado-busqueda").textContent = "";
-  $("#resultados-busqueda").innerHTML = "";
-  $("#paso-busqueda").style.display = "block";
-  $("#paso-confirmar").style.display = "none";
-  $("#modal-fondo-nuevo").classList.add("abierto");
-}
-function cerrarModalNuevoAlbum(){
-  $("#modal-fondo-nuevo").classList.remove("abierto");
-  $("#confirmar-campos").innerHTML = "";
-  const btn = $("#btn-crear-album");
-  btn.disabled = false;
-  btn.textContent = "Añadir a mi colección";
-}
-
-async function buscarPorBarcode(){
-  const codigo = $("#buscar-barcode").value.trim();
-  if(!codigo) return;
-  await buscarDiscogs(`barcode=${encodeURIComponent(codigo)}`);
-}
-async function buscarPorTexto(){
-  const texto = $("#buscar-texto").value.trim();
-  if(!texto) return;
-  await buscarDiscogs(`q=${encodeURIComponent(texto)}&type=release`);
-}
-
-async function buscarDiscogs(query){
-  const estado = $("#estado-busqueda");
-  const cont = $("#resultados-busqueda");
-  estado.textContent = "Buscando…";
-  cont.innerHTML = "";
-  try{
-    const res = await fetch(`https://api.discogs.com/database/search?${query}&per_page=15`);
-    const datos = await res.json();
-    const resultados = datos.results || [];
-    if(!resultados.length){
-      estado.textContent = "Sin resultados.";
-      return;
-    }
-    estado.textContent = `${resultados.length} resultado(s), elige el correcto:`;
-    resultados.forEach(r=>{
-      const div = document.createElement("div");
-      div.className = "resultado-busqueda";
-      const sub = [r.year, (r.format||[]).slice(0,2).join(", "), (r.label||[])[0]].filter(Boolean).join(" · ");
-      div.innerHTML = `
-        <img src="${escapeAttr(r.thumb||'')}" alt="" onerror="this.style.visibility='hidden'">
-        <div class="info">
-          <div class="tit">${escapeHTML(r.title||"")}</div>
-          <div class="sub">${escapeHTML(sub)}</div>
+        <!-- Selector de Versión -->
+        <div id="versionSection" class="version-selector">
+            <p class="welcome-msg">Bienvenido, <span id="welcomeUser"></span></p>
+            <div class="version-cards">
+                <a href="OLD.html" class="version-card old">
+                    <div class="version-icon">📀</div>
+                    <div class="version-title">Versión Antigua</div>
+                    <div class="version-desc">Versión estable actual</div>
+                </a>
+                <a href="NEW.html" class="version-card new">
+                    <div class="version-icon">✨</div>
+                    <div class="version-title">Versión Nueva</div>
+                    <div class="version-desc">En desarrollo</div>
+                </a>
+            </div>
+            <button class="logout-btn" onclick="handleLogout()">Cerrar sesión</button>
         </div>
-      `;
-      div.addEventListener("click", ()=> seleccionarResultado(r.id, r.type));
-      cont.appendChild(div);
-    });
-  }catch(err){
-    estado.textContent = "Error al buscar en Discogs.";
-    console.error(err);
-  }
-}
-
-async function seleccionarResultado(id, tipo){
-  const estado = $("#estado-busqueda");
-  estado.textContent = "Cargando datos del álbum…";
-  try{
-    const url = tipo==="master"
-      ? `https://api.discogs.com/masters/${id}`
-      : `https://api.discogs.com/releases/${id}`;
-    const res = await fetch(url);
-    const release = await res.json();
-    mostrarConfirmacion(mapearReleaseDiscogs(release));
-  }catch(err){
-    estado.textContent = "No se pudo cargar ese álbum.";
-    console.error(err);
-  }
-}
-
-// Quita el sufijo de desambiguación que añade Discogs a nombres repetidos, ej. "Queen (2)" -> "Queen"
-function limpiarNombreArtista(nombre){
-  return String(nombre||"").replace(/\s*\(\d+\)$/,"").trim();
-}
-
-// Discogs numera las pistas de álbumes multi-disco como "1-4", "2-12", etc.
-// (disco-pista). Esta función separa ambos números; si el formato es el
-// normal de un solo disco (solo un número, o letras de vinilo tipo "A1"),
-// se asume disco 1 y se numera correlativamente más adelante si hace falta.
-function analizarPosicionDiscogs(pos){
-  const texto = String(pos||"").trim();
-  const conDisco = texto.match(/^(\d+)-(\d+)$/);
-  if(conDisco) return { disco: parseInt(conDisco[1],10), pista: parseInt(conDisco[2],10) };
-  const soloNumero = texto.match(/^\d+$/);
-  if(soloNumero) return { disco: 1, pista: parseInt(texto,10) };
-  return { disco: 1, pista: null };
-}
-
-function mapearReleaseDiscogs(r){
-  const artistas = (r.artists||[]).map(a=>limpiarNombreArtista(a.name)).join(", ");
-  const generos = [...new Set([...(r.genres||[]), ...(r.styles||[])])].join(", ");
-  const etiqueta = (r.labels && r.labels[0]) ? r.labels[0].name : "";
-  const catalogo = (r.labels && r.labels[0]) ? r.labels[0].catno : "";
-  const barcode = (r.identifiers||[]).find(i=> String(i.type||"").toLowerCase().includes("barcode"));
-  const portada = (r.images && r.images[0]) ? (r.images[0].uri || r.images[0].resource_url) : "";
-  const fecha = r.released || (r.year ? String(r.year) : "");
-
-  const pistasBrutas = (r.tracklist||[])
-    .filter(t=> !t.type_ || t.type_==="track")
-    .map(t=>{
-      const {disco, pista} = analizarPosicionDiscogs(t.position);
-      return {
-        disco, pista,
-        "TITULO": t.title || "",
-        "ARTISTA": (t.artists||[]).map(a=>limpiarNombreArtista(a.name)).join(", "),
-        "Duración": t.duration || ""
-      };
-    });
-
-  // Agrupamos por número de disco (normalmente será solo "1" salvo álbumes dobles/triples)
-  const porDisco = new Map();
-  pistasBrutas.forEach(p=>{
-    if(!porDisco.has(p.disco)) porDisco.set(p.disco, []);
-    porDisco.get(p.disco).push(p);
-  });
-
-  const discos = [...porDisco.keys()].sort((a,b)=>a-b).map(numeroDisco=>{
-    const vistas = new Set();
-    const canciones = porDisco.get(numeroDisco)
-      .map((p,i)=>({
-        "PISTA Nº": p.pista != null ? p.pista : (i+1),
-        "TITULO": p["TITULO"],
-        "ARTISTA": p["ARTISTA"],
-        "Duración": p["Duración"],
-        "Original Release Year": ""
-      }))
-      .filter(c=>{
-        // Algunas fichas de Discogs repiten pistas en su propio listado
-        // (ediciones especiales, estructuras raras...). Descartamos
-        // cualquier pista que coincida en número + título con otra ya vista.
-        const clave = c["PISTA Nº"] + "|" + c["TITULO"].toLowerCase().trim();
-        if(vistas.has(clave)) return false;
-        vistas.add(clave);
-        return true;
-      });
-    return { numero: numeroDisco, canciones };
-  });
-
-  return {
-    album: {
-      "ARTISTA ALBUM": artistas,
-      "ALBUM": r.title || "",
-      "GENERO": generos,
-      "Etiqueta": etiqueta,
-      "Fecha": fecha,
-      "Número de Catalogo": catalogo,
-      "Código de barras": barcode ? barcode.value : "",
-      "PORTADA": portada
-    },
-    discos: discos
-  };
-}
-
-// Guarda, mientras el modal de "álbum nuevo" está abierto, qué discos hay
-// que crear y en qué contenedor del DOM está la lista de canciones de cada uno.
-let discosPendientesNuevoAlbum = [];
-
-function mostrarConfirmacion(datos){
-  const a = datos.album || {};
-  const campo = (id,label,valor,tipo="text") => `
-    <label class="campo-edicion">
-      <span>${label}</span>
-      <input type="${tipo}" id="${id}" value="${escapeAttr(valor==null?"":valor)}">
-    </label>`;
-
-  // Compatibilidad: si algo sigue llamando con datos.canciones (sin discos), lo tratamos como disco único
-  const discos = (datos.discos && datos.discos.length) ? datos.discos : [{ numero: 1, canciones: datos.canciones || [] }];
-  discosPendientesNuevoAlbum = discos.map(d => ({ numero: d.numero, id: "nv-canciones-" + d.numero }));
-
-  const tabsHtml = discos.length > 1
-    ? `<div class="tabs-discos-nuevo">` +
-        discos.map((d,i)=> `<button type="button" class="tab-disco-nuevo${i===0?" activo":""}" data-disco="${d.numero}">Disco ${d.numero}</button>`).join("") +
-      `</div>`
-    : "";
-
-  const contenedoresHtml = discos.map((d,i)=>
-    `<div class="nv-canciones-disco" id="nv-canciones-${d.numero}" ${i===0?"":'style="display:none"'}></div>`
-  ).join("");
-
-  const html = `
-    <div class="grupo-edicion">
-      ${campo("nv-artista","Artista",a["ARTISTA ALBUM"])}
-      ${campo("nv-album","Título del álbum",a["ALBUM"])}
-      ${campo("nv-genero","Género",a["GENERO"])}
-      ${campo("nv-etiqueta","Sello",a["Etiqueta"])}
-      ${campo("nv-fecha","Fecha de publicación",a["Fecha"])}
-      ${campo("nv-catalogo","Nº de catálogo",a["Número de Catalogo"])}
-      ${campo("nv-barcode","Código de barras",a["Código de barras"])}
-      ${campo("nv-portada","URL de la carátula",a["PORTADA"])}
-      ${campo("nv-rating","Rating (0-10)",a["Rating"],"number")}
-      ${campo("nv-precio","Precio (€)",a["Precio"],"number")}
-      ${campo("nv-fecha-compra","Fecha de compra",a["Fecha de compra"])}
-      ${campo("nv-tienda","Tienda",a["Tienda"])}
     </div>
-    <div class="det-subtitulo">Canciones${discos.length>1 ? " (álbum de " + discos.length + " discos — se crearán " + discos.length + " fichas de álbum enlazadas)" : ""}</div>
-    ${tabsHtml}
-    ${contenedoresHtml}
-    <button type="button" class="btn-anadir-cancion" id="btn-nv-anadir-cancion">+ Añadir canción</button>
-  `;
-  $("#confirmar-campos").innerHTML = html;
 
-  discos.forEach(d=>{
-    const cont = $("#nv-canciones-" + d.numero);
-    (d.canciones||[]).forEach(c=> cont.appendChild(crearFilaCancionNueva(c)));
-  });
+    <script>
+        // Credenciales de acceso (cámbialas por las tuyas)
+        const CREDENCIALES = {
+            usuario: 'admin',
+            password: 'IZPdiscosNVZ26' // Usa la misma que el TOKEN_EDICION o cámbiala
+        };
 
-  $$(".tab-disco-nuevo").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      $$(".tab-disco-nuevo").forEach(b=>b.classList.remove("activo"));
-      btn.classList.add("activo");
-      discosPendientesNuevoAlbum.forEach(d=>{
-        $("#"+d.id).style.display = (String(d.numero)===btn.dataset.disco) ? "block" : "none";
-      });
-    });
-  });
+        // Verificar si ya hay sesión activa
+        window.addEventListener('DOMContentLoaded', () => {
+            const sesionActiva = sessionStorage.getItem('sesionActiva');
+            if (sesionActiva === 'true') {
+                mostrarSelectorVersion();
+            }
+        });
 
-  $("#btn-nv-anadir-cancion").addEventListener("click", ()=>{
-    const tabActiva = $$(".tab-disco-nuevo.activo")[0];
-    const discoActivo = discosPendientesNuevoAlbum.find(d=> tabActiva ? String(d.numero)===tabActiva.dataset.disco : true) || discosPendientesNuevoAlbum[0];
-    const cont = $("#"+discoActivo.id);
-    const siguiente = $$("#"+discoActivo.id+" .ed-c-pista").reduce((max,inp)=>Math.max(max,parseInt(inp.value)||0),0) + 1;
-    cont.appendChild(crearFilaCancionNueva({ "PISTA Nº": siguiente }));
-  });
+        function handleLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
 
-  $("#paso-busqueda").style.display = "none";
-  $("#paso-confirmar").style.display = "block";
-}
-
-async function crearAlbumNuevo(){
-  if(!(await asegurarSesion())) return;
-  const btn = $("#btn-crear-album");
-  btn.disabled = true;
-  btn.textContent = "Guardando…";
-
-  const albumBase = {
-    "ARTISTA ALBUM": $("#nv-artista").value.trim(),
-    "ALBUM": $("#nv-album").value.trim(),
-    "GENERO": $("#nv-genero").value.trim(),
-    "Etiqueta": $("#nv-etiqueta").value.trim(),
-    "Fecha": $("#nv-fecha").value.trim(),
-    "Número de Catalogo": $("#nv-catalogo").value.trim(),
-    "Código de barras": $("#nv-barcode").value.trim(),
-    "PORTADA": $("#nv-portada").value.trim(),
-    "Rating": $("#nv-rating").value.trim(),
-    "Precio": $("#nv-precio").value.trim(),
-    "Fecha de compra": $("#nv-fecha-compra").value.trim(),
-    "Tienda": $("#nv-tienda").value.trim()
-  };
-
-  // Álbum de un solo disco (caso normal): un único disco "virtual" apuntando al contenedor de siempre.
-  const discos = discosPendientesNuevoAlbum.length ? discosPendientesNuevoAlbum : [{ numero: 1, id: "nv-canciones" }];
-  const esMultiDisco = discos.length > 1;
-
-  let ultimoAlbumId = null;
-  let ultimoAlbumCompleto = null;
-
-  try{
-    for(const d of discos){
-      const cancionesDisco = $$("#"+d.id+" .cancion-edicion").map(div=>({
-        "PISTA Nº": div.querySelector(".ed-c-pista").value.trim(),
-        "TITULO": div.querySelector(".ed-c-titulo").value.trim(),
-        "ARTISTA": div.querySelector(".ed-c-artista").value.trim(),
-        "Duración": div.querySelector(".ed-c-duracion").value.trim(),
-        "Original Release Year": div.querySelector(".ed-c-anio").value.trim(),
-        "Letras": div.querySelector(".ed-c-letras").value
-      }));
-
-      const albumDisco = Object.assign({}, albumBase);
-      if(esMultiDisco) albumDisco["Disco #"] = d.numero;
-
-      const res = await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ token: tokenSesion, nuevo_album: albumDisco, nuevo_album_canciones: cancionesDisco })
-      });
-      const json = await res.json();
-
-      if(!json.ok){
-        if(String(json.error||"").includes("Token")){
-          tokenSesion = null;
-          sessionStorage.removeItem("token_edicion");
+            if (username === CREDENCIALES.usuario && password === CREDENCIALES.password) {
+                // Login exitoso
+                sessionStorage.setItem('sesionActiva', 'true');
+                sessionStorage.setItem('usuario', username);
+                mostrarSelectorVersion();
+            } else {
+                // Login fallido
+                errorMsg.style.display = 'block';
+                setTimeout(() => {
+                    errorMsg.style.display = 'none';
+                }, 3000);
+            }
         }
-        alert("Error al crear el álbum" + (esMultiDisco ? ` (Disco ${d.numero})` : "") + ": " + json.error);
-        btn.disabled = false;
-        btn.textContent = "Añadir a mi colección";
-        return;
-      }
 
-      const nuevoAlbumCompleto = Object.assign({ ALBUM_ID: json.album_id }, albumDisco);
-      ALBUMES.push(nuevoAlbumCompleto);
-      cancionesDisco.forEach(c=> CANCIONES.push(Object.assign({ ALBUM_ID: json.album_id }, c)));
-      ultimoAlbumId = json.album_id;
-      ultimoAlbumCompleto = nuevoAlbumCompleto;
-    }
+        function mostrarSelectorVersion() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('versionSection').classList.add('active');
+            document.getElementById('welcomeUser').textContent = sessionStorage.getItem('usuario') || 'usuario';
+        }
 
-    ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
+        function handleLogout() {
+            sessionStorage.removeItem('sesionActiva');
+            sessionStorage.removeItem('usuario');
+            document.getElementById('loginSection').style.display = 'flex';
+            document.getElementById('versionSection').classList.remove('active');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
 
-    construirSidebar();
-    pintarGrid();
-    cerrarModalNuevoAlbum();
-    abrirDetalle(encontrarEntradaVista(ultimoAlbumId) || ultimoAlbumCompleto);
-  }catch(err){
-    alert("No se pudo conectar para crear el álbum.");
-    console.error(err);
-    btn.disabled = false;
-    btn.textContent = "Añadir a mi colección";
-  }
-}
-
-$("#btn-nuevo-album").addEventListener("click", abrirModalNuevoAlbum);
-$("#cerrar-modal-nuevo").addEventListener("click", cerrarModalNuevoAlbum);
-$("#modal-fondo-nuevo").addEventListener("click", (e)=>{ if(e.target.id==="modal-fondo-nuevo") cerrarModalNuevoAlbum(); });
-$("#btn-buscar-barcode").addEventListener("click", buscarPorBarcode);
-$("#btn-buscar-texto").addEventListener("click", buscarPorTexto);
-$("#buscar-barcode").addEventListener("keydown", e=>{ if(e.key==="Enter") buscarPorBarcode(); });
-$("#buscar-texto").addEventListener("keydown", e=>{ if(e.key==="Enter") buscarPorTexto(); });
-$("#btn-manual").addEventListener("click", ()=> mostrarConfirmacion({album:{}, canciones:[]}));
-$("#btn-volver-busqueda").addEventListener("click", ()=>{
-  $("#paso-confirmar").style.display = "none";
-  $("#paso-busqueda").style.display = "block";
-});
-$("#btn-crear-album").addEventListener("click", crearAlbumNuevo);
-
-$$(".vista-btn").forEach(btn=>{
-  btn.classList.toggle("activo", btn.dataset.vista===vistaActual);
-  btn.addEventListener("click", ()=> cambiarVista(btn.dataset.vista));
-});
-
-cargarDatos();
-</script>
+        // Permitir login con Enter
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleLogin();
+            }
+        });
+    </script>
 </body>
 </html>
