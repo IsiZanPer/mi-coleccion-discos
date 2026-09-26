@@ -1,60 +1,179 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Colección - Nueva Versión</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 0;
-            color: white;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Colección de Discos - Nueva Versión</title>
+<style>
+  /* --- ESTILOS BASE (Copia aquí los estilos de tu OLD.html para mantener el diseño) --- */
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f9; margin: 0; padding: 20px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 { text-align: center; color: #1e3c72; }
+  
+  /* --- ESTILOS NUEVOS PARA ELIMINAR --- */
+  .detalle-botones { display: flex; gap: 10px; margin-top: 20px; }
+  
+  .btn-modificar {
+    background: #007bff; color: white; border: none; padding: 10px 20px;
+    border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: 600;
+  }
+  .btn-modificar:hover { background: #0056b3; }
+  
+  .btn-eliminar {
+    background: #dc3545; color: white; border: none; padding: 10px 20px;
+    border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: 600;
+  }
+  .btn-eliminar:hover { background: #c82333; }
 
-        .container {
-            text-align: center;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 60px 40px;
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-
-        h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-
-        p {
-            font-size: 20px;
-            margin-bottom: 30px;
-        }
-
-        .back-btn {
-            background: white;
-            color: #667eea;
-            padding: 12px 30px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: transform 0.2s;
-        }
-
-        .back-btn:hover {
-            transform: scale(1.05);
-        }
-    </style>
+  /* Modal de Confirmación */
+  .modal-confirmacion {
+    display: none; position: fixed; z-index: 1001; left: 0; top: 0;
+    width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+    justify-content: center; align-items: center;
+  }
+  .modal-confirmacion.active { display: flex; }
+  
+  .confirmacion-content {
+    background: white; padding: 30px; border-radius: 10px;
+    max-width: 400px; width: 90%; text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  }
+  .confirmacion-content h3 { margin-bottom: 20px; color: #333; }
+  .confirmacion-content p { margin-bottom: 25px; color: #666; line-height: 1.5; }
+  
+  .confirmacion-botones { display: flex; flex-direction: column; gap: 10px; }
+  
+  .btn-confirmar-solo, .btn-confirmar-completo, .btn-cancelar-eliminacion {
+    padding: 12px; border: none; border-radius: 5px; cursor: pointer;
+    font-size: 14px; font-weight: 600; transition: background 0.3s;
+  }
+  .btn-confirmar-solo { background: #ffc107; color: #000; }
+  .btn-confirmar-solo:hover { background: #e0a800; }
+  .btn-confirmar-completo { background: #dc3545; color: white; }
+  .btn-confirmar-completo:hover { background: #c82333; }
+  .btn-cancelar-eliminacion { background: #6c757d; color: white; }
+  .btn-cancelar-eliminacion:hover { background: #5a6268; }
+  
+  .btn-confirmar-solo:disabled, .btn-confirmar-completo:disabled {
+    opacity: 0.6; cursor: not-allowed;
+  }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>✨ Nueva Versión</h1>
-        <p>Esta es la versión en desarrollo.<br>Aquí iremos añadiendo las mejoras.</p>
-        <a href="index.html" class="back-btn">← Volver al inicio</a>
+
+<div class="container">
+  <h1>🎵 Mi Colección de Discos (Nueva Versión)</h1>
+  
+  <!-- Aquí iría el resto de tu HTML original: vistas de carátulas, lista, modal de detalle, etc. -->
+  <!-- Por brevedad, solo muestro la estructura del modal de confirmación que debes añadir -->
+  
+  <!-- Modal de Detalle (Ejemplo simplificado) -->
+  <div id="modal-detalle" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:white; padding:30px; border-radius:10px; max-width:500px; width:90%;">
+      <h2 id="detalle-titulo"></h2>
+      <p id="detalle-artista"></p>
+      <div class="detalle-botones">
+        <button class="btn-modificar">✎ Modificar</button>
+        <button class="btn-eliminar" onclick="confirmarEliminacion(albumActual)">🗑️ Eliminar</button>
+      </div>
+      <button onclick="document.getElementById('modal-detalle').style.display='none'" style="margin-top:15px;">Cerrar</button>
     </div>
+  </div>
+
+  <!-- NUEVO: Modal de Confirmación de Eliminación -->
+  <div id="modal-confirmacion" class="modal-confirmacion">
+    <div class="confirmacion-content">
+      <h3>¿Eliminar álbum?</h3>
+      <p id="confirmacion-mensaje"></p>
+      <div class="confirmacion-botones">
+        <button class="btn-confirmar-solo" onclick="ejecutarEliminacion('solo')">🗑️ Solo este disco</button>
+        <button class="btn-confirmar-completo" onclick="ejecutarEliminacion('completo')">💥 Álbum completo (todos los discos)</button>
+        <button class="btn-cancelar-eliminacion" onclick="cerrarModalConfirmacion()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ️ PEGA AQUÍ LA URL DE TU NUEVO APP SCRIPT
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxfUZRc7YKobCtUW_YZRs3YFNfc9vIr0OTzm4OCYGlKItoV2zRheEOADNgzs62ciagH/exec';
+  const TOKEN_EDICION = 'IZPdiscosNVZ26'; // Mantenlo para las operaciones de escritura
+  
+  let albumes = []; // Aquí cargarás los datos desde doGet
+  let albumActual = null; // Variable temporal para el modal de detalle
+
+  // --- FUNCIONES NUEVAS DE ELIMINACIÓN ---
+  
+  let albumAEliminar = null;
+
+  function confirmarEliminacion(album) {
+    albumAEliminar = album;
+    const mensaje = document.getElementById('confirmacion-mensaje');
+    const numDiscos = contarDiscosAlbum(album.Título, album.Artista);
+    
+    if (numDiscos > 1) {
+      mensaje.innerHTML = `<strong>${album.Título}</strong> de ${album.Artista} tiene <strong>${numDiscos} discos</strong>.<br><br>¿Qué quieres eliminar?`;
+    } else {
+      mensaje.innerHTML = `¿Seguro que quieres eliminar <strong>${album.Título}</strong> de ${album.Artista}?`;
+    }
+    
+    document.getElementById('modal-confirmacion').classList.add('active');
+  }
+
+  function contarDiscosAlbum(titulo, artista) {
+    return albumes.filter(a => 
+      a.Título.toLowerCase() === titulo.toLowerCase() && 
+      a.Artista.toLowerCase() === artista.toLowerCase()
+    ).length;
+  }
+
+  async function ejecutarEliminacion(modo) {
+    if (!albumAEliminar) return;
+    
+    const btnSolo = document.querySelector('.btn-confirmar-solo');
+    const btnCompleto = document.querySelector('.btn-confirmar-completo');
+    const btnCancelar = document.querySelector('.btn-cancelar-eliminacion');
+    
+    btnSolo.disabled = true; btnCompleto.disabled = true; btnCancelar.disabled = true;
+    const textoOriginalSolo = btnSolo.textContent;
+    const textoOriginalCompleto = btnCompleto.textContent;
+    btnSolo.textContent = 'Eliminando...'; btnCompleto.textContent = 'Eliminando...';
+    
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST', mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          token: TOKEN_EDICION, accion: 'eliminar_album',
+          album_id: albumAEliminar.ALBUM_ID, modo: modo,
+          titulo: albumAEliminar.Título, artista: albumAEliminar.Artista
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.ok) {
+        alert('Álbum eliminado correctamente');
+        cerrarModalConfirmacion();
+        // Aquí deberías recargar los datos: await cargarDatos();
+      } else {
+        alert('Error al eliminar: ' + data.error);
+      }
+    } catch (err) {
+      alert('Error de conexión: ' + err.message);
+    } finally {
+      btnSolo.disabled = false; btnCompleto.disabled = false; btnCancelar.disabled = false;
+      btnSolo.textContent = textoOriginalSolo; btnCompleto.textContent = textoOriginalCompleto;
+      albumAEliminar = null;
+    }
+  }
+
+  function cerrarModalConfirmacion() {
+    document.getElementById('modal-confirmacion').classList.remove('active');
+  }
+
+  // --- AQUÍ IRÍA EL RESTO DE TU JAVASCRIPT ORIGINAL ---
+  // (Funciones para cargar datos, mostrar vistas, etc.)
+</script>
 </body>
 </html>
