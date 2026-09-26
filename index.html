@@ -26,7 +26,7 @@
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             padding: 40px;
-            max-width: 500px;
+            max-width: 600px;
             width: 100%;
         }
 
@@ -34,7 +34,11 @@
             text-align: center;
             color: #1e3c72;
             margin-bottom: 30px;
-            font-size: 28px;
+            font-size: 32px;
+        }
+
+        h1::before {
+            content: "ðŸŽµ ";
         }
 
         .login-form {
@@ -89,34 +93,42 @@
             transform: translateY(0);
         }
 
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .error-msg {
             color: #d32f2f;
             text-align: center;
             font-size: 14px;
             display: none;
+            padding: 10px;
+            background: #ffebee;
+            border-radius: 8px;
         }
 
         .version-selector {
             display: none;
-            flex-direction: column;
-            gap: 30px;
         }
 
         .version-selector.active {
-            display: flex;
+            display: block;
         }
 
         .welcome-msg {
             text-align: center;
             color: #666;
-            margin-bottom: 10px;
-            font-size: 16px;
+            margin-bottom: 30px;
+            font-size: 18px;
         }
 
         .version-cards {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
+            margin-bottom: 30px;
         }
 
         .version-card {
@@ -128,6 +140,7 @@
             transition: transform 0.3s, box-shadow 0.3s;
             text-decoration: none;
             color: #333;
+            display: block;
         }
 
         .version-card:hover {
@@ -163,11 +176,12 @@
             background: #f44336;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 30px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
-            margin-top: 20px;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
             transition: background 0.3s;
         }
 
@@ -179,12 +193,20 @@
             .version-cards {
                 grid-template-columns: 1fr;
             }
+
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>ðŸŽµ Mi ColecciÃ³n de Discos</h1>
+        <h1>Mi ColecciÃ³n de Discos</h1>
         
         <!-- Formulario de Login -->
         <div id="loginSection" class="login-form">
@@ -210,7 +232,7 @@
                     <div class="version-desc">VersiÃ³n estable actual</div>
                 </a>
                 <a href="NEW.html" class="version-card new">
-                    <div class="version-icon">âœ?/div>
+                    <div class="version-icon">âœ¨</div>
                     <div class="version-title">VersiÃ³n Nueva</div>
                     <div class="version-desc">En desarrollo</div>
                 </a>
@@ -220,94 +242,94 @@
     </div>
 
     <script>
-    // URL de tu Google Apps Script
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwjBPSQzS1HUC4fAl21wSonBf2qe5iNHLi8n-JVyQCt6VISRDpV-_VcUZM-se_Zabg2/exec';
+        // URL de tu Google Apps Script
+        const API_URL = 'https://script.google.com/macros/s/AKfycbz6fTqVqVqVqVqVqVqVqVqVqVqVqVqVqVqVqVqVqVqVqVqVqVqV/exec';
 
-    // Verificar si ya hay sesi¨®n activa
-    window.addEventListener('DOMContentLoaded', () => {
-        const sesionActiva = sessionStorage.getItem('sesionActiva');
-        if (sesionActiva === 'true') {
-            mostrarSelectorVersion();
-        }
-    });
-
-    async function handleLogin() {
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value.trim();
-        const errorMsg = document.getElementById('errorMsg');
-        const btnLogin = document.querySelector('.btn-login');
-
-        if (!username || !password) {
-            errorMsg.textContent = 'Por favor, completa todos los campos';
-            errorMsg.style.display = 'block';
-            setTimeout(() => errorMsg.style.display = 'none', 3000);
-            return;
-        }
-
-        // Deshabilitar bot¨®n mientras se valida
-        btnLogin.disabled = true;
-        btnLogin.textContent = 'Validando...';
-
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                mode: 'cors',
-                headers: {
-                    'Content-Type': 'text/plain;charset=utf-8',
-                },
-                body: JSON.stringify({
-                    accion: 'login',
-                    usuario: username,
-                    password: password
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.ok) {
-                // Login exitoso
-                sessionStorage.setItem('sesionActiva', 'true');
-                sessionStorage.setItem('usuario', data.usuario);
-                sessionStorage.setItem('token', data.token);
+        // Verificar si ya hay sesiÃ³n activa
+        window.addEventListener('DOMContentLoaded', () => {
+            const sesionActiva = sessionStorage.getItem('sesionActiva');
+            if (sesionActiva === 'true') {
                 mostrarSelectorVersion();
-            } else {
-                // Login fallido
-                errorMsg.textContent = data.error || 'Usuario o contrase?a incorrectos';
+            }
+        });
+
+        async function handleLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+            const btnLogin = document.querySelector('.btn-login');
+
+            if (!username || !password) {
+                errorMsg.textContent = 'Por favor, completa todos los campos';
                 errorMsg.style.display = 'block';
                 setTimeout(() => errorMsg.style.display = 'none', 3000);
+                return;
             }
-        } catch (err) {
-            errorMsg.textContent = 'Error de conexi¨®n. Int¨¦ntalo de nuevo.';
-            errorMsg.style.display = 'block';
-            setTimeout(() => errorMsg.style.display = 'none', 3000);
-        } finally {
-            btnLogin.disabled = false;
-            btnLogin.textContent = 'Entrar';
+
+            // Deshabilitar botÃ³n mientras se valida
+            btnLogin.disabled = true;
+            btnLogin.textContent = 'Validando...';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8',
+                    },
+                    body: JSON.stringify({
+                        accion: 'login',
+                        usuario: username,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    // Login exitoso
+                    sessionStorage.setItem('sesionActiva', 'true');
+                    sessionStorage.setItem('usuario', data.usuario);
+                    sessionStorage.setItem('token', data.token);
+                    mostrarSelectorVersion();
+                } else {
+                    // Login fallido
+                    errorMsg.textContent = data.error || 'Usuario o contraseÃ±a incorrectos';
+                    errorMsg.style.display = 'block';
+                    setTimeout(() => errorMsg.style.display = 'none', 3000);
+                }
+            } catch (err) {
+                errorMsg.textContent = 'Error de conexiÃ³n. IntÃ©ntalo de nuevo.';
+                errorMsg.style.display = 'block';
+                setTimeout(() => errorMsg.style.display = 'none', 3000);
+            } finally {
+                btnLogin.disabled = false;
+                btnLogin.textContent = 'Entrar';
+            }
         }
-    }
 
-    function mostrarSelectorVersion() {
-        document.getElementById('loginSection').style.display = 'none';
-        document.getElementById('versionSection').classList.add('active');
-        document.getElementById('welcomeUser').textContent = sessionStorage.getItem('usuario') || 'usuario';
-    }
-
-    function handleLogout() {
-        sessionStorage.removeItem('sesionActiva');
-        sessionStorage.removeItem('usuario');
-        sessionStorage.removeItem('token');
-        document.getElementById('loginSection').style.display = 'flex';
-        document.getElementById('versionSection').classList.remove('active');
-        document.getElementById('username').value = '';
-        document.getElementById('password').value = '';
-    }
-
-    // Permitir login con Enter
-    document.getElementById('password').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            handleLogin();
+        function mostrarSelectorVersion() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('versionSection').classList.add('active');
+            document.getElementById('welcomeUser').textContent = sessionStorage.getItem('usuario') || 'usuario';
         }
-    });
-</script>
+
+        function handleLogout() {
+            sessionStorage.removeItem('sesionActiva');
+            sessionStorage.removeItem('usuario');
+            sessionStorage.removeItem('token');
+            document.getElementById('loginSection').style.display = 'flex';
+            document.getElementById('versionSection').classList.remove('active');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        // Permitir login con Enter
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleLogin();
+            }
+        });
+    </script>
 </body>
 </html>
