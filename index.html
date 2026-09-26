@@ -1,336 +1,161 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Colección de Discos - Acceso</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 40px;
-            max-width: 600px;
-            width: 100%;
-        }
-
-        h1 {
-            text-align: center;
-            color: #1e3c72;
-            margin-bottom: 30px;
-            font-size: 32px;
-        }
-
-        h1::before {
-            content: "🎵 ";
-        }
-
-        .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        label {
-            font-weight: 600;
-            color: #333;
-            font-size: 14px;
-        }
-
-        input {
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: #2a5298;
-        }
-
-        .btn-login {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(30, 60, 114, 0.4);
-        }
-
-        .btn-login:active {
-            transform: translateY(0);
-        }
-
-        .btn-login:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .error-msg {
-            color: #d32f2f;
-            text-align: center;
-            font-size: 14px;
-            display: none;
-            padding: 10px;
-            background: #ffebee;
-            border-radius: 8px;
-        }
-
-        .version-selector {
-            display: none;
-        }
-
-        .version-selector.active {
-            display: block;
-        }
-
-        .welcome-msg {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 18px;
-        }
-
-        .version-cards {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .version-card {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            border-radius: 15px;
-            padding: 30px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.3s, box-shadow 0.3s;
-            text-decoration: none;
-            color: #333;
-            display: block;
-        }
-
-        .version-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        }
-
-        .version-card.old {
-            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-        }
-
-        .version-card.new {
-            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-        }
-
-        .version-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-
-        .version-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .version-desc {
-            font-size: 13px;
-            color: #666;
-        }
-
-        .logout-btn {
-            background: #f44336;
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            width: 100%;
-            transition: background 0.3s;
-        }
-
-        .logout-btn:hover {
-            background: #d32f2f;
-        }
-
-        @media (max-width: 480px) {
-            .version-cards {
-                grid-template-columns: 1fr;
-            }
-
-            .container {
-                padding: 30px 20px;
-            }
-
-            h1 {
-                font-size: 24px;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi colección de discos — Acceso</title>
+<style>
+  :root{
+    --bg:#14151a;
+    --panel:#1c1e26;
+    --panel-hi:#21242e;
+    --border:#2c2f3a;
+    --text:#ece9e2;
+    --muted:#8c8fa0;
+    --accent:#c99a3c;
+    --accent-dim:#8a6d2c;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  }
+  .login-caja{
+    width:100%;
+    max-width:340px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:28px 26px;
+  }
+  .login-caja h1{
+    font-size:17px;
+    margin:0 0 22px;
+    text-align:center;
+    color:var(--text);
+  }
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:14px;
+  }
+  label span{display:block;margin-bottom:5px;}
+  input{
+    width:100%;
+    background:var(--panel-hi);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:9px 10px;
+    border-radius:6px;
+    font-size:14px;
+    font-family:inherit;
+  }
+  input:focus{outline:none;border-color:var(--accent);}
+  button{
+    width:100%;
+    background:var(--accent);
+    border:none;
+    color:#14151a;
+    font-weight:600;
+    padding:10px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:14px;
+    font-family:inherit;
+    margin-top:4px;
+  }
+  button:hover{background:var(--accent-dim);}
+  button:disabled{opacity:.6;cursor:default;}
+  #login-error{
+    color:#d97070;
+    font-size:12.5px;
+    min-height:16px;
+    margin:10px 0 0;
+    text-align:center;
+  }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>Mi Colección de Discos</h1>
-        
-        <!-- Formulario de Login -->
-        <div id="loginSection" class="login-form">
-            <div class="form-group">
-                <label for="username">Usuario</label>
-                <input type="text" id="username" placeholder="Introduce tu usuario" autocomplete="username">
-            </div>
-            <div class="form-group">
-                <label for="password">Contraseña</label>
-                <input type="password" id="password" placeholder="Introduce tu contraseña" autocomplete="current-password">
-            </div>
-            <div id="errorMsg" class="error-msg">Usuario o contraseña incorrectos</div>
-            <button class="btn-login" onclick="handleLogin()">Entrar</button>
-        </div>
 
-        <!-- Selector de Versión -->
-        <div id="versionSection" class="version-selector">
-            <p class="welcome-msg">Bienvenido, <span id="welcomeUser"></span></p>
-            <div class="version-cards">
-                <a href="OLD.html" class="version-card old">
-                    <div class="version-icon">📀</div>
-                    <div class="version-title">Versión Antigua</div>
-                    <div class="version-desc">Versión estable actual</div>
-                </a>
-                <a href="NEW.html" class="version-card new">
-                    <div class="version-icon">✨</div>
-                    <div class="version-title">Versión Nueva</div>
-                    <div class="version-desc">En desarrollo</div>
-                </a>
-            </div>
-            <button class="logout-btn" onclick="handleLogout()">Cerrar sesión</button>
-        </div>
-    </div>
+<div class="login-caja">
+  <h1>🎵 Mi colección de discos</h1>
+  <label>
+    <span>Usuario</span>
+    <input type="text" id="login-usuario" autocomplete="username">
+  </label>
+  <label>
+    <span>Contraseña</span>
+    <input type="password" id="login-password" autocomplete="current-password">
+  </label>
+  <button type="button" id="btn-entrar">Entrar</button>
+  <p id="login-error"></p>
+</div>
 
-    <script>
-    // URL de tu Google Apps Script
-    const API_URL = 'https://script.google.com/macros/s/AKfycbx-riPZrlbBIvyDOp4INIWaIGRa4F3Z9YY0TvyAlS9qvhnq9ASBUGx-cfrMHxC6-8nbZw/exec';
+<script>
+/* Misma URL /exec que usa BDD.html */
+const API_URL = "https://script.google.com/macros/s/AKfycbwjBPSQzS1HUC4fAl21wSonBf2qe5iNHLi8n-JVyQCt6VISRDpV-_VcUZM-se_Zabg2/exec";
 
-    // Verificar si ya hay sesión activa
-    window.addEventListener('DOMContentLoaded', () => {
-        const sesionActiva = sessionStorage.getItem('sesionActiva');
-        if (sesionActiva === 'true') {
-            mostrarSelectorVersion();
-        }
+const inputUsuario = document.getElementById("login-usuario");
+const inputPassword = document.getElementById("login-password");
+const elError = document.getElementById("login-error");
+const btn = document.getElementById("btn-entrar");
+
+// Si ya hay una sesión guardada en esta pestaña, no hace falta pasar por aquí
+if(sessionStorage.getItem("sesion_discos")){
+  location.href = "BDD.html";
+}
+
+btn.addEventListener("click", intentarLogin);
+inputPassword.addEventListener("keydown", e=>{ if(e.key==="Enter") intentarLogin(); });
+inputUsuario.addEventListener("keydown", e=>{ if(e.key==="Enter") intentarLogin(); });
+
+async function intentarLogin(){
+  const usuario = inputUsuario.value.trim();
+  const password = inputPassword.value;
+  elError.textContent = "";
+
+  if(!usuario || !password){
+    elError.textContent = "Rellena usuario y contraseña.";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Entrando…";
+
+  try{
+    const res = await fetch(API_URL, {
+      method: "POST",
+      // Sin Content-Type explícito a propósito: así el navegador lo manda
+      // como "text/plain", lo que evita un preflight OPTIONS que Apps
+      // Script no sabe responder (mismo motivo que en BDD.html).
+      body: JSON.stringify({ accion: "login", usuario, password })
     });
+    const json = await res.json();
 
-    async function handleLogin() {
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value.trim();
-        const errorMsg = document.getElementById('errorMsg');
-        const btnLogin = document.querySelector('.btn-login');
-
-        if (!username || !password) {
-            errorMsg.textContent = 'Por favor, completa todos los campos';
-            errorMsg.style.display = 'block';
-            setTimeout(() => errorMsg.style.display = 'none', 3000);
-            return;
-        }
-
-        // Deshabilitar botón mientras se valida
-        btnLogin.disabled = true;
-        btnLogin.textContent = 'Validando...';
-
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                redirect: 'follow',
-                headers: {
-                    'Content-Type': 'text/plain;charset=utf-8',
-                },
-                body: JSON.stringify({
-                    accion: 'login',
-                    usuario: username,
-                    password: password
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.ok) {
-                // Login exitoso
-                sessionStorage.setItem('sesionActiva', 'true');
-                sessionStorage.setItem('usuario', data.usuario);
-                sessionStorage.setItem('token', data.token);
-                mostrarSelectorVersion();
-            } else {
-                // Login fallido
-                errorMsg.textContent = data.error || 'Usuario o contraseña incorrectos';
-                errorMsg.style.display = 'block';
-                setTimeout(() => errorMsg.style.display = 'none', 3000);
-            }
-        } catch (err) {
-            errorMsg.textContent = 'Error de conexión: ' + err.message;
-            errorMsg.style.display = 'block';
-            console.error('Error detallado:', err);
-            setTimeout(() => errorMsg.style.display = 'none', 5000);
-        } finally {
-            btnLogin.disabled = false;
-            btnLogin.textContent = 'Entrar';
-        }
+    if(!json.ok){
+      elError.textContent = json.error || "No se pudo iniciar sesión.";
+      btn.disabled = false;
+      btn.textContent = "Entrar";
+      return;
     }
 
-    function mostrarSelectorVersion() {
-        document.getElementById('loginSection').style.display = 'none';
-        document.getElementById('versionSection').classList.add('active');
-        document.getElementById('welcomeUser').textContent = sessionStorage.getItem('usuario') || 'usuario';
-    }
-
-    function handleLogout() {
-        sessionStorage.removeItem('sesionActiva');
-        sessionStorage.removeItem('usuario');
-        sessionStorage.removeItem('token');
-        document.getElementById('loginSection').style.display = 'flex';
-        document.getElementById('versionSection').classList.remove('active');
-        document.getElementById('username').value = '';
-        document.getElementById('password').value = '';
-    }
-
-    // Permitir login con Enter
-    document.getElementById('password').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            handleLogin();
-        }
-    });
+    sessionStorage.setItem("sesion_discos", json.sesion);
+    sessionStorage.setItem("usuario_discos", json.usuario);
+    location.href = "BDD.html";
+  }catch(err){
+    elError.textContent = "No se pudo conectar.";
+    btn.disabled = false;
+    btn.textContent = "Entrar";
+    console.error(err);
+  }
+}
 </script>
 </body>
 </html>
