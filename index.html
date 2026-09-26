@@ -116,6 +116,13 @@
     font-weight:600;
   }
   .sidebar-tabs button:not(.activo):hover{border-color:var(--accent);color:var(--accent);}
+  .tabs-discos-nuevo{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;}
+  .tabs-discos-nuevo button{
+    background:transparent;border:1px solid var(--border);color:var(--muted);
+    padding:5px 10px;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit;
+  }
+  .tabs-discos-nuevo button.activo{background:var(--accent);border-color:var(--accent);color:#14151a;font-weight:600;}
+  .tabs-discos-nuevo button:not(.activo):hover{border-color:var(--accent);color:var(--accent);}
   .artista-item{
     display:flex;
     justify-content:space-between;
@@ -1806,6 +1813,19 @@ function limpiarNombreArtista(nombre){
   return String(nombre||"").replace(/\s*\(\d+\)$/,"").trim();
 }
 
+// Discogs numera las pistas de álbumes multi-disco como "1-4", "2-12", etc.
+// (disco-pista). Esta función separa ambos números; si el formato es el
+// normal de un solo disco (solo un número, o letras de vinilo tipo "A1"),
+// se asume disco 1 y se numera correlativamente más adelante si hace falta.
+function analizarPosicionDiscogs(pos){
+  const texto = String(pos||"").trim();
+  const conDisco = texto.match(/^(\d+)-(\d+)$/);
+  if(conDisco) return { disco: parseInt(conDisco[1],10), pista: parseInt(conDisco[2],10) };
+  const soloNumero = texto.match(/^\d+$/);
+  if(soloNumero) return { disco: 1, pista: parseInt(texto,10) };
+  return { disco: 1, pista: null };
+}
+
 function mapearReleaseDiscogs(r){
   const artistas = (r.artists||[]).map(a=>limpiarNombreArtista(a.name)).join(", ");
   const generos = [...new Set([...(r.genres||[]), ...(r.styles||[])])].join(", ");
@@ -1815,25 +1835,46 @@ function mapearReleaseDiscogs(r){
   const portada = (r.images && r.images[0]) ? (r.images[0].uri || r.images[0].resource_url) : "";
   const fecha = r.released || (r.year ? String(r.year) : "");
 
-  const vistas = new Set();
-  const canciones = (r.tracklist||[])
+  const pistasBrutas = (r.tracklist||[])
     .filter(t=> !t.type_ || t.type_==="track")
-    .map((t,i)=>({
-      "PISTA Nº": parseInt(t.position) || (i+1),
-      "TITULO": t.title || "",
-      "ARTISTA": (t.artists||[]).map(a=>limpiarNombreArtista(a.name)).join(", "),
-      "Duración": t.duration || "",
-      "Original Release Year": ""
-    }))
-    .filter(c=>{
-      // Algunas fichas de Discogs repiten pistas en su propio listado
-      // (ediciones especiales, estructuras raras...). Descartamos
-      // cualquier pista que coincida en número + título con otra ya vista.
-      const clave = c["PISTA Nº"] + "|" + c["TITULO"].toLowerCase().trim();
-      if(vistas.has(clave)) return false;
-      vistas.add(clave);
-      return true;
+    .map(t=>{
+      const {disco, pista} = analizarPosicionDiscogs(t.position);
+      return {
+        disco, pista,
+        "TITULO": t.title || "",
+        "ARTISTA": (t.artists||[]).map(a=>limpiarNombreArtista(a.name)).join(", "),
+        "Duración": t.duration || ""
+      };
     });
+
+  // Agrupamos por número de disco (normalmente será solo "1" salvo álbumes dobles/triples)
+  const porDisco = new Map();
+  pistasBrutas.forEach(p=>{
+    if(!porDisco.has(p.disco)) porDisco.set(p.disco, []);
+    porDisco.get(p.disco).push(p);
+  });
+
+  const discos = [...porDisco.keys()].sort((a,b)=>a-b).map(numeroDisco=>{
+    const vistas = new Set();
+    const canciones = porDisco.get(numeroDisco)
+      .map((p,i)=>({
+        "PISTA Nº": p.pista != null ? p.pista : (i+1),
+        "TITULO": p["TITULO"],
+        "ARTISTA": p["ARTISTA"],
+        "Duración": p["Duración"],
+        "Original Release Year": ""
+      }))
+      .filter(c=>{
+        // Algunas fichas de Discogs repiten pistas en su propio listado
+        // (ediciones especiales, estructuras raras...). Descartamos
+        // cualquier pista que coincida en número + título con otra ya vista.
+        const clave = c["PISTA Nº"] + "|" + c["TITULO"].toLowerCase().trim();
+        if(vistas.has(clave)) return false;
+        vistas.add(clave);
+        return true;
+      });
+    return { numero: numeroDisco, canciones };
+  });
 
   return {
     album: {
@@ -1846,9 +1887,13 @@ function mapearReleaseDiscogs(r){
       "Código de barras": barcode ? barcode.value : "",
       "PORTADA": portada
     },
-    canciones: canciones
+    discos: discos
   };
 }
+
+// Guarda, mientras el modal de "álbum nuevo" está abierto, qué discos hay
+// que crear y en qué contenedor del DOM está la lista de canciones de cada uno.
+let discosPendientesNuevoAlbum = [];
 
 function mostrarConfirmacion(datos){
   const a = datos.album || {};
@@ -1857,6 +1902,20 @@ function mostrarConfirmacion(datos){
       <span>${label}</span>
       <input type="${tipo}" id="${id}" value="${escapeAttr(valor==null?"":valor)}">
     </label>`;
+
+  // Compatibilidad: si algo sigue llamando con datos.canciones (sin discos), lo tratamos como disco único
+  const discos = (datos.discos && datos.discos.length) ? datos.discos : [{ numero: 1, canciones: datos.canciones || [] }];
+  discosPendientesNuevoAlbum = discos.map(d => ({ numero: d.numero, id: "nv-canciones-" + d.numero }));
+
+  const tabsHtml = discos.length > 1
+    ? `<div class="tabs-discos-nuevo">` +
+        discos.map((d,i)=> `<button type="button" class="tab-disco-nuevo${i===0?" activo":""}" data-disco="${d.numero}">Disco ${d.numero}</button>`).join("") +
+      `</div>`
+    : "";
+
+  const contenedoresHtml = discos.map((d,i)=>
+    `<div class="nv-canciones-disco" id="nv-canciones-${d.numero}" ${i===0?"":'style="display:none"'}></div>`
+  ).join("");
 
   const html = `
     <div class="grupo-edicion">
@@ -1873,17 +1932,33 @@ function mostrarConfirmacion(datos){
       ${campo("nv-fecha-compra","Fecha de compra",a["Fecha de compra"])}
       ${campo("nv-tienda","Tienda",a["Tienda"])}
     </div>
-    <div class="det-subtitulo">Canciones</div>
-    <div id="nv-canciones"></div>
+    <div class="det-subtitulo">Canciones${discos.length>1 ? " (álbum de " + discos.length + " discos — se crearán " + discos.length + " fichas de álbum enlazadas)" : ""}</div>
+    ${tabsHtml}
+    ${contenedoresHtml}
     <button type="button" class="btn-anadir-cancion" id="btn-nv-anadir-cancion">+ Añadir canción</button>
   `;
   $("#confirmar-campos").innerHTML = html;
 
-  const cont = $("#nv-canciones");
-  (datos.canciones||[]).forEach(c=> cont.appendChild(crearFilaCancionNueva(c)));
+  discos.forEach(d=>{
+    const cont = $("#nv-canciones-" + d.numero);
+    (d.canciones||[]).forEach(c=> cont.appendChild(crearFilaCancionNueva(c)));
+  });
+
+  $$(".tab-disco-nuevo").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      $$(".tab-disco-nuevo").forEach(b=>b.classList.remove("activo"));
+      btn.classList.add("activo");
+      discosPendientesNuevoAlbum.forEach(d=>{
+        $("#"+d.id).style.display = (String(d.numero)===btn.dataset.disco) ? "block" : "none";
+      });
+    });
+  });
 
   $("#btn-nv-anadir-cancion").addEventListener("click", ()=>{
-    const siguiente = $$("#nv-canciones .ed-c-pista").reduce((max,inp)=>Math.max(max,parseInt(inp.value)||0),0) + 1;
+    const tabActiva = $$(".tab-disco-nuevo.activo")[0];
+    const discoActivo = discosPendientesNuevoAlbum.find(d=> tabActiva ? String(d.numero)===tabActiva.dataset.disco : true) || discosPendientesNuevoAlbum[0];
+    const cont = $("#"+discoActivo.id);
+    const siguiente = $$("#"+discoActivo.id+" .ed-c-pista").reduce((max,inp)=>Math.max(max,parseInt(inp.value)||0),0) + 1;
     cont.appendChild(crearFilaCancionNueva({ "PISTA Nº": siguiente }));
   });
 
@@ -1897,7 +1972,7 @@ async function crearAlbumNuevo(){
   btn.disabled = true;
   btn.textContent = "Guardando…";
 
-  const albumNuevo = {
+  const albumBase = {
     "ARTISTA ALBUM": $("#nv-artista").value.trim(),
     "ALBUM": $("#nv-album").value.trim(),
     "GENERO": $("#nv-genero").value.trim(),
@@ -1911,42 +1986,58 @@ async function crearAlbumNuevo(){
     "Fecha de compra": $("#nv-fecha-compra").value.trim(),
     "Tienda": $("#nv-tienda").value.trim()
   };
-  const cancionesNuevas = $$("#nv-canciones .cancion-edicion").map(div=>({
-    "PISTA Nº": div.querySelector(".ed-c-pista").value.trim(),
-    "TITULO": div.querySelector(".ed-c-titulo").value.trim(),
-    "ARTISTA": div.querySelector(".ed-c-artista").value.trim(),
-    "Duración": div.querySelector(".ed-c-duracion").value.trim(),
-    "Original Release Year": div.querySelector(".ed-c-anio").value.trim(),
-    "Letras": div.querySelector(".ed-c-letras").value
-  }));
+
+  // Álbum de un solo disco (caso normal): un único disco "virtual" apuntando al contenedor de siempre.
+  const discos = discosPendientesNuevoAlbum.length ? discosPendientesNuevoAlbum : [{ numero: 1, id: "nv-canciones" }];
+  const esMultiDisco = discos.length > 1;
+
+  let ultimoAlbumId = null;
+  let ultimoAlbumCompleto = null;
 
   try{
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ token: tokenSesion, nuevo_album: albumNuevo, nuevo_album_canciones: cancionesNuevas })
-    });
-    const json = await res.json();
+    for(const d of discos){
+      const cancionesDisco = $$("#"+d.id+" .cancion-edicion").map(div=>({
+        "PISTA Nº": div.querySelector(".ed-c-pista").value.trim(),
+        "TITULO": div.querySelector(".ed-c-titulo").value.trim(),
+        "ARTISTA": div.querySelector(".ed-c-artista").value.trim(),
+        "Duración": div.querySelector(".ed-c-duracion").value.trim(),
+        "Original Release Year": div.querySelector(".ed-c-anio").value.trim(),
+        "Letras": div.querySelector(".ed-c-letras").value
+      }));
 
-    if(!json.ok){
-      if(String(json.error||"").includes("Token")){
-        tokenSesion = null;
-        sessionStorage.removeItem("token_edicion");
+      const albumDisco = Object.assign({}, albumBase);
+      if(esMultiDisco) albumDisco["Disco #"] = d.numero;
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ token: tokenSesion, nuevo_album: albumDisco, nuevo_album_canciones: cancionesDisco })
+      });
+      const json = await res.json();
+
+      if(!json.ok){
+        if(String(json.error||"").includes("Token")){
+          tokenSesion = null;
+          sessionStorage.removeItem("token_edicion");
+        }
+        alert("Error al crear el álbum" + (esMultiDisco ? ` (Disco ${d.numero})` : "") + ": " + json.error);
+        btn.disabled = false;
+        btn.textContent = "Añadir a mi colección";
+        return;
       }
-      alert("Error al crear el álbum: " + json.error);
-      btn.disabled = false;
-      btn.textContent = "Añadir a mi colección";
-      return;
+
+      const nuevoAlbumCompleto = Object.assign({ ALBUM_ID: json.album_id }, albumDisco);
+      ALBUMES.push(nuevoAlbumCompleto);
+      cancionesDisco.forEach(c=> CANCIONES.push(Object.assign({ ALBUM_ID: json.album_id }, c)));
+      ultimoAlbumId = json.album_id;
+      ultimoAlbumCompleto = nuevoAlbumCompleto;
     }
 
-    const nuevoAlbumCompleto = Object.assign({ ALBUM_ID: json.album_id }, albumNuevo);
-    ALBUMES.push(nuevoAlbumCompleto);
-    cancionesNuevas.forEach(c=> CANCIONES.push(Object.assign({ ALBUM_ID: json.album_id }, c)));
     ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
 
     construirSidebar();
     pintarGrid();
     cerrarModalNuevoAlbum();
-    abrirDetalle(encontrarEntradaVista(json.album_id) || nuevoAlbumCompleto);
+    abrirDetalle(encontrarEntradaVista(ultimoAlbumId) || ultimoAlbumCompleto);
   }catch(err){
     alert("No se pudo conectar para crear el álbum.");
     console.error(err);
