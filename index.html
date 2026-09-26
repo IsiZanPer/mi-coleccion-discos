@@ -132,7 +132,13 @@
   #grid-wrap{
     flex:1;
     overflow-y:auto;
+    padding:0;
+  }
+  #grid.vista-covers, #grid.vista-card{
     padding:20px;
+  }
+  #grid.vista-list{
+    padding:0 20px 20px;
   }
   #grid.vista-covers{
     display:grid;
@@ -605,6 +611,19 @@
   #modal-letra h3{margin-top:0;font-size:24px;color:var(--accent);font-family:Fraunces,Georgia,serif;}
   #modal-letra .subtitulo{color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:13px;margin:-12px 0 20px;}
   #modal-letra .cerrar-detalle{color:var(--muted);}
+  .letra-nav{display:flex;justify-content:space-between;margin-bottom:18px;font-family:Inter,system-ui,sans-serif;}
+  .letra-nav button{
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--muted);
+    padding:7px 14px;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:13px;
+    font-family:inherit;
+  }
+  .letra-nav button:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+  .letra-nav button:disabled{opacity:.35;cursor:default;}
 
   /* Scrollbars discretas */
   ::-webkit-scrollbar{width:10px;}
@@ -734,6 +753,10 @@
 <div id="modal-fondo-letra">
   <div id="modal-letra">
     <span class="cerrar-detalle" id="cerrar-modal-letra">✕</span>
+    <div class="letra-nav">
+      <button type="button" id="btn-letra-anterior" title="Canción anterior">‹ Anterior</button>
+      <button type="button" id="btn-letra-siguiente" title="Canción siguiente">Siguiente ›</button>
+    </div>
     <h3 id="letra-titulo"></h3>
     <div class="subtitulo" id="letra-subtitulo"></div>
     <div id="letra-cuerpo"></div>
@@ -1118,7 +1141,7 @@ function construirOlCanciones(canciones){
       <span class="dur">${escapeHTML(formatearDuracion(c["Duración"]))}</span>
     `;
     if(tieneLetra){
-      li.querySelector(".btn-letra").addEventListener("click", ()=> abrirLetra(c));
+      li.querySelector(".btn-letra").addEventListener("click", ()=> abrirLetra(c, canciones));
     }
     ol.appendChild(li);
   });
@@ -1584,13 +1607,29 @@ function cerrarFicha(){
   $("#modal-fondo").classList.remove("abierto");
 }
 
-/* ---------- Modal de letra ---------- */
-function abrirLetra(cancion){
-  $("#letra-titulo").textContent = cancion["TITULO"] || "";
-  $("#letra-subtitulo").textContent = albumSeleccionado ? (albumSeleccionado["ARTISTA ALBUM"] || "") : "";
-  $("#letra-cuerpo").innerHTML = markdownASimpleHTML(cancion["Letras"] || "");
+/* ---------- Modal de letra (con navegación anterior/siguiente) ---------- */
+let letraListaActual = [];
+let letraIndiceActual = -1;
+
+function abrirLetra(cancion, lista){
+  letraListaActual = lista || [cancion];
+  letraIndiceActual = letraListaActual.indexOf(cancion);
+  mostrarLetraEnIndice(letraIndiceActual);
   $("#modal-fondo-letra").classList.add("abierto");
 }
+
+function mostrarLetraEnIndice(i){
+  if(i<0 || i>=letraListaActual.length) return;
+  letraIndiceActual = i;
+  const cancion = letraListaActual[i];
+  $("#letra-titulo").textContent = cancion["TITULO"] || "";
+  $("#letra-subtitulo").textContent = albumSeleccionado ? (albumSeleccionado["ARTISTA ALBUM"] || "") : "";
+  const letra = (cancion["Letras"]||"").trim();
+  $("#letra-cuerpo").innerHTML = letra ? markdownASimpleHTML(letra) : '<p style="color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:14px;">Esta canción no tiene letra guardada.</p>';
+  $("#btn-letra-anterior").disabled = (i<=0);
+  $("#btn-letra-siguiente").disabled = (i>=letraListaActual.length-1);
+}
+
 function cerrarLetra(){
   $("#modal-fondo-letra").classList.remove("abierto");
 }
@@ -1679,6 +1718,8 @@ $("#btn-ficha").addEventListener("click", abrirFicha);
 $("#cerrar-modal").addEventListener("click", cerrarFicha);
 $("#modal-fondo").addEventListener("click", (e)=>{ if(e.target.id==="modal-fondo") cerrarFicha(); });
 $("#cerrar-modal-letra").addEventListener("click", cerrarLetra);
+$("#btn-letra-anterior").addEventListener("click", ()=> mostrarLetraEnIndice(letraIndiceActual-1));
+$("#btn-letra-siguiente").addEventListener("click", ()=> mostrarLetraEnIndice(letraIndiceActual+1));
 $("#modal-fondo-letra").addEventListener("click", (e)=>{ if(e.target.id==="modal-fondo-letra") cerrarLetra(); });
 
 /* ---------- Añadir álbum nuevo (búsqueda en Discogs) ---------- */
