@@ -210,7 +210,7 @@
                     <div class="version-desc">Versi√≥n estable actual</div>
                 </a>
                 <a href="NEW.html" class="version-card new">
-                    <div class="version-icon">‚ú®</div>
+                    <div class="version-icon">‚ú?/div>
                     <div class="version-title">Versi√≥n Nueva</div>
                     <div class="version-desc">En desarrollo</div>
                 </a>
@@ -220,60 +220,94 @@
     </div>
 
     <script>
-        // Credenciales de acceso (c√°mbialas por las tuyas)
-        const CREDENCIALES = {
-            usuario: 'admin',
-            password: 'IZPdiscosNVZ26' // Usa la misma que el TOKEN_EDICION o c√°mbiala
-        };
+    // URL de tu Google Apps Script
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwjBPSQzS1HUC4fAl21wSonBf2qe5iNHLi8n-JVyQCt6VISRDpV-_VcUZM-se_Zabg2/exec';
 
-        // Verificar si ya hay sesi√≥n activa
-        window.addEventListener('DOMContentLoaded', () => {
-            const sesionActiva = sessionStorage.getItem('sesionActiva');
-            if (sesionActiva === 'true') {
-                mostrarSelectorVersion();
-            }
-        });
+    // Verificar si ya hay sesi®Æn activa
+    window.addEventListener('DOMContentLoaded', () => {
+        const sesionActiva = sessionStorage.getItem('sesionActiva');
+        if (sesionActiva === 'true') {
+            mostrarSelectorVersion();
+        }
+    });
 
-        function handleLogin() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-            const errorMsg = document.getElementById('errorMsg');
+    async function handleLogin() {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const errorMsg = document.getElementById('errorMsg');
+        const btnLogin = document.querySelector('.btn-login');
 
-            if (username === CREDENCIALES.usuario && password === CREDENCIALES.password) {
+        if (!username || !password) {
+            errorMsg.textContent = 'Por favor, completa todos los campos';
+            errorMsg.style.display = 'block';
+            setTimeout(() => errorMsg.style.display = 'none', 3000);
+            return;
+        }
+
+        // Deshabilitar bot®Æn mientras se valida
+        btnLogin.disabled = true;
+        btnLogin.textContent = 'Validando...';
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                mode: 'cors',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8',
+                },
+                body: JSON.stringify({
+                    accion: 'login',
+                    usuario: username,
+                    password: password
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.ok) {
                 // Login exitoso
                 sessionStorage.setItem('sesionActiva', 'true');
-                sessionStorage.setItem('usuario', username);
+                sessionStorage.setItem('usuario', data.usuario);
+                sessionStorage.setItem('token', data.token);
                 mostrarSelectorVersion();
             } else {
                 // Login fallido
+                errorMsg.textContent = data.error || 'Usuario o contrase?a incorrectos';
                 errorMsg.style.display = 'block';
-                setTimeout(() => {
-                    errorMsg.style.display = 'none';
-                }, 3000);
+                setTimeout(() => errorMsg.style.display = 'none', 3000);
             }
+        } catch (err) {
+            errorMsg.textContent = 'Error de conexi®Æn. Int®¶ntalo de nuevo.';
+            errorMsg.style.display = 'block';
+            setTimeout(() => errorMsg.style.display = 'none', 3000);
+        } finally {
+            btnLogin.disabled = false;
+            btnLogin.textContent = 'Entrar';
         }
+    }
 
-        function mostrarSelectorVersion() {
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('versionSection').classList.add('active');
-            document.getElementById('welcomeUser').textContent = sessionStorage.getItem('usuario') || 'usuario';
+    function mostrarSelectorVersion() {
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('versionSection').classList.add('active');
+        document.getElementById('welcomeUser').textContent = sessionStorage.getItem('usuario') || 'usuario';
+    }
+
+    function handleLogout() {
+        sessionStorage.removeItem('sesionActiva');
+        sessionStorage.removeItem('usuario');
+        sessionStorage.removeItem('token');
+        document.getElementById('loginSection').style.display = 'flex';
+        document.getElementById('versionSection').classList.remove('active');
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+    }
+
+    // Permitir login con Enter
+    document.getElementById('password').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleLogin();
         }
-
-        function handleLogout() {
-            sessionStorage.removeItem('sesionActiva');
-            sessionStorage.removeItem('usuario');
-            document.getElementById('loginSection').style.display = 'flex';
-            document.getElementById('versionSection').classList.remove('active');
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-        }
-
-        // Permitir login con Enter
-        document.getElementById('password').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                handleLogin();
-            }
-        });
-    </script>
+    });
+</script>
 </body>
 </html>
