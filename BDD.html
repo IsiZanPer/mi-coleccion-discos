@@ -856,7 +856,6 @@ const GITHUB_OWNER = "IsiZanPer";
 const GITHUB_REPO = "mi-coleccion-discos";
 const GITHUB_RAMA = "main";
 const GITHUB_CARPETA_PORTADAS = "Covers";
-const GITHUB_CARPETA_FICHAS = "Fichas";
 
 // El token de GitHub (para subir carátulas) sigue aparte, sin relación con
 // la sesión de login: no se guarda en el código, se pide la primera vez
@@ -1433,13 +1432,8 @@ async function entrarModoEdicion(){
       <span id="ed-portada-estado"></span>
     </label>
     <div class="grupo-edicion">
-      ${campo("ed-ficha-pdf","URL de la ficha en PDF (GitHub o Google Drive)",a["Ficha PDF"])}
+      ${campo("ed-ficha-pdf","URL de la ficha en PDF (Google Drive)",a["Ficha PDF"])}
     </div>
-    <label class="campo-edicion campo-edicion-ancho campo-portada-archivo">
-      <span>O sube un PDF directamente desde tu ordenador (se guarda en tu repositorio y rellena la URL sola)</span>
-      <input type="file" id="ed-ficha-pdf-file" accept="application/pdf">
-      <span id="ed-ficha-pdf-estado"></span>
-    </label>
     ${campoAncho("ed-comentario","Comentario / ficha completa (admite Markdown)",a["Comentario"],6)}
     <div class="det-subtitulo">Canciones</div>
     <div id="ed-canciones"></div>
@@ -1450,10 +1444,6 @@ async function entrarModoEdicion(){
   $("#ed-portada-file").addEventListener("change", (e)=>{
     const file = e.target.files[0];
     if(file) subirCaratula(file);
-  });
-  $("#ed-ficha-pdf-file").addEventListener("change", (e)=>{
-    const file = e.target.files[0];
-    if(file) subirFichaPDF(file);
   });
 
   const cont = $("#ed-canciones");
@@ -1550,61 +1540,6 @@ async function subirCaratula(file){
     estado.className = "ok";
   }catch(err){
     estado.textContent = "No se pudo subir la imagen.";
-    estado.className = "error";
-    console.error(err);
-  }
-}
-
-async function subirFichaPDF(file){
-  if(!albumSeleccionado) return;
-  if(!(await asegurarTokenGithub())) return;
-
-  const estado = $("#ed-ficha-pdf-estado");
-  estado.textContent = "Subiendo…";
-  estado.className = "";
-
-  try{
-    const base64 = await leerArchivoComoBase64(file);
-    const nombreArchivo = `${albumSeleccionado.ALBUM_ID}-${slugTexto(albumSeleccionado["ARTISTA ALBUM"])}-${slugTexto(albumSeleccionado["ALBUM"])}.pdf`;
-    const ruta = `${GITHUB_CARPETA_FICHAS}/${nombreArchivo}`;
-    const urlApi = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${ruta}`;
-
-    // Si ya existe una ficha con ese nombre, hace falta su "sha" para poder sobrescribirla
-    let sha = null;
-    const resGet = await fetch(urlApi, { headers: { Authorization: `Bearer ${tokenGithub}` } });
-    if(resGet.ok){
-      const existente = await resGet.json();
-      sha = existente.sha;
-    }
-
-    const cuerpo = { message: `Ficha PDF: ${albumSeleccionado["ALBUM"]||nombreArchivo}`, content: base64, branch: GITHUB_RAMA };
-    if(sha) cuerpo.sha = sha;
-
-    const resPut = await fetch(urlApi, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${tokenGithub}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(cuerpo)
-    });
-    const datos = await resPut.json();
-
-    if(!resPut.ok){
-      if(resPut.status === 401){
-        tokenGithub = null;
-        sessionStorage.removeItem("token_github");
-      }
-      estado.textContent = "Error: " + (datos.message || resPut.status);
-      estado.className = "error";
-      return;
-    }
-
-    $("#ed-ficha-pdf").value = datos.content.download_url;
-    estado.textContent = "Subida correctamente ✓";
-    estado.className = "ok";
-  }catch(err){
-    estado.textContent = "No se pudo subir el PDF.";
     estado.className = "error";
     console.error(err);
   }
@@ -2111,7 +2046,7 @@ function mostrarConfirmacion(datos){
       ${campo("nv-catalogo","Nº de catálogo",a["Número de Catalogo"])}
       ${campo("nv-barcode","Código de barras",a["Código de barras"])}
       ${campo("nv-portada","URL de la carátula",a["PORTADA"])}
-      ${campo("nv-ficha-pdf","URL de la ficha en PDF (GitHub o Google Drive)",a["Ficha PDF"])}
+      ${campo("nv-ficha-pdf","URL de la ficha en PDF (Google Drive)",a["Ficha PDF"])}
       ${campo("nv-rating","Rating (0-10)",a["Rating"],"number")}
       ${campo("nv-precio","Precio (€)",a["Precio"],"number")}
       ${campo("nv-fecha-compra","Fecha de compra",a["Fecha de compra"])}
