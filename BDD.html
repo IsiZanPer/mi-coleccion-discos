@@ -700,6 +700,11 @@
     #sidebar.abierto{transform:translateX(0);}
     #detalle{position:fixed;right:0;top:53px;bottom:0;width:100%;z-index:30;}
   }
+  @media (max-width:480px){
+    .det-cabecera{flex-direction:column;}
+    .cover-mediana{width:140px;height:140px;margin:0 auto;}
+    .det-info-top{width:100%;}
+  }
 </style>
 </head>
 <body>
@@ -1312,14 +1317,14 @@ function abrirDetalle(album){
       wrap.appendChild(construirOlCanciones(canciones));
     });
 
-    $("#det-resumen").innerHTML = `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="1.6" fill="currentColor"/></svg><span>CD · ${album._discos.length} discos · ${totalCanciones} pistas${sumaSegundos ? ' · ' + formatearSegundos(sumaSegundos) : ''}</span>`;
+    $("#det-resumen").innerHTML = `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="1.6" fill="currentColor"/></svg><span>CD · ${album._discos.length} discos · ${totalCanciones} pistas${sumaSegundos ? ' · ' + formatearMinutosTotales(sumaSegundos) : ''}</span>`;
     $("#btn-modificar").style.display = "none"; // se edita disco a disco (ver enlaces de cada sección)
   } else {
     const canciones = CANCIONES
       .filter(c => c.ALBUM_ID === album.ALBUM_ID)
       .sort((a,b)=> (parseInt(a["PISTA Nº"])||0) - (parseInt(b["PISTA Nº"])||0));
 
-    const duracionTotal = album["Total duración"] ? formatearDuracion(album["Total duración"]) : "";
+    const duracionTotal = album["Total duración"] ? formatearMinutosTotales(segundosDeDuracion(album["Total duración"])) : "";
     $("#det-resumen").innerHTML = `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="1.6" fill="currentColor"/></svg><span>CD · ${canciones.length} pista${canciones.length===1?'':'s'}${duracionTotal ? ' · '+duracionTotal : ''}</span>`;
     wrap.appendChild(construirOlCanciones(canciones));
     $("#btn-modificar").style.display = "";
@@ -1843,6 +1848,14 @@ function formatearSegundos(total){
   const s = total%60;
   const mmss = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
   return h>0 ? `${h}:${mmss}` : mmss;
+}
+
+// Igual que formatearSegundos, pero sin componente de horas: para álbumes de
+// más de 1h se quiere ver "66:35" en vez de "1:06:35".
+function formatearMinutosTotales(total){
+  const m = Math.floor(total/60);
+  const s = total%60;
+  return `${m}:${String(s).padStart(2,"0")}`;
 }
 
 /* ---------- Eventos ---------- */
