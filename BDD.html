@@ -622,8 +622,8 @@
     padding:44px 56px;
     border-radius:6px;
     font-family:Fraunces,Georgia,serif;
-    font-size:15.5px;
-    line-height:1.5;
+    font-size:19px;
+    line-height:1.6;
     white-space:pre-wrap;
   }
   #modal-letra p{margin:0 0 10px;}
@@ -1048,7 +1048,7 @@ $('.artista-item[data-valor="__TODOS__"]').addEventListener("click", ()=>{
 });
 
 /* ---------- Grid de álbumes ---------- */
-let vistaActual = localStorage.getItem("vista_grid") || "covers"; // 'covers' | 'card' | 'list'
+let vistaActual = localStorage.getItem("vista_grid") || "card"; // 'covers' | 'card' | 'list'
 
 /* Datos resumidos de un álbum (pistas, duración total, año), sea de un
    solo disco o de un grupo multi-disco (suma ambos discos) */
