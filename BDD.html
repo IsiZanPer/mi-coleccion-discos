@@ -910,9 +910,6 @@ async function asegurarTokenGithub(){
   return true;
 }
 
-$("#btn-cerrar-sesion").addEventListener("click", ()=> irALogin());
-if(usuarioActual) $("#usuario-conectado").textContent = usuarioActual;
-
 let ALBUMES = [];        // datos crudos, una fila por disco (tal cual la hoja)
 let ALBUMES_VISTA = [];  // para grid/sidebar: álbumes multi-disco fusionados en una sola entrada
 let CANCIONES = [];
@@ -1807,6 +1804,8 @@ function formatearSegundos(total){
 $("#buscador").addEventListener("input", pintarGrid);
 $("#cerrar-detalle").addEventListener("click", cerrarDetalle);
 $("#btn-modificar").addEventListener("click", entrarModoEdicion);
+$("#btn-cerrar-sesion").addEventListener("click", ()=> irALogin());
+if(usuarioActual) $("#usuario-conectado").textContent = usuarioActual;
 $("#btn-eliminar-album").addEventListener("click", eliminarAlbumActual);
 $("#btn-guardar-cambios").addEventListener("click", guardarCambios);
 $("#btn-cancelar-edicion").addEventListener("click", cancelarEdicion);
