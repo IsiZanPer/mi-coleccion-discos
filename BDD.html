@@ -305,6 +305,9 @@
   .badge-rating{color:#e6c84b;}
   .det-catalogo{font-size:12.5px;color:var(--muted);}
   .det-resumen{font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .det-codbarras,.det-resumen{display:flex;align-items:center;gap:6px;}
+  .det-codbarras{font-size:12.5px;color:var(--muted);margin-top:4px;}
+  .det-codbarras svg,.det-resumen svg{width:14px;height:14px;flex-shrink:0;color:var(--accent);}
 
   .det-subtitulo{
     font-size:13px;
@@ -754,6 +757,7 @@
           <div class="det-genero" id="det-genero"></div>
           <div class="det-badges" id="det-badges"></div>
           <div class="det-catalogo" id="det-catalogo"></div>
+          <div class="det-codbarras" id="det-codbarras"></div>
           <div class="det-resumen" id="det-resumen"></div>
         </div>
       </div>
@@ -1251,8 +1255,19 @@ function abrirDetalle(album){
     ? `Nº de catálogo: ${escapeHTML(String(album["Número de Catalogo"]))}`
     : "";
 
+  $("#det-codbarras").innerHTML = album["Código de barras"]
+    ? `<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+         <rect x="0" y="0" width="2" height="16" fill="currentColor"/>
+         <rect x="4" y="0" width="1" height="16" fill="currentColor"/>
+         <rect x="7" y="0" width="3" height="16" fill="currentColor"/>
+         <rect x="12" y="0" width="1" height="16" fill="currentColor"/>
+         <rect x="15" y="0" width="2" height="16" fill="currentColor"/>
+         <rect x="19" y="0" width="1" height="16" fill="currentColor"/>
+         <rect x="22" y="0" width="2" height="16" fill="currentColor"/>
+       </svg><span>${escapeHTML(String(album["Código de barras"]))}</span>`
+    : "";
+
   const particulares = [
-    `<b>Código de barras:</b> ${campoOVacio(album["Código de barras"])}`,
     `<b>Fecha de compra:</b> ${campoOVacio(album["Fecha de compra"])}`,
     `<b>Precio:</b> ${campoOVacio(album["Precio"], " €")}`,
     `<b>Tienda:</b> ${campoOVacio(album["Tienda"])}`,
@@ -1297,7 +1312,7 @@ function abrirDetalle(album){
       wrap.appendChild(construirOlCanciones(canciones));
     });
 
-    $("#det-resumen").textContent = `CD · ${album._discos.length} discos · ${totalCanciones} pistas${sumaSegundos ? ' · ' + formatearSegundos(sumaSegundos) : ''}`;
+    $("#det-resumen").innerHTML = `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="1.6" fill="currentColor"/></svg><span>CD · ${album._discos.length} discos · ${totalCanciones} pistas${sumaSegundos ? ' · ' + formatearSegundos(sumaSegundos) : ''}</span>`;
     $("#btn-modificar").style.display = "none"; // se edita disco a disco (ver enlaces de cada sección)
   } else {
     const canciones = CANCIONES
@@ -1305,7 +1320,7 @@ function abrirDetalle(album){
       .sort((a,b)=> (parseInt(a["PISTA Nº"])||0) - (parseInt(b["PISTA Nº"])||0));
 
     const duracionTotal = album["Total duración"] ? formatearDuracion(album["Total duración"]) : "";
-    $("#det-resumen").textContent = `CD · ${canciones.length} pista${canciones.length===1?'':'s'}${duracionTotal ? ' · '+duracionTotal : ''}`;
+    $("#det-resumen").innerHTML = `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="1.6" fill="currentColor"/></svg><span>CD · ${canciones.length} pista${canciones.length===1?'':'s'}${duracionTotal ? ' · '+duracionTotal : ''}</span>`;
     wrap.appendChild(construirOlCanciones(canciones));
     $("#btn-modificar").style.display = "";
   }
