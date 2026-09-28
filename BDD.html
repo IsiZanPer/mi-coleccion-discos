@@ -763,6 +763,49 @@
   @media (max-width:820px){ .btn-seleccionar .txt{display:none;} }
   @media (max-width:560px){ .mm-fila{grid-template-columns:1fr;} }
 
+  /* ---------- Modo móvil: solo buscador + álbumes en tarjetas ---------- */
+  #btn-modo{white-space:nowrap;}
+  body.modo-movil{height:100vh;height:100dvh;}
+  body.modo-movil header{flex-wrap:wrap;gap:8px;padding:10px 12px;}
+  body.modo-movil .marca,
+  body.modo-movil .vista-selector,
+  body.modo-movil .btn-nuevo-album,
+  body.modo-movil .btn-seleccionar:not(#btn-modo),
+  body.modo-movil #contador,
+  body.modo-movil #usuario-conectado,
+  body.modo-movil #sidebar,
+  body.modo-movil #barra-seleccion{display:none !important;}
+  body.modo-movil #buscador{flex:1;max-width:none;min-width:0;font-size:16px;padding:11px 14px;}
+  body.modo-movil #btn-modo,
+  body.modo-movil #btn-cerrar-sesion{
+    position:static;padding:10px 12px;font-size:16px;line-height:1;
+  }
+  body.modo-movil #btn-modo .txt,
+  body.modo-movil #btn-cerrar-sesion .txt{display:none;}
+  body.modo-movil #estado-carga{flex-basis:100%;}
+  body.modo-movil #estado-carga:empty{display:none;}
+  body.modo-movil #grid.vista-card{padding:12px;}
+  body.modo-movil .fila-card{gap:14px;padding:12px 14px;margin-bottom:10px;}
+  body.modo-movil .fc-cover{width:72px;height:72px;}
+  body.modo-movil .fc-titulo{
+    font-size:17px;white-space:normal;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  }
+  body.modo-movil .fc-artista{font-size:15px;}
+  body.modo-movil .fc-formato{font-size:13.5px;}
+  body.modo-movil .fc-meta{font-size:14px;}
+  body.modo-movil #detalle{top:0;bottom:0;right:0;width:100%;max-width:650px;position:fixed;z-index:70;}
+  body.modo-movil .det-cabecera{flex-direction:column;}
+  body.modo-movil .cover-mediana{width:160px;height:160px;margin:0 auto;}
+  body.modo-movil .det-info-top{width:100%;}
+  body.modo-movil .det-catalogo,
+  body.modo-movil .det-codbarras,
+  body.modo-movil .det-resumen{font-size:15px;}
+  body.modo-movil #detalle h2{font-size:26px;}
+  body.modo-movil .artista-det{font-size:16px;}
+  body.modo-movil .lista-canciones li{font-size:16px;padding:12px;}
+  body.modo-movil .lista-canciones .dur{font-size:14px;}
+
   @media (max-width:820px){
     #sidebar{position:fixed;left:0;top:53px;bottom:0;z-index:30;transform:translateX(-100%);transition:transform .2s;}
     #sidebar.abierto{transform:translateX(0);}
@@ -795,6 +838,7 @@
   </div>
   <button class="btn-nuevo-album" id="btn-nuevo-album" type="button">+ Añadir álbum</button>
   <button class="btn-seleccionar" id="btn-seleccionar" type="button" title="Seleccionar varios álbumes para editarlos en bloque">☑<span class="txt"> Seleccionar</span></button>
+  <button class="btn-seleccionar" id="btn-modo" type="button"></button>
   <span id="contador"></span>
   <span id="estado-carga">Cargando datos…</span>
 </header>
@@ -968,7 +1012,7 @@
   </div>
 </div>
 <span id="usuario-conectado"></span>
-<button type="button" id="btn-cerrar-sesion" title="Cerrar sesión">⎋ Salir</button>
+<button type="button" id="btn-cerrar-sesion" title="Cerrar sesión">⎋<span class="txt"> Salir</span></button>
 
 <script>
 /* =========================================================
@@ -1325,14 +1369,15 @@ function pintarGrid(){
 
   const grid = $("#grid");
   grid.innerHTML = "";
-  grid.className = "vista-" + vistaActual;
+  const vista = modoMovilActivo ? "card" : vistaActual; // en modo móvil siempre tarjetas (sin tocar la vista guardada)
+  grid.className = "vista-" + vista;
   $("#vacio").style.display = lista.length ? "none" : "block";
 
-  if(vistaActual === "list"){
+  if(vista === "list"){
     pintarVistaLista(grid, lista);
   } else {
     lista.forEach(a=> grid.appendChild(
-      vistaActual === "card" ? construirFilaCard(a) : construirCoverCard(a)
+      vista === "card" ? construirFilaCard(a) : construirCoverCard(a)
     ));
   }
 }
@@ -2608,6 +2653,51 @@ $$(".vista-btn").forEach(btn=>{
   btn.classList.toggle("activo", btn.dataset.vista===vistaActual);
   btn.addEventListener("click", ()=> cambiarVista(btn.dataset.vista));
 });
+
+/* ---------- Modo móvil (automático por tamaño de pantalla, o forzado con el botón) ---------- */
+// Preferencia guardada: "auto" (según pantalla) | "movil" | "escritorio"
+let preferenciaModo = localStorage.getItem("modo_visual") || "auto";
+let modoMovilActivo = false;
+const consultaMovil = window.matchMedia
+  ? window.matchMedia("(max-width: 700px), (pointer: coarse) and (max-height: 500px)")
+  : null;
+
+function calcularModoMovil(){
+  if(preferenciaModo === "movil") return true;
+  if(preferenciaModo === "escritorio") return false;
+  return !!(consultaMovil && consultaMovil.matches);
+}
+
+function aplicarModoVisual(repintar){
+  const nuevo = calcularModoMovil();
+  const cambio = nuevo !== modoMovilActivo;
+  modoMovilActivo = nuevo;
+  document.body.classList.toggle("modo-movil", nuevo);
+  const btn = $("#btn-modo");
+  btn.innerHTML = nuevo ? "🖥" : '📱<span class="txt"> Móvil</span>';
+  btn.title = nuevo ? "Volver a la vista de escritorio" : "Cambiar a la vista para móvil";
+  if(cambio && nuevo){
+    if(modoSeleccion) salirModoSeleccion();
+    if(albumSeleccionado) cerrarDetalle();
+  }
+  if(cambio && repintar) pintarGrid();
+}
+
+function cambiarModoVisual(){
+  preferenciaModo = modoMovilActivo ? "escritorio" : "movil";
+  localStorage.setItem("modo_visual", preferenciaModo);
+  aplicarModoVisual(true);
+}
+
+// El botón de salir y el usuario viven dentro de la cabecera (en escritorio siguen flotando arriba a la derecha)
+$("header").append($("#usuario-conectado"), $("#btn-cerrar-sesion"));
+$("#btn-modo").addEventListener("click", cambiarModoVisual);
+if(consultaMovil){
+  const alCambiar = ()=>{ if(preferenciaModo === "auto") aplicarModoVisual(true); };
+  if(consultaMovil.addEventListener) consultaMovil.addEventListener("change", alCambiar);
+  else if(consultaMovil.addListener) consultaMovil.addListener(alCambiar);
+}
+aplicarModoVisual(false);
 
 if(sesionActual) cargarDatos();
 </script>
