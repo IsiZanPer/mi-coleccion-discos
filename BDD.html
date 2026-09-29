@@ -837,22 +837,30 @@
   .st-kpi{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
   .st-kpi .v{font-family:'Space Grotesk','Inter',system-ui,sans-serif;font-size:24px;font-weight:700;color:var(--accent);line-height:1.15;}
   .st-kpi .e{color:var(--muted);font-size:12px;margin-top:3px;}
-  .st-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;}
+  .st-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;}
+  @media (max-width:1100px){ .st-grid{grid-template-columns:minmax(0,1fr);} }
   .st-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px 16px 16px;min-width:0;}
   .st-card.st-ancho{grid-column:1/-1;}
   .st-card h3{margin:0 0 12px;font-family:'Space Grotesk','Inter',system-ui,sans-serif;font-size:15px;font-weight:700;}
   .st-nota{color:var(--muted);font-size:11.5px;margin-top:8px;}
   .st-vacio{color:var(--muted);font-size:13px;padding:10px 0;}
   .st-bh{display:flex;flex-direction:column;gap:6px;}
-  .st-bh-fila{display:grid;grid-template-columns:minmax(70px,32%) 1fr auto;align-items:center;gap:10px;font-size:12.5px;}
+  .st-bh-fila{display:grid;grid-template-columns:minmax(90px,34%) 1fr auto;align-items:center;gap:10px;font-size:12.5px;}
   .st-bh-et{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
   .st-bh-pista{background:var(--bg);border-radius:3px;height:12px;overflow:hidden;}
   .st-bh-barra{display:block;height:100%;background:var(--accent);border-radius:3px;}
+  .st-pie{display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
+  .st-pie svg{width:200px;height:200px;flex-shrink:0;}
+  .st-pie svg path,.st-pie svg circle{stroke:var(--panel);stroke-width:1.5;}
+  .st-leyenda{flex:1;min-width:180px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:5px 14px;font-size:12.5px;}
+  .st-ley-item{display:flex;align-items:center;gap:7px;white-space:nowrap;}
+  .st-ley-col{width:11px;height:11px;border-radius:2px;flex-shrink:0;}
+  .st-ley-n{color:var(--muted);font-variant-numeric:tabular-nums;}
   .st-bh-val{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;}
   .st-bv{display:flex;align-items:flex-end;gap:6px;overflow-x:auto;padding-bottom:4px;}
-  .st-bv-col{flex:1 0 34px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:34px;}
+  .st-bv-col{flex:1 0 44px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:44px;}
   .st-bv-val{font-size:11px;color:var(--muted);margin-bottom:3px;font-variant-numeric:tabular-nums;white-space:nowrap;}
-  .st-bv-barra{width:100%;max-width:46px;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;}
+  .st-bv-barra{width:100%;max-width:56px;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;}
   .st-bv-et{font-size:11px;color:var(--muted);margin-top:5px;white-space:nowrap;}
   .st-tabla{width:100%;border-collapse:collapse;}
   .st-tabla td{padding:6px 6px;border-top:1px solid var(--border);vertical-align:middle;}
@@ -2759,26 +2767,53 @@ function contarPor(lista, tab, extra){
   return { filas, sinDato };
 }
 
-function htmlBarrasH(filas){
+const PALETA = ['#27c5f5','#ff9f43','#2ecc71','#b57bff','#ff6b8b','#f7d046','#4dd0c4','#ff7a59','#7c9cff','#a3d94a','#e879c9','#9aa0b4'];
+
+function htmlBarrasH(filas, color){
   if(!filas.length) return '<div class="st-vacio">Sin datos</div>';
   const max = Math.max(...filas.map(f=>f.valor)) || 1;
   return '<div class="st-bh">' + filas.map(f=>
     `<div class="st-bh-fila" title="${escapeAttr(f.etiqueta)}">` +
     `<span class="st-bh-et">${escapeHTML(f.etiqueta)}</span>` +
-    `<span class="st-bh-pista"><span class="st-bh-barra" style="width:${Math.max(2, f.valor/max*100)}%"></span></span>` +
+    `<span class="st-bh-pista"><span class="st-bh-barra" style="width:${Math.max(2, f.valor/max*100)}%;background:${color||PALETA[0]}"></span></span>` +
     `<span class="st-bh-val">${escapeHTML(f.texto)}</span></div>`
   ).join("") + '</div>';
 }
 
-function htmlBarrasV(filas){
+function htmlBarrasV(filas, color){
   if(!filas.length) return '<div class="st-vacio">Sin datos</div>';
   const max = Math.max(...filas.map(f=>f.valor)) || 1;
   return '<div class="st-bv">' + filas.map(f=>
     `<div class="st-bv-col" title="${escapeAttr(f.titulo || (f.etiqueta + ": " + f.texto))}">` +
     `<span class="st-bv-val">${escapeHTML(f.texto)}</span>` +
-    `<div class="st-bv-barra" style="height:${Math.max(2, Math.round(f.valor/max*130))}px"></div>` +
+    `<div class="st-bv-barra" style="height:${Math.max(2, Math.round(f.valor/max*130))}px;background:${color||PALETA[0]}"></div>` +
     `<span class="st-bv-et">${escapeHTML(f.etiqueta)}</span></div>`
   ).join("") + '</div>';
+}
+
+function htmlPastel(filas){
+  const total = filas.reduce((t,f)=>t+f.valor, 0);
+  if(!total) return '<div class="st-vacio">Sin datos</div>';
+  const cx = 100, cy = 100, r = 92;
+  let ang = -Math.PI/2, trozos = "";
+  filas.forEach((f,i)=>{
+    const col = PALETA[i % PALETA.length];
+    const frac = f.valor/total;
+    const tit = escapeAttr(`${f.etiqueta}: ${f.valor} (${(frac*100).toFixed(1).replace(".",",")}%)`);
+    if(frac >= 0.9999){
+      trozos += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${col}"><title>${tit}</title></circle>`;
+      return;
+    }
+    const a2 = ang + frac*2*Math.PI;
+    const x1 = cx + r*Math.cos(ang), y1 = cy + r*Math.sin(ang);
+    const x2 = cx + r*Math.cos(a2),  y2 = cy + r*Math.sin(a2);
+    trozos += `<path d="M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${frac>0.5?1:0} 1 ${x2.toFixed(2)},${y2.toFixed(2)} Z" fill="${col}"><title>${tit}</title></path>`;
+    ang = a2;
+  });
+  const ley = filas.map((f,i)=>
+    `<div class="st-ley-item"><span class="st-ley-col" style="background:${PALETA[i % PALETA.length]}"></span>${escapeHTML(f.etiqueta)} <span class="st-ley-n">${f.valor} · ${Math.round(f.valor/total*100)}%</span></div>`
+  ).join("");
+  return `<div class="st-pie"><svg viewBox="0 0 200 200" role="img">${trozos}</svg><div class="st-leyenda">${ley}</div></div>`;
 }
 
 function htmlTablaTop(entradas, textoValor){
@@ -2859,19 +2894,17 @@ function pintarEstadisticas(lista){
   const porCompra = {};
   info.forEach(i=>{ if(i.anioCompra){ const o = porCompra[i.anioCompra] || (porCompra[i.anioCompra] = {n:0,g:0}); o.n++; o.g += i.precio; } });
   const aniosCompra = Object.keys(porCompra).sort();
-  const compraN = aniosCompra.map(y=>({ etiqueta:y, valor:porCompra[y].n, texto:String(porCompra[y].n),
-    titulo:`${y}: ${porCompra[y].n} álbumes · ${fmtEuro(porCompra[y].g)}` }));
+  let pastelAnios = aniosCompra.map(y=>({ etiqueta:y, valor:porCompra[y].n }));
+  if(pastelAnios.length > 10){
+    // Muchos años: se dejan los 9 con más compras (en orden cronológico) y el resto se agrupa
+    const grandes = new Set([...pastelAnios].sort((x,y)=> y.valor-x.valor || x.etiqueta.localeCompare(y.etiqueta)).slice(0,9).map(f=>f.etiqueta));
+    const resto = pastelAnios.filter(f=>!grandes.has(f.etiqueta));
+    pastelAnios = pastelAnios.filter(f=>grandes.has(f.etiqueta));
+    pastelAnios.push({ etiqueta:"Otros años", valor: resto.reduce((t,f)=>t+f.valor,0) });
+  }
   const compraG = aniosCompra.map(y=>({ etiqueta:y, valor:porCompra[y].g, texto:fmtEuroCorto(porCompra[y].g),
     titulo:`${y}: ${fmtEuro(porCompra[y].g)} · ${porCompra[y].n} álbumes` }));
   const sinCompra = info.filter(i=>!i.anioCompra).length;
-
-  // ---- Distribución de rating
-  const distRating = [];
-  for(let r=1; r<=10; r++){
-    const n = info.filter(i=>i.rating===r).length;
-    distRating.push({ etiqueta:String(r), valor:n, texto:String(n) });
-  }
-  const sinRating = info.length - conRating.length;
 
   // ---- Rankings por categoría
   const top = (tab, max, conGasto)=>{
@@ -2902,15 +2935,14 @@ function pintarEstadisticas(lista){
   const tabla = (arr, fn)=> htmlTablaTop(arr.map(i=>i.a), a=> fn(mapaInfo.get(a)));
 
   cont.innerHTML = cab + kpis + '<div class="st-grid">' +
-    card("Álbumes por década de publicación", htmlBarrasV(decadas), sinAnio ? `${fmtNum(sinAnio)} sin año` : "", true) +
-    card("Compras por año (álbumes)", htmlBarrasV(compraN), sinCompra ? `${fmtNum(sinCompra)} sin fecha de compra` : "") +
-    card("Gasto por año", conPrecio.length ? htmlBarrasV(compraG) : '<div class="st-vacio">Sin datos de precio</div>',
+    card("Álbumes por década de publicación", htmlBarrasV(decadas, PALETA[0]), sinAnio ? `${fmtNum(sinAnio)} sin año` : "", true) +
+    card("Compras por año (álbumes)", htmlPastel(pastelAnios), sinCompra ? `${fmtNum(sinCompra)} sin fecha de compra` : "") +
+    card("Gasto por año", conPrecio.length ? htmlBarrasV(compraG, PALETA[1]) : '<div class="st-vacio">Sin datos de precio</div>',
          conPrecio.length && conPrecio.length < info.length ? `${fmtNum(info.length-conPrecio.length)} álbumes sin precio` : "") +
-    card("Distribución de valoraciones", htmlBarrasV(distRating), sinRating ? `${fmtNum(sinRating)} sin rating` : "") +
-    card("Artistas con más álbumes", htmlBarrasH(tArt.barras), tArt.nota) +
-    card("Géneros", htmlBarrasH(tGen.barras), tGen.nota) +
-    card("Sellos", htmlBarrasH(tSel.barras), tSel.nota) +
-    card("Tiendas (álbumes · gasto)", htmlBarrasH(tTie.barras), tTie.nota) +
+    card("Artistas con más álbumes", htmlBarrasH(tArt.barras, PALETA[2]), tArt.nota) +
+    card("Géneros", htmlBarrasH(tGen.barras, PALETA[3]), tGen.nota) +
+    card("Sellos", htmlBarrasH(tSel.barras, PALETA[4]), tSel.nota) +
+    card("Tiendas (álbumes · gasto)", htmlBarrasH(tTie.barras, PALETA[5]), tTie.nota) +
     card("Mejor valorados", tabla(mejores, i=> `${i.rating}/10`)) +
     card("Los más caros", tabla(caros, i=> fmtEuro(i.precio))) +
     card("Los más largos", tabla(largos, i=> fmtHorasMin(i.seg))) +
