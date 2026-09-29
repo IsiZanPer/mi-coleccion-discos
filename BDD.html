@@ -372,8 +372,10 @@
   .det-particulares .vacio{opacity:.5;}
 
   /* --- Edición --- */
+  .det-acciones{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;}
+  .det-botones{display:flex;flex-wrap:wrap;gap:8px;}
+  .det-acciones .cerrar-detalle{float:none;flex-shrink:0;}
   .btn-modificar{
-    float:right;
     background:transparent;
     border:1px solid var(--border);
     color:var(--muted);
@@ -382,10 +384,11 @@
     cursor:pointer;
     font-size:12px;
     font-family:inherit;
-    margin-top:-2px;
   }
   .btn-modificar:hover{border-color:var(--accent);color:var(--accent);}
-  .btn-eliminar-album{margin-right:6px;color:#d97070;}
+  .btn-eliminar-album{color:#d97070;}
+  body.modo-movil .det-botones{flex-direction:column;align-items:stretch;width:100%;}
+  body.modo-movil .btn-modificar{padding:11px;font-size:15px;text-align:center;}
   .btn-eliminar-album:hover{border-color:#d97070;color:#d97070;}
   #btn-cerrar-sesion{
     position:fixed;top:10px;right:14px;z-index:50;
@@ -871,9 +874,13 @@
   </div>
 
   <aside id="detalle">
-    <span class="cerrar-detalle" id="cerrar-detalle">✕</span>
-    <button class="btn-modificar" id="btn-modificar" type="button">✎ Modificar</button>
-    <button class="btn-modificar btn-eliminar-album" id="btn-eliminar-album" type="button">🗑 Eliminar álbum</button>
+    <div class="det-acciones">
+      <div class="det-botones">
+        <button class="btn-modificar" id="btn-modificar" type="button">✎ Modificar</button>
+        <button class="btn-modificar btn-eliminar-album" id="btn-eliminar-album" type="button">🗑 Eliminar álbum</button>
+      </div>
+      <span class="cerrar-detalle" id="cerrar-detalle">✕</span>
+    </div>
 
     <div id="vista-album">
       <div class="det-cabecera">
