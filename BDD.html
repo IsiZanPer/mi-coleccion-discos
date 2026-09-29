@@ -819,6 +819,51 @@
     .cover-mediana{width:140px;height:140px;margin:0 auto;}
     .det-info-top{width:100%;}
   }
+
+  /* ---------- Estadísticas ---------- */
+  #stats-wrap{display:none;flex:1;overflow-y:auto;padding:20px 24px 40px;}
+  body.modo-stats #stats-wrap{display:block;}
+  body.modo-stats #grid-wrap{display:none;}
+  body.modo-stats #detalle{display:none !important;}
+  body.modo-stats #vista-selector,
+  body.modo-stats #btn-seleccionar{display:none;}
+  body.modo-movil #btn-stats,
+  body.modo-movil #stats-wrap{display:none !important;}
+  .st-cab{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 14px;margin-bottom:16px;}
+  .st-cab h2{margin:0;font-family:'Space Grotesk','Inter',system-ui,sans-serif;font-size:23px;}
+  .st-filtro{color:var(--muted);font-size:13px;}
+  .st-filtro b{color:var(--accent);font-weight:600;}
+  .st-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;}
+  .st-kpi{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+  .st-kpi .v{font-family:'Space Grotesk','Inter',system-ui,sans-serif;font-size:24px;font-weight:700;color:var(--accent);line-height:1.15;}
+  .st-kpi .e{color:var(--muted);font-size:12px;margin-top:3px;}
+  .st-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;}
+  .st-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px 16px 16px;min-width:0;}
+  .st-card.st-ancho{grid-column:1/-1;}
+  .st-card h3{margin:0 0 12px;font-family:'Space Grotesk','Inter',system-ui,sans-serif;font-size:15px;font-weight:700;}
+  .st-nota{color:var(--muted);font-size:11.5px;margin-top:8px;}
+  .st-vacio{color:var(--muted);font-size:13px;padding:10px 0;}
+  .st-bh{display:flex;flex-direction:column;gap:6px;}
+  .st-bh-fila{display:grid;grid-template-columns:minmax(70px,32%) 1fr auto;align-items:center;gap:10px;font-size:12.5px;}
+  .st-bh-et{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+  .st-bh-pista{background:var(--bg);border-radius:3px;height:12px;overflow:hidden;}
+  .st-bh-barra{display:block;height:100%;background:var(--accent);border-radius:3px;}
+  .st-bh-val{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .st-bv{display:flex;align-items:flex-end;gap:6px;overflow-x:auto;padding-bottom:4px;}
+  .st-bv-col{flex:1 0 34px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:34px;}
+  .st-bv-val{font-size:11px;color:var(--muted);margin-bottom:3px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .st-bv-barra{width:100%;max-width:46px;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;}
+  .st-bv-et{font-size:11px;color:var(--muted);margin-top:5px;white-space:nowrap;}
+  .st-tabla{width:100%;border-collapse:collapse;}
+  .st-tabla td{padding:6px 6px;border-top:1px solid var(--border);vertical-align:middle;}
+  .st-tabla tr:first-child td{border-top:none;}
+  .st-tabla tr{cursor:pointer;}
+  .st-tabla tr:hover{background:var(--panel-hi);}
+  .st-t-cov{width:38px;}
+  .st-t-cov img,.st-t-cov .ph{width:34px;height:34px;border-radius:3px;object-fit:cover;background:var(--panel-hi);display:block;}
+  .st-t-tit{font-size:13px;overflow:hidden;text-overflow:ellipsis;}
+  .st-t-art{font-size:12px;color:var(--accent);}
+  .st-t-val{text-align:right;white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px;}
 </style>
 </head>
 <body>
@@ -841,6 +886,7 @@
   </div>
   <button class="btn-nuevo-album" id="btn-nuevo-album" type="button">+ Añadir álbum</button>
   <button class="btn-seleccionar" id="btn-seleccionar" type="button" title="Seleccionar varios álbumes para editarlos en bloque">☑<span class="txt"> Seleccionar</span></button>
+  <button class="btn-seleccionar" id="btn-stats" type="button" title="Ver estadísticas de la colección (respeta el filtro de la izquierda)">📊<span class="txt"> Estadísticas</span></button>
   <button class="btn-seleccionar" id="btn-modo" type="button"></button>
   <span id="contador"></span>
   <span id="estado-carga">Cargando datos…</span>
@@ -872,6 +918,8 @@
     <div id="grid"></div>
     <div id="vacio" style="display:none;">No se han encontrado álbumes.</div>
   </div>
+
+  <div id="stats-wrap"></div>
 
   <aside id="detalle">
     <div class="det-acciones">
@@ -1110,6 +1158,7 @@ let CANCIONES = [];
 let tabActivo = "artista";       // 'artista' | 'genero' | 'etiqueta' | 'tienda' | 'anio'
 let valorActivo = "__TODOS__";   // valor seleccionado dentro de la pestaña actual
 let albumSeleccionado = null;
+let modoEstadisticas = false;   // true = el centro y la derecha muestran estadísticas en vez de la rejilla
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -1373,6 +1422,8 @@ function pintarGrid(){
   actualizarBarraSeleccion();
 
   $("#contador").textContent = lista.length + (lista.length===1 ? " álbum" : " álbumes");
+
+  if(modoEstadisticas){ pintarEstadisticas(lista); return; }
 
   const grid = $("#grid");
   grid.innerHTML = "";
@@ -2659,6 +2710,224 @@ $$(".vista-btn").forEach(btn=>{
   btn.addEventListener("click", ()=> cambiarVista(btn.dataset.vista));
 });
 
+/* ---------- Estadísticas ---------- */
+// Las estadísticas se calculan sobre la misma lista que ve la rejilla
+// (filtro del sidebar + buscador), así que el sidebar sirve de filtro.
+const NOMBRES_TAB_STATS = { artista:"Artista", genero:"Género", etiqueta:"Sello", tienda:"Tienda", anio:"Año" };
+
+function alternarEstadisticas(forzar){
+  const nuevo = (forzar === undefined) ? !modoEstadisticas : !!forzar;
+  if(nuevo === modoEstadisticas) return;
+  if(nuevo){
+    if(modoSeleccion) salirModoSeleccion();
+    if(albumSeleccionado) cerrarDetalle();
+  }
+  modoEstadisticas = nuevo;
+  document.body.classList.toggle("modo-stats", nuevo);
+  $("#btn-stats").classList.toggle("activo", nuevo);
+  pintarGrid();
+}
+
+function numeroDe(v){
+  if(v === null || v === undefined || v === "") return 0;
+  const n = parseFloat(String(v).replace(",", ".").replace(/[^0-9.\-]/g, ""));
+  return isNaN(n) ? 0 : n;
+}
+function fmtNum(n){ return n.toLocaleString("es-ES", {maximumFractionDigits:0}); }
+function fmtEuro(n){ return n.toLocaleString("es-ES", {minimumFractionDigits:2, maximumFractionDigits:2}) + " €"; }
+function fmtEuroCorto(n){ return n.toLocaleString("es-ES", {maximumFractionDigits:0}) + " €"; }
+function fmtHorasMin(seg){
+  const h = Math.floor(seg/3600), m = Math.floor((seg%3600)/60);
+  return h > 0 ? `${fmtNum(h)} h ${m} min` : `${m} min`;
+}
+function anioValido(v){
+  const a = String(extraerAnio(v) || "").trim();
+  return /^\d{4}$/.test(a) ? a : "";
+}
+
+// Cuenta por clave; las claves "(Sin …)" no entran en el ranking y se devuelven aparte
+function contarPor(lista, tab, extra){
+  const mapa = {}; let sinDato = 0;
+  lista.forEach(a=>{
+    const k = valorSegunTab(a, tab);
+    if(k.startsWith("(Sin")){ sinDato++; return; }
+    const o = mapa[k] || (mapa[k] = { n:0, gasto:0 });
+    o.n++; o.gasto += numeroDe(a["Precio"]);
+  });
+  const filas = Object.entries(mapa).map(([k,o])=>({ clave:k, n:o.n, gasto:o.gasto }))
+    .sort((x,y)=> y.n - x.n || x.clave.localeCompare(y.clave,"es"));
+  return { filas, sinDato };
+}
+
+function htmlBarrasH(filas){
+  if(!filas.length) return '<div class="st-vacio">Sin datos</div>';
+  const max = Math.max(...filas.map(f=>f.valor)) || 1;
+  return '<div class="st-bh">' + filas.map(f=>
+    `<div class="st-bh-fila" title="${escapeAttr(f.etiqueta)}">` +
+    `<span class="st-bh-et">${escapeHTML(f.etiqueta)}</span>` +
+    `<span class="st-bh-pista"><span class="st-bh-barra" style="width:${Math.max(2, f.valor/max*100)}%"></span></span>` +
+    `<span class="st-bh-val">${escapeHTML(f.texto)}</span></div>`
+  ).join("") + '</div>';
+}
+
+function htmlBarrasV(filas){
+  if(!filas.length) return '<div class="st-vacio">Sin datos</div>';
+  const max = Math.max(...filas.map(f=>f.valor)) || 1;
+  return '<div class="st-bv">' + filas.map(f=>
+    `<div class="st-bv-col" title="${escapeAttr(f.titulo || (f.etiqueta + ": " + f.texto))}">` +
+    `<span class="st-bv-val">${escapeHTML(f.texto)}</span>` +
+    `<div class="st-bv-barra" style="height:${Math.max(2, Math.round(f.valor/max*130))}px"></div>` +
+    `<span class="st-bv-et">${escapeHTML(f.etiqueta)}</span></div>`
+  ).join("") + '</div>';
+}
+
+function htmlTablaTop(entradas, textoValor){
+  if(!entradas.length) return '<div class="st-vacio">Sin datos</div>';
+  return '<table class="st-tabla"><tbody>' + entradas.map(a=>{
+    const cov = a["PORTADA"] ? `<img src="${escapeAttr(a["PORTADA"])}" alt="" loading="lazy">` : '<div class="ph"></div>';
+    return `<tr data-id="${escapeAttr(claveEntrada(a))}"><td class="st-t-cov">${cov}</td>` +
+      `<td><div class="st-t-tit">${escapeHTML(a["ALBUM"]||"(Sin título)")}</div><div class="st-t-art">${escapeHTML(a["ARTISTA ALBUM"]||"")}</div></td>` +
+      `<td class="st-t-val">${escapeHTML(textoValor(a))}</td></tr>`;
+  }).join("") + '</tbody></table>';
+}
+
+function pintarEstadisticas(lista){
+  const cont = $("#stats-wrap");
+
+  // Descripción del filtro actual
+  const partes = [];
+  if(valorActivo !== "__TODOS__") partes.push(`${NOMBRES_TAB_STATS[tabActivo]}: <b>${escapeHTML(valorActivo)}</b>`);
+  const txt = $("#buscador").value.trim();
+  if(txt) partes.push(`búsqueda: <b>${escapeHTML(txt)}</b>`);
+  const filtroHTML = partes.length ? partes.join(" · ") : "Toda la colección";
+  const cab = `<div class="st-cab"><h2>Estadísticas</h2><span class="st-filtro">${filtroHTML}</span></div>`;
+
+  if(!lista.length){
+    cont.innerHTML = cab + '<div class="st-vacio">No hay álbumes con este filtro.</div>';
+    return;
+  }
+
+  // Precalculo por álbum (pistas y segundos; los multi-disco suman todos sus discos)
+  const pistasPorId = {};
+  CANCIONES.forEach(c=>{ pistasPorId[c.ALBUM_ID] = (pistasPorId[c.ALBUM_ID]||0) + 1; });
+  const idsDe = a => a._esGrupo ? a._discos.map(d=>d.ALBUM_ID) : [a.ALBUM_ID];
+  const segDe = a => idsDe(a).reduce((t,id)=>{
+    const f = ALBUMES.find(x=>x.ALBUM_ID===id);
+    return t + (f && f["Total duración"] ? segundosDeDuracion(f["Total duración"]) : 0);
+  }, 0);
+  const pistasDe = a => idsDe(a).reduce((t,id)=> t + (pistasPorId[id]||0), 0);
+
+  const info = lista.map(a=>({
+    a,
+    seg: segDe(a),
+    pistas: pistasDe(a),
+    precio: numeroDe(a["Precio"]),   // en multi-disco se usa el precio de la primera fila
+    rating: parseInt(a["Rating"]) || 0,
+    anio: anioValido(a["Fecha"]),
+    anioCompra: anioValido(a["Fecha de compra"])
+  }));
+
+  // ---- KPIs
+  const totalSeg = info.reduce((t,i)=>t+i.seg, 0);
+  const totalPistas = info.reduce((t,i)=>t+i.pistas, 0);
+  const conPrecio = info.filter(i=>i.precio > 0);
+  const gasto = conPrecio.reduce((t,i)=>t+i.precio, 0);
+  const conRating = info.filter(i=>i.rating > 0);
+  const ratingMedio = conRating.length ? conRating.reduce((t,i)=>t+i.rating,0) / conRating.length : 0;
+  const artistas = new Set(lista.map(a=>valorSegunTab(a,"artista"))).size;
+  const sellos = new Set(lista.map(a=>valorSegunTab(a,"etiqueta")).filter(k=>!k.startsWith("(Sin"))).size;
+  const kpi = (v,e)=>`<div class="st-kpi"><div class="v">${v}</div><div class="e">${e}</div></div>`;
+  const kpis = '<div class="st-kpis">' + [
+    kpi(fmtNum(lista.length), lista.length===1 ? "álbum" : "álbumes"),
+    kpi(fmtNum(artistas), artistas===1 ? "artista" : "artistas"),
+    kpi(fmtNum(totalPistas), "canciones"),
+    kpi(fmtHorasMin(totalSeg), "de música"),
+    kpi(gasto ? fmtEuro(gasto) : "—", "gastado"),
+    kpi(conPrecio.length ? fmtEuro(gasto/conPrecio.length) : "—", "precio medio"),
+    kpi(conRating.length ? ratingMedio.toFixed(2).replace(".",",") : "—", "rating medio"),
+    kpi(fmtNum(sellos), sellos===1 ? "sello" : "sellos")
+  ].join("") + '</div>';
+
+  // ---- Por década de publicación
+  const porDecada = {};
+  info.forEach(i=>{ if(i.anio){ const d = Math.floor(parseInt(i.anio)/10)*10; porDecada[d] = (porDecada[d]||0)+1; } });
+  const decadas = Object.keys(porDecada).map(Number).sort((x,y)=>x-y)
+    .map(d=>({ etiqueta: d+"s", valor: porDecada[d], texto: String(porDecada[d]) }));
+  const sinAnio = info.filter(i=>!i.anio).length;
+
+  // ---- Compras por año (cantidad y gasto)
+  const porCompra = {};
+  info.forEach(i=>{ if(i.anioCompra){ const o = porCompra[i.anioCompra] || (porCompra[i.anioCompra] = {n:0,g:0}); o.n++; o.g += i.precio; } });
+  const aniosCompra = Object.keys(porCompra).sort();
+  const compraN = aniosCompra.map(y=>({ etiqueta:y, valor:porCompra[y].n, texto:String(porCompra[y].n),
+    titulo:`${y}: ${porCompra[y].n} álbumes · ${fmtEuro(porCompra[y].g)}` }));
+  const compraG = aniosCompra.map(y=>({ etiqueta:y, valor:porCompra[y].g, texto:fmtEuroCorto(porCompra[y].g),
+    titulo:`${y}: ${fmtEuro(porCompra[y].g)} · ${porCompra[y].n} álbumes` }));
+  const sinCompra = info.filter(i=>!i.anioCompra).length;
+
+  // ---- Distribución de rating
+  const distRating = [];
+  for(let r=1; r<=10; r++){
+    const n = info.filter(i=>i.rating===r).length;
+    distRating.push({ etiqueta:String(r), valor:n, texto:String(n) });
+  }
+  const sinRating = info.length - conRating.length;
+
+  // ---- Rankings por categoría
+  const top = (tab, max, conGasto)=>{
+    const { filas, sinDato } = contarPor(lista, tab);
+    const barras = filas.slice(0, max).map(f=>({
+      etiqueta: f.clave, valor: f.n,
+      texto: conGasto && f.gasto ? `${f.n} · ${fmtEuroCorto(f.gasto)}` : String(f.n)
+    }));
+    const extra = [];
+    if(filas.length > max) extra.push(`Mostrando ${max} de ${fmtNum(filas.length)}`);
+    if(sinDato) extra.push(`${fmtNum(sinDato)} sin dato`);
+    return { barras, nota: extra.join(" · ") };
+  };
+  const tArt = top("artista", 10, false);
+  const tGen = top("genero", 10, false);
+  const tSel = top("etiqueta", 10, false);
+  const tTie = top("tienda", 8, true);
+
+  const card = (titulo, cuerpo, nota, ancho)=>
+    `<section class="st-card${ancho ? " st-ancho" : ""}"><h3>${titulo}</h3>${cuerpo}${nota ? `<div class="st-nota">${nota}</div>` : ""}</section>`;
+
+  // ---- Tablas de ranking
+  const porAlbum = (x,y)=> (x.a["ALBUM"]||"").localeCompare(y.a["ALBUM"]||"","es");
+  const mejores = info.filter(i=>i.rating>0).sort((x,y)=> y.rating-x.rating || porAlbum(x,y)).slice(0,8);
+  const caros = info.filter(i=>i.precio>0).sort((x,y)=> y.precio-x.precio || porAlbum(x,y)).slice(0,8);
+  const largos = info.filter(i=>i.seg>0).sort((x,y)=> y.seg-x.seg || porAlbum(x,y)).slice(0,8);
+  const mapaInfo = new Map(info.map(i=>[i.a, i]));
+  const tabla = (arr, fn)=> htmlTablaTop(arr.map(i=>i.a), a=> fn(mapaInfo.get(a)));
+
+  cont.innerHTML = cab + kpis + '<div class="st-grid">' +
+    card("Álbumes por década de publicación", htmlBarrasV(decadas), sinAnio ? `${fmtNum(sinAnio)} sin año` : "", true) +
+    card("Compras por año (álbumes)", htmlBarrasV(compraN), sinCompra ? `${fmtNum(sinCompra)} sin fecha de compra` : "") +
+    card("Gasto por año", conPrecio.length ? htmlBarrasV(compraG) : '<div class="st-vacio">Sin datos de precio</div>',
+         conPrecio.length && conPrecio.length < info.length ? `${fmtNum(info.length-conPrecio.length)} álbumes sin precio` : "") +
+    card("Distribución de valoraciones", htmlBarrasV(distRating), sinRating ? `${fmtNum(sinRating)} sin rating` : "") +
+    card("Artistas con más álbumes", htmlBarrasH(tArt.barras), tArt.nota) +
+    card("Géneros", htmlBarrasH(tGen.barras), tGen.nota) +
+    card("Sellos", htmlBarrasH(tSel.barras), tSel.nota) +
+    card("Tiendas (álbumes · gasto)", htmlBarrasH(tTie.barras), tTie.nota) +
+    card("Mejor valorados", tabla(mejores, i=> `${i.rating}/10`)) +
+    card("Los más caros", tabla(caros, i=> fmtEuro(i.precio))) +
+    card("Los más largos", tabla(largos, i=> fmtHorasMin(i.seg))) +
+    '</div>';
+
+  // Clic en un álbum de las tablas: sale de estadísticas y abre su ficha
+  cont.querySelectorAll(".st-tabla tr").forEach(tr=>{
+    tr.addEventListener("click", ()=>{
+      const entrada = ALBUMES_VISTA.find(x=> claveEntrada(x) === tr.dataset.id);
+      if(!entrada) return;
+      alternarEstadisticas(false);
+      abrirDetalle(entrada);
+    });
+  });
+}
+$("#btn-stats").addEventListener("click", ()=> alternarEstadisticas());
+
 /* ---------- Modo móvil (automático por tamaño de pantalla, o forzado con el botón) ---------- */
 // Preferencia guardada: "auto" (según pantalla) | "movil" | "escritorio"
 let preferenciaModo = localStorage.getItem("modo_visual") || "auto";
@@ -2684,6 +2953,7 @@ function aplicarModoVisual(repintar){
   if(cambio && nuevo){
     if(modoSeleccion) salirModoSeleccion();
     if(albumSeleccionado) cerrarDetalle();
+    if(modoEstadisticas) alternarEstadisticas(false);
   }
   if(cambio && repintar) pintarGrid();
 }
