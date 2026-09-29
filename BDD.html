@@ -1486,7 +1486,7 @@ function abrirDetalle(album){
   }
   albumSeleccionado = album;
   cancelarEdicion();
-  pintarGrid(); // para marcar seleccionado
+  repintarConservandoScroll(); // para marcar seleccionado, sin perder el scroll
 
   $("#det-titulo").textContent = album["ALBUM"] || "(Sin título)";
   $("#det-artista").textContent = album["ARTISTA ALBUM"] || "";
@@ -1603,7 +1603,7 @@ function cerrarDetalle(){
   albumSeleccionado = null;
   cancelarEdicion();
   $("#detalle").classList.remove("abierto");
-  pintarGrid();
+  repintarConservandoScroll();
 }
 
 /* ---------- Edición de álbum y canciones ---------- */
@@ -1880,7 +1880,7 @@ async function eliminarAlbumActual(){
     albumSeleccionado = null;
     $("#detalle").classList.remove("abierto");
     construirSidebar();
-    pintarGrid();
+    repintarConservandoScroll();
   }catch(err){
     alert("No se pudo conectar para eliminar el álbum.");
     console.error(err);
@@ -1983,8 +1983,7 @@ async function guardarCambios(){
     const idAlbumEditado = albumSeleccionado.ALBUM_ID;
     ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
     construirSidebar();
-    pintarGrid();
-    abrirDetalle(encontrarEntradaVista(idAlbumEditado) || albumSeleccionado);
+    abrirDetalle(encontrarEntradaVista(idAlbumEditado) || albumSeleccionado); // ya repinta conservando el scroll
     cancelarEdicion();
   }catch(err){
     alert("No se pudo conectar para guardar los cambios.");
@@ -2272,7 +2271,7 @@ async function aplicarEdicionMasiva(){
     if(valorActivo !== "__TODOS__" && !existentes.has(valorActivo)) valorActivo = "__TODOS__";
     construirSidebar();
     $$(".artista-item").forEach(el=> el.classList.toggle("activo", el.dataset.valor === valorActivo));
-    pintarGrid();
+    repintarConservandoScroll();
 
     const estado = $("#estado-carga");
     estado.textContent = `${n} álbum${n===1?"":"es"} actualizado${n===1?"":"s"}`;
@@ -2631,9 +2630,8 @@ async function crearAlbumNuevo(){
     ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
 
     construirSidebar();
-    pintarGrid();
     cerrarModalNuevoAlbum();
-    abrirDetalle(encontrarEntradaVista(ultimoAlbumId) || ultimoAlbumCompleto);
+    abrirDetalle(encontrarEntradaVista(ultimoAlbumId) || ultimoAlbumCompleto); // ya repinta conservando el scroll
   }catch(err){
     alert("No se pudo conectar para crear el álbum.");
     console.error(err);
