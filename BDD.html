@@ -1226,6 +1226,17 @@ function encontrarEntradaVista(albumId){
 }
 
 /* ---------- Carga de datos ---------- */
+// Google Sheets devuelve como NÚMERO las celdas que parecen numéricas (p. ej. un álbum
+// llamado "1989" o "21"). Los campos de texto se pasan a string para que ordenar,
+// buscar y agrupar no fallen.
+const CAMPOS_TEXTO_ALBUM = ["ALBUM","ARTISTA ALBUM","GENERO","Etiqueta","Tienda","Número de Catalogo","Código de barras","Comentario","Ficha PDF","PORTADA"];
+const CAMPOS_TEXTO_CANCION = ["TITULO","ARTISTA","Letras"];
+function normalizarTextos(filas, campos){
+  (filas || []).forEach(f=> campos.forEach(c=>{
+    if(f[c] !== undefined && f[c] !== null && typeof f[c] !== "string") f[c] = String(f[c]);
+  }));
+}
+
 async function cargarDatos(){
   try{
     const res = await fetch(API_URL + "?sesion=" + encodeURIComponent(sesionActual));
@@ -1237,6 +1248,8 @@ async function cargarDatos(){
     }
     ALBUMES = json.albumes;
     CANCIONES = json.canciones;
+    normalizarTextos(ALBUMES, CAMPOS_TEXTO_ALBUM);
+    normalizarTextos(CANCIONES, CAMPOS_TEXTO_CANCION);
     ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
     $("#estado-carga").textContent = "";
     construirSidebar();
@@ -1438,7 +1451,7 @@ function pintarGrid(){
     return campo.includes(texto);
   });
 
-  lista.sort((a,b)=> (a["ALBUM"]||"").localeCompare(b["ALBUM"]||"", 'es'));
+  lista.sort((a,b)=> String(a["ALBUM"]||"").localeCompare(String(b["ALBUM"]||""), 'es'));
   ultimaLista = lista;
   actualizarBarraSeleccion();
 
@@ -3023,7 +3036,7 @@ function pintarEstadisticas(lista){
     `<section class="st-card${ancho ? " st-ancho" : ""}"><h3>${titulo}</h3>${cuerpo}${nota ? `<div class="st-nota">${nota}</div>` : ""}</section>`;
 
   // ---- Tablas de ranking
-  const porAlbum = (x,y)=> (x.a["ALBUM"]||"").localeCompare(y.a["ALBUM"]||"","es");
+  const porAlbum = (x,y)=> String(x.a["ALBUM"]||"").localeCompare(String(y.a["ALBUM"]||""),"es");
   const mejores = info.filter(i=>i.rating>0).sort((x,y)=> y.rating-x.rating || porAlbum(x,y)).slice(0,20);
   const caros = info.filter(i=>i.precio>0).sort((x,y)=> y.precio-x.precio || porAlbum(x,y)).slice(0,20);
   const largos = info.filter(i=>i.seg>0).sort((x,y)=> y.seg-x.seg || porAlbum(x,y)).slice(0,20);
