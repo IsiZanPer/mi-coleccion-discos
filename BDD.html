@@ -2747,18 +2747,38 @@ function extensionDeImagen(blob, url){
   return m ? m[1].toLowerCase().replace("jpeg","jpg") : "jpg";
 }
 
+// Pide al Apps Script que descargue la imagen (el navegador no puede por CORS)
+async function descargarImagenPorScript(url){
+  const res = await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({ sesion: sesionActual, accion: "descargar_imagen", url })
+  });
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error || "el script no pudo descargar la imagen");
+  if(!json.base64) throw new Error("falta desplegar la nueva versión de Code.gs");
+  const bin = atob(json.base64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0; i<bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: json.tipo || "image/jpeg" });
+}
+
 // Descarga la imagen de Discogs y la sube a Covers/. Devuelve { url, ruta } o lanza Error con el motivo.
 async function copiarCaratulaDiscogsARepo(urlDiscogs, artista, album){
   if(!(await asegurarTokenGithub())) throw new Error("no se introdujo el token de GitHub");
 
+  // 1º intento: descarga directa desde el navegador. Si Discogs la bloquea (CORS),
+  // 2º intento: la descarga el script de Google y la devuelve en base64.
   let blob;
   try{
     const res = await fetch(urlDiscogs, { referrerPolicy: "no-referrer" });
     if(!res.ok) throw new Error("Discogs respondió " + res.status);
     blob = await res.blob();
-  }catch(err){
-    if(err instanceof TypeError) throw new Error("el navegador no permite descargar la imagen desde Discogs (bloqueo CORS o sin conexión)");
-    throw err;
+  }catch(errDirecto){
+    try{
+      blob = await descargarImagenPorScript(urlDiscogs);
+    }catch(errScript){
+      throw new Error("no se pudo descargar la imagen de Discogs (" + errScript.message + ")");
+    }
   }
   if(!blob || !blob.size) throw new Error("la imagen de Discogs llegó vacía");
   if(blob.type && !/^image\//i.test(blob.type)) throw new Error("Discogs no devolvió una imagen");
