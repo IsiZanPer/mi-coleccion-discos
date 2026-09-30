@@ -2691,7 +2691,7 @@ function mostrarConfirmacion(datos){
       ${campo("nv-fecha","Fecha de publicación",a["Fecha"])}
       ${campo("nv-catalogo","Nº de catálogo",a["Número de Catalogo"])}
       ${campo("nv-barcode","Código de barras",a["Código de barras"])}
-      ${campo("nv-portada","URL de la carátula",a["PORTADA"])}
+      ${campo("nv-portada","URL de la carátula (si es de Discogs, se copiará a tu repositorio)",a["PORTADA"])}
       ${campo("nv-ficha-pdf","URL de la ficha en PDF (Google Drive)",a["Ficha PDF"])}
       ${campo("nv-rating","Rating (0-10)",a["Rating"],"number")}
       ${campo("nv-precio","Precio (€)",a["Precio"],"number")}
@@ -2732,6 +2732,57 @@ function mostrarConfirmacion(datos){
   $("#paso-confirmar").style.display = "block";
 }
 
+/* ---------- Copiar la carátula de Discogs a tu repositorio de GitHub ---------- */
+function esUrlDiscogs(url){
+  return /^https?:\/\/([a-z0-9-]+\.)*discogs\.com\//i.test(String(url||"").trim());
+}
+
+function extensionDeImagen(blob, url){
+  const t = String(blob.type||"").toLowerCase();
+  if(t.includes("png")) return "png";
+  if(t.includes("webp")) return "webp";
+  if(t.includes("gif")) return "gif";
+  if(t.includes("jpeg") || t.includes("jpg")) return "jpg";
+  const m = String(url).split(/[?#]/)[0].match(/\.(jpe?g|png|webp|gif)$/i);
+  return m ? m[1].toLowerCase().replace("jpeg","jpg") : "jpg";
+}
+
+// Descarga la imagen de Discogs y la sube a Covers/. Devuelve { url, ruta } o lanza Error con el motivo.
+async function copiarCaratulaDiscogsARepo(urlDiscogs, artista, album){
+  if(!(await asegurarTokenGithub())) throw new Error("no se introdujo el token de GitHub");
+
+  let blob;
+  try{
+    const res = await fetch(urlDiscogs, { referrerPolicy: "no-referrer" });
+    if(!res.ok) throw new Error("Discogs respondió " + res.status);
+    blob = await res.blob();
+  }catch(err){
+    if(err instanceof TypeError) throw new Error("el navegador no permite descargar la imagen desde Discogs (bloqueo CORS o sin conexión)");
+    throw err;
+  }
+  if(!blob || !blob.size) throw new Error("la imagen de Discogs llegó vacía");
+  if(blob.type && !/^image\//i.test(blob.type)) throw new Error("Discogs no devolvió una imagen");
+
+  // No se conoce aún el ALBUM_ID, así que se usa un sufijo único para evitar choques de nombre
+  const ext = extensionDeImagen(blob, urlDiscogs);
+  const nombre = `${slugTexto(artista)}-${slugTexto(album)}-${Date.now().toString(36)}.${ext}`;
+  const ruta = `${GITHUB_CARPETA_PORTADAS}/${nombre}`;
+  const urlApi = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${ruta}`;
+
+  const base64 = await leerArchivoComoBase64(blob);
+  const resPut = await fetch(urlApi, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${tokenGithub}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ message: `Carátula (Discogs): ${album || nombre}`, content: base64, branch: GITHUB_RAMA })
+  });
+  const datos = await resPut.json();
+  if(!resPut.ok){
+    if(resPut.status === 401){ tokenGithub = null; sessionStorage.removeItem("token_github"); }
+    throw new Error("GitHub: " + (datos.message || resPut.status));
+  }
+  return { url: datos.content.download_url, ruta };
+}
+
 async function crearAlbumNuevo(){
   const btn = $("#btn-crear-album");
   btn.disabled = true;
@@ -2759,8 +2810,32 @@ async function crearAlbumNuevo(){
 
   let ultimoAlbumId = null;
   let ultimoAlbumCompleto = null;
+  let rutaCaratulaNueva = null;   // carátula copiada a GitHub en esta operación
+  let avisoCaratula = "";         // motivo, si no se pudo copiar
+
+  // Si el álbum no llega a crearse, la carátula recién subida queda huérfana: se borra
+  const descartarCaratulaSubida = async ()=>{
+    if(rutaCaratulaNueva && ultimoAlbumId === null){
+      const r = rutaCaratulaNueva; rutaCaratulaNueva = null;
+      try{ await borrarArchivoGithub(r); }catch(e){ console.error(e); }
+    }
+  };
 
   try{
+    // Carátula de Discogs: se copia a Covers/ para no depender de Discogs
+    if(esUrlDiscogs(albumBase["PORTADA"])){
+      btn.textContent = "Copiando carátula…";
+      try{
+        const copia = await copiarCaratulaDiscogsARepo(albumBase["PORTADA"], albumBase["ARTISTA ALBUM"], albumBase["ALBUM"]);
+        albumBase["PORTADA"] = copia.url;
+        rutaCaratulaNueva = copia.ruta;
+      }catch(err){
+        console.warn("No se pudo copiar la carátula de Discogs:", err);
+        avisoCaratula = (err && err.message) ? err.message : String(err);
+      }
+      btn.textContent = "Guardando…";
+    }
+
     for(const d of discos){
       const cancionesDisco = $$("#"+d.id+" .cancion-edicion").map(div=>({
         "PISTA Nº": div.querySelector(".ed-c-pista").value.trim(),
@@ -2781,6 +2856,7 @@ async function crearAlbumNuevo(){
       const json = await res.json();
 
       if(!json.ok){
+        await descartarCaratulaSubida();
         if(manejarErrorSesion(json.error)) return;
         alert("Error al crear el álbum" + (esMultiDisco ? ` (Disco ${d.numero})` : "") + ": " + json.error);
         btn.disabled = false;
@@ -2800,7 +2876,11 @@ async function crearAlbumNuevo(){
     construirSidebar();
     cerrarModalNuevoAlbum();
     abrirDetalle(encontrarEntradaVista(ultimoAlbumId) || ultimoAlbumCompleto); // ya repinta conservando el scroll
+    if(avisoCaratula){
+      setTimeout(()=> alert("El álbum se añadió, pero no se pudo copiar la carátula a GitHub:\n\n" + avisoCaratula + "\n\nSe ha dejado el enlace de Discogs."), 150);
+    }
   }catch(err){
+    descartarCaratulaSubida();
     alert("No se pudo conectar para crear el álbum.");
     console.error(err);
     btn.disabled = false;
