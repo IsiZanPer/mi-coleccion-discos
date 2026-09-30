@@ -927,6 +927,29 @@
   #ord-reset:hover{color:var(--accent);border-color:var(--accent);}
   .ord-ayuda{color:var(--muted);font-size:11.5px;margin-left:auto;white-space:nowrap;}
   @container (max-width:900px){ .ord-ayuda{display:none;} }
+
+  /* ---------- Limpieza de carátulas sin usar ---------- */
+  body.modo-movil #btn-limpiar{display:none !important;}
+  #modal-limpieza-fondo{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;
+    align-items:center;justify-content:center;padding:12px;
+  }
+  #modal-limpieza-fondo.abierto{display:flex;}
+  #modal-limpieza{
+    background:var(--panel);border:1px solid var(--border);border-radius:6px;
+    padding:22px 24px;width:min(720px,100%);max-height:92vh;display:flex;flex-direction:column;
+  }
+  #modal-limpieza h3{margin:0 0 4px;font-size:18px;}
+  #lc-estado{color:var(--muted);font-size:13px;margin:0 0 10px;line-height:1.45;}
+  #lc-nota{color:var(--muted);font-size:11.5px;margin:0 0 12px;}
+  #lc-todas{background:none;border:none;color:var(--accent);cursor:pointer;font-size:12.5px;padding:0 0 8px;text-align:left;display:none;}
+  #lc-lista{overflow-y:auto;border:1px solid var(--border);border-radius:6px;display:none;}
+  .lc-item{display:grid;grid-template-columns:auto 56px 1fr auto;gap:12px;align-items:center;padding:6px 10px;border-top:1px solid var(--border);cursor:pointer;}
+  .lc-item:first-child{border-top:none;}
+  .lc-item:hover{background:var(--panel-hi);}
+  .lc-item img{width:56px;height:56px;object-fit:cover;border-radius:3px;background:var(--bg);display:block;}
+  .lc-nom{font-size:12.5px;word-break:break-all;}
+  .lc-tam{color:var(--muted);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 </style>
 </head>
 <body>
@@ -953,6 +976,7 @@
   <button class="btn-nuevo-album" id="btn-nuevo-album" type="button">+ Añadir álbum</button>
   <button class="btn-seleccionar" id="btn-seleccionar" type="button" title="Seleccionar varios álbumes para editarlos en bloque">☑<span class="txt"> Seleccionar</span></button>
   <button class="btn-seleccionar" id="btn-stats" type="button" title="Ver estadísticas de la colección (respeta el filtro de la izquierda)">📊<span class="txt"> Estadísticas</span></button>
+  <button class="btn-seleccionar" id="btn-limpiar" type="button" title="Buscar carátulas de GitHub que ningún álbum usa y borrarlas">🧹<span class="txt"> Carátulas</span></button>
   <button class="btn-seleccionar" id="btn-modo" type="button"></button>
   <span id="contador"></span>
   <span id="estado-carga">Cargando datos…</span>
@@ -1124,6 +1148,19 @@
     <div class="fila-botones">
       <button type="button" id="btn-mm-aplicar" disabled>Aplicar cambios</button>
       <button type="button" id="btn-mm-cancelar">Cancelar</button>
+    </div>
+  </div>
+</div>
+<div id="modal-limpieza-fondo">
+  <div id="modal-limpieza">
+    <h3>Carátulas sin usar en GitHub</h3>
+    <p id="lc-estado"></p>
+    <p id="lc-nota">Se compara la carpeta Covers/ con los álbumes cargados en esta página. Si has editado el Sheet a mano, ejecuta limpiarCacheAMano() y recarga antes.</p>
+    <button type="button" id="lc-todas"></button>
+    <div id="lc-lista"></div>
+    <div class="fila-botones">
+      <button type="button" id="btn-lc-borrar" disabled>Borrar seleccionadas</button>
+      <button type="button" id="btn-lc-cerrar">Cerrar</button>
     </div>
   </div>
 </div>
@@ -3068,6 +3105,116 @@ $("#ord-chips").addEventListener("click", ev=>{
 });
 $("#ord-reset").addEventListener("click", ()=> cambiarOrden(ORDEN_POR_DEFECTO()));
 pintarBarraOrden();
+
+/* ---------- Buscar y borrar carátulas sin usar ---------- */
+let lcHuerfanas = [];   // [{ nombre, ruta, tam, url }]
+let lcBorrando = false;
+
+function lcSeleccionadas(){
+  return [...document.querySelectorAll("#lc-lista .lc-chk:checked")].map(c=>c.value);
+}
+function lcActualizarBoton(){
+  const n = lcSeleccionadas().length;
+  const b = $("#btn-lc-borrar");
+  b.disabled = lcBorrando || n === 0;
+  b.textContent = n ? `Borrar seleccionadas (${n})` : "Borrar seleccionadas";
+  const todas = $("#lc-todas");
+  todas.textContent = (n === lcHuerfanas.length) ? "Desmarcar todas" : "Marcar todas";
+}
+function lcPintarLista(){
+  const cont = $("#lc-lista");
+  cont.innerHTML = lcHuerfanas.map(f=>
+    `<label class="lc-item"><input type="checkbox" class="lc-chk" value="${escapeAttr(f.ruta)}" checked>` +
+    `<img src="${escapeAttr(f.url)}" alt="" loading="lazy">` +
+    `<span class="lc-nom">${escapeHTML(f.nombre)}</span>` +
+    `<span class="lc-tam">${Math.max(1, Math.round(f.tam/1024))} KB</span></label>`
+  ).join("");
+  const hay = lcHuerfanas.length > 0;
+  cont.style.display = hay ? "block" : "none";
+  $("#lc-todas").style.display = hay ? "block" : "none";
+  lcActualizarBoton();
+}
+
+async function abrirLimpiezaCaratulas(){
+  if(!(await asegurarTokenGithub())) return;
+  const estado = $("#lc-estado");
+  lcHuerfanas = [];
+  lcPintarLista();
+  estado.textContent = "Buscando en GitHub…";
+  $("#modal-limpieza-fondo").classList.add("abierto");
+
+  try{
+    const urlApi = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_CARPETA_PORTADAS}?ref=${encodeURIComponent(GITHUB_RAMA)}`;
+    const res = await fetch(urlApi, { headers: { Authorization: `Bearer ${tokenGithub}` } });
+    if(res.status === 404){ estado.textContent = "La carpeta de carátulas no existe en el repositorio."; return; }
+    if(!res.ok){
+      if(res.status === 401){ tokenGithub = null; sessionStorage.removeItem("token_github"); }
+      estado.textContent = "No se pudo leer GitHub (" + res.status + ")" + (res.status===401 ? ": token no válido, vuelve a intentarlo." : ".");
+      return;
+    }
+    const archivos = (await res.json()).filter(f=> f.type === "file" && /\.(jpe?g|png|webp|gif)$/i.test(f.name));
+
+    // En uso: referenciadas como PORTADA de cualquier fila, o citadas dentro de un comentario (ficha Markdown)
+    const enUso = new Set(ALBUMES.map(x=>rutaCaratulaRepo(x["PORTADA"])).filter(Boolean));
+    const textos = ALBUMES.map(x=>String(x["Comentario"]||"")).join("\n");
+    const citada = f => textos.includes(f.name) || textos.includes(encodeURIComponent(f.name));
+
+    const usadas = archivos.filter(f=> enUso.has(f.path) || citada(f));
+    lcHuerfanas = archivos
+      .filter(f=> !enUso.has(f.path) && !citada(f))
+      .map(f=>({ nombre:f.name, ruta:f.path, tam:f.size||0, url:f.download_url }))
+      .sort((a,b)=> a.nombre.localeCompare(b.nombre, "es"));
+
+    const kb = Math.round(lcHuerfanas.reduce((t,f)=>t+f.tam,0)/1024);
+    estado.textContent = lcHuerfanas.length
+      ? `${archivos.length} archivos en Covers/ · ${usadas.length} en uso · ${lcHuerfanas.length} sin usar (${kb.toLocaleString("es-ES")} KB). Revisa la lista y borra las que quieras.`
+      : `${archivos.length} archivos en Covers/ y todos están en uso. No hay nada que limpiar.`;
+    lcPintarLista();
+  }catch(err){
+    console.error(err);
+    estado.textContent = "No se pudo conectar con GitHub.";
+  }
+}
+
+async function borrarCaratulasSeleccionadas(){
+  const rutas = lcSeleccionadas();
+  if(!rutas.length || lcBorrando) return;
+  if(!confirm(`¿Borrar ${rutas.length} carátula${rutas.length===1?"":"s"} de GitHub?\n\nSe pueden recuperar desde el historial de commits del repositorio.`)) return;
+
+  lcBorrando = true;
+  const btn = $("#btn-lc-borrar");
+  const fallos = [];
+  let hechas = 0;
+  for(const ruta of rutas){
+    btn.disabled = true;
+    btn.textContent = `Borrando ${hechas + fallos.length + 1}/${rutas.length}…`;
+    try{
+      await borrarArchivoGithub(ruta);
+      hechas++;
+      lcHuerfanas = lcHuerfanas.filter(f=>f.ruta !== ruta);
+    }catch(err){
+      console.error(err);
+      fallos.push(`${ruta} (${err.message})`);
+      if(!tokenGithub) break;   // token rechazado: no tiene sentido seguir
+    }
+  }
+  lcBorrando = false;
+  lcPintarLista();
+  $("#lc-estado").textContent = `Borradas ${hechas} carátula${hechas===1?"":"s"}.` +
+    (fallos.length ? ` No se pudieron borrar ${fallos.length}: ${fallos.join("; ")}` : "") +
+    (lcHuerfanas.length ? ` Quedan ${lcHuerfanas.length} sin usar.` : "");
+}
+
+$("#btn-limpiar").addEventListener("click", abrirLimpiezaCaratulas);
+$("#btn-lc-cerrar").addEventListener("click", ()=> $("#modal-limpieza-fondo").classList.remove("abierto"));
+$("#modal-limpieza-fondo").addEventListener("click", e=>{ if(e.target.id === "modal-limpieza-fondo") $("#modal-limpieza-fondo").classList.remove("abierto"); });
+$("#btn-lc-borrar").addEventListener("click", borrarCaratulasSeleccionadas);
+$("#lc-lista").addEventListener("change", lcActualizarBoton);
+$("#lc-todas").addEventListener("click", ()=>{
+  const marcar = lcSeleccionadas().length !== lcHuerfanas.length;
+  document.querySelectorAll("#lc-lista .lc-chk").forEach(c=> c.checked = marcar);
+  lcActualizarBoton();
+});
 
 /* ---------- Tooltip con el tamaño de la carátula ---------- */
 // Cuando una imagen de carátula termina de cargar (rejilla, tarjetas o detalle),
