@@ -262,7 +262,7 @@
     letter-spacing:.04em;
     padding:8px 10px;
     border-bottom:1px solid var(--border);
-    position:sticky;top:0;background:var(--bg);
+    position:sticky;top:var(--h-orden);background:var(--bg);
   }
   .tabla-albumes tbody tr{cursor:pointer;border-bottom:1px solid var(--border);}
   .tabla-albumes tbody tr:hover{background:var(--panel-hi);}
@@ -725,7 +725,7 @@
   .btn-seleccionar:hover{border-color:var(--accent);color:var(--accent);}
   .btn-seleccionar.activo{background:var(--accent);border-color:var(--accent);color:#14151a;font-weight:600;}
   #barra-seleccion{
-    display:none;position:sticky;top:0;z-index:5;flex-shrink:0;
+    display:none;position:sticky;top:var(--h-orden);z-index:5;flex-shrink:0;
     align-items:center;flex-wrap:wrap;gap:8px;
     background:var(--panel-hi);border-bottom:1px solid var(--accent-dim);
     padding:8px 20px;font-size:13px;
@@ -747,7 +747,7 @@
   .fila-card.marcada{background:var(--panel-hi);border-color:var(--accent);}
   .tabla-albumes tbody tr.marcada{background:var(--panel-hi);}
   .tabla-albumes .td-chk{width:34px;padding-right:0;}
-  #grid-wrap.modo-sel .tabla-albumes thead th{top:46px;}
+  #grid-wrap.modo-sel .tabla-albumes thead th{top:calc(var(--h-orden) + 46px);}
 
   #modal-masivo-fondo{
     display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;
@@ -894,6 +894,39 @@
   .st-t-tit{font-size:13px;overflow:hidden;text-overflow:ellipsis;}
   .st-t-art{font-size:12px;color:var(--accent);}
   .st-t-val{text-align:right;white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px;}
+
+  /* ---------- Barra de ordenación (parte superior del área central) ---------- */
+  :root{--h-orden:42px;}
+  body.modo-movil{--h-orden:0px;}
+  body.modo-movil #barra-orden{display:none !important;}
+  #barra-orden{
+    position:sticky;top:0;z-index:6;height:var(--h-orden);box-sizing:border-box;flex-shrink:0;
+    display:flex;align-items:center;gap:10px;padding:0 20px;
+    background:var(--bg);border-bottom:1px solid var(--border);
+  }
+  .ord-titulo{color:var(--muted);font-size:12.5px;white-space:nowrap;}
+  .ord-titulo b{font-size:15px;color:var(--text);margin-right:2px;}
+  #ord-chips{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;}
+  .ord-chip{
+    display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+    background:var(--panel);border:1px solid var(--border);color:var(--text);
+    border-radius:14px;padding:4px 11px;font-size:12.5px;cursor:pointer;font-family:inherit;
+  }
+  .ord-chip:hover{border-color:var(--accent);color:var(--accent);}
+  .ord-chip.activo{border-color:var(--accent);background:var(--panel-hi);color:var(--accent);font-weight:600;}
+  .ord-flecha{font-size:13px;line-height:1;}
+  .ord-num{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:15px;height:15px;border-radius:8px;padding:0 3px;box-sizing:border-box;
+    background:var(--accent);color:#14151a;font-size:10.5px;font-weight:700;
+  }
+  #ord-reset{
+    background:none;border:1px solid transparent;color:var(--muted);border-radius:14px;
+    padding:3px 8px;font-size:14px;cursor:pointer;
+  }
+  #ord-reset:hover{color:var(--accent);border-color:var(--accent);}
+  .ord-ayuda{color:var(--muted);font-size:11.5px;margin-left:auto;white-space:nowrap;}
+  @container (max-width:900px){ .ord-ayuda{display:none;} }
 </style>
 </head>
 <body>
@@ -941,6 +974,12 @@
   </nav>
 
   <div id="grid-wrap">
+    <div id="barra-orden">
+      <span class="ord-titulo"><b>⇅</b> Ordenar</span>
+      <div id="ord-chips"></div>
+      <button type="button" id="ord-reset" title="Restablecer el orden (Título ↑)">↺</button>
+      <span class="ord-ayuda">Clic: ordenar · Mayús+clic: añadir otro criterio</span>
+    </div>
     <div id="barra-seleccion">
       <span id="sel-contador">0 álbumes seleccionados</span>
       <button type="button" id="btn-sel-todos">Seleccionar todos los que se ven</button>
@@ -1463,7 +1502,7 @@ function pintarGrid(){
     return campo.includes(texto);
   });
 
-  lista.sort((a,b)=> String(a["ALBUM"]||"").localeCompare(String(b["ALBUM"]||""), 'es'));
+  lista.sort(comparadorOrden());
   ultimaLista = lista;
   actualizarBarraSeleccion();
 
@@ -2926,6 +2965,109 @@ $$(".vista-btn").forEach(btn=>{
   btn.classList.toggle("activo", btn.dataset.vista===vistaActual);
   btn.addEventListener("click", ()=> cambiarVista(btn.dataset.vista));
 });
+
+/* ---------- Ordenación de la vista central ---------- */
+function numeroFechaCompra(v){
+  const t = String(v||"").trim();
+  if(!t) return null;
+  let m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return (+m[3])*10000 + (+m[2])*100 + (+m[1]);
+  m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return (+m[1])*10000 + (+m[2])*100 + (+m[3]);
+  m = t.match(/^(\d{4})$/);
+  if(m) return (+m[1])*10000;
+  return null;
+}
+
+const CRITERIOS_ORDEN = {
+  titulo:  { etiqueta:"Título",  dirIni:"asc",  tipo:"texto", valor:a=>a["ALBUM"] },
+  artista: { etiqueta:"Artista", dirIni:"asc",  tipo:"texto", valor:a=>a["ARTISTA ALBUM"] },
+  anio:    { etiqueta:"Año",     dirIni:"asc",  tipo:"num",   valor:a=>{ const y = anioValido(a["Fecha"]); return y ? parseInt(y,10) : null; } },
+  compra:  { etiqueta:"Compra",  dirIni:"desc", tipo:"num",   valor:a=>numeroFechaCompra(a["Fecha de compra"]) },
+  rating:  { etiqueta:"Rating",  dirIni:"desc", tipo:"num",   valor:a=>{ const r = parseInt(a["Rating"],10); return r > 0 ? r : null; } }
+};
+const ORDEN_POR_DEFECTO = () => [{ campo:"titulo", dir:"asc" }];
+const COLATOR_ES = new Intl.Collator("es", { numeric:true });
+
+let ordenActual = (function(){
+  try{
+    const g = JSON.parse(localStorage.getItem("orden_albumes") || "null");
+    if(Array.isArray(g)){
+      const ok = g.filter(o=> o && CRITERIOS_ORDEN[o.campo] && (o.dir==="asc" || o.dir==="desc"));
+      if(ok.length) return ok;
+    }
+  }catch(e){}
+  return ORDEN_POR_DEFECTO();
+})();
+
+// Devuelve el comparador para lista.sort(): aplica los criterios en cadena.
+// Los álbumes sin dato en un criterio van siempre al final, sea cual sea la dirección.
+function comparadorOrden(){
+  const criterios = ordenActual.length ? ordenActual.slice() : ORDEN_POR_DEFECTO();
+  if(!criterios.some(o=>o.campo==="titulo")) criterios.push({ campo:"titulo", dir:"asc" });  // desempate
+  return (a,b)=>{
+    for(const o of criterios){
+      const def = CRITERIOS_ORDEN[o.campo];
+      const va = def.valor(a), vb = def.valor(b);
+      const vacioA = (va===null || va===undefined || va===""), vacioB = (vb===null || vb===undefined || vb==="");
+      if(vacioA && vacioB) continue;
+      if(vacioA) return 1;
+      if(vacioB) return -1;
+      const c = def.tipo==="num" ? (va - vb) : COLATOR_ES.compare(String(va), String(vb));
+      if(c) return o.dir==="desc" ? -c : c;
+    }
+    return 0;
+  };
+}
+
+function pintarBarraOrden(){
+  $("#ord-chips").innerHTML = Object.entries(CRITERIOS_ORDEN).map(([campo, def])=>{
+    const i = ordenActual.findIndex(o=>o.campo===campo);
+    const activo = i > -1;
+    const flecha = activo ? `<span class="ord-flecha">${ordenActual[i].dir==="asc" ? "↑" : "↓"}</span>` : "";
+    const num = (activo && ordenActual.length > 1) ? `<span class="ord-num">${i+1}</span>` : "";
+    const ayuda = `Ordenar por ${def.etiqueta.toLowerCase()} (clic). Mayús+clic: usarlo también como criterio adicional`;
+    return `<button type="button" class="ord-chip${activo ? " activo" : ""}" data-campo="${campo}" title="${ayuda}">${def.etiqueta}${flecha}${num}</button>`;
+  }).join("");
+}
+
+function cambiarOrden(nuevo){
+  ordenActual = nuevo;
+  try{ localStorage.setItem("orden_albumes", JSON.stringify(ordenActual)); }catch(e){}
+  pintarBarraOrden();
+  pintarGrid();
+  $("#grid-wrap").scrollTop = 0;
+}
+
+// Clic: orden solo por ese criterio (otro clic invierte ↑/↓).
+// Mayús/Ctrl+clic: lo añade como criterio adicional; sobre uno ya activo lo invierte y, al tercer clic, lo quita.
+function alternarOrden(campo, añadir){
+  const def = CRITERIOS_ORDEN[campo];
+  const opuesto = d => d==="asc" ? "desc" : "asc";
+  const orden = ordenActual.map(o=>({ campo:o.campo, dir:o.dir }));
+  const i = orden.findIndex(o=>o.campo===campo);
+
+  if(!añadir){
+    if(orden.length===1 && i===0) orden[0].dir = opuesto(orden[0].dir);
+    else return cambiarOrden([{ campo, dir:def.dirIni }]);
+  } else if(i === -1){
+    orden.push({ campo, dir:def.dirIni });
+  } else if(orden.length === 1){
+    orden[0].dir = opuesto(orden[0].dir);
+  } else if(orden[i].dir === def.dirIni){
+    orden[i].dir = opuesto(orden[i].dir);
+  } else {
+    orden.splice(i, 1);
+  }
+  cambiarOrden(orden);
+}
+
+$("#ord-chips").addEventListener("click", ev=>{
+  const b = ev.target.closest(".ord-chip");
+  if(b) alternarOrden(b.dataset.campo, ev.shiftKey || ev.ctrlKey || ev.metaKey);
+});
+$("#ord-reset").addEventListener("click", ()=> cambiarOrden(ORDEN_POR_DEFECTO()));
+pintarBarraOrden();
 
 /* ---------- Tooltip con el tamaño de la carátula ---------- */
 // Cuando una imagen de carátula termina de cargar (rejilla, tarjetas o detalle),
