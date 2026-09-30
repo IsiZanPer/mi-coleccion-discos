@@ -239,6 +239,18 @@
   .fc-meta{text-align:right;flex-shrink:0;font-size:12.5px;color:var(--muted);}
   .fc-pistas{color:var(--text);}
 
+  /* Tarjetas en 2 columnas en PC. Se decide por el ancho REAL del área central
+     (así también funciona con el panel de detalle abierto): si no caben dos, se queda en 1. */
+  #grid-wrap{container-type:inline-size;}
+  @container (min-width:780px){
+    body:not(.modo-movil) #grid.vista-card{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px 14px;
+    }
+    body:not(.modo-movil) #grid.vista-card .fila-card{margin-bottom:0;}
+  }
+
   /* --- Vista de lista (tabla) --- */
   .tabla-albumes{width:100%;border-collapse:collapse;font-size:13px;}
   .tabla-albumes thead th{
