@@ -48,7 +48,7 @@
   header h1{
     font-family:'Space Grotesk','Inter',system-ui,sans-serif;
     font-weight:700;
-    font-size:27px;
+    font-size:28px;
     margin:0;
     color:var(--accent);
     letter-spacing:-0.02em;
@@ -2730,6 +2730,18 @@ $$(".vista-btn").forEach(btn=>{
   btn.classList.toggle("activo", btn.dataset.vista===vistaActual);
   btn.addEventListener("click", ()=> cambiarVista(btn.dataset.vista));
 });
+
+/* ---------- Tooltip con el tamaño de la carátula ---------- */
+// Cuando una imagen de carátula termina de cargar (rejilla, tarjetas o detalle),
+// se le pone como tooltip su tamaño real: alto × ancho en píxeles.
+document.addEventListener("load", ev=>{
+  const img = ev.target;
+  if(!img || img.tagName !== "IMG") return;
+  if(!img.closest(".cover, .fc-cover, #det-cover")) return;
+  if(img.naturalWidth && img.naturalHeight){
+    img.title = `${img.naturalHeight} × ${img.naturalWidth} px (alto × ancho)`;
+  }
+}, true);
 
 /* ---------- Estadísticas ---------- */
 // Las estadísticas se calculan sobre la misma lista que ve la rejilla
