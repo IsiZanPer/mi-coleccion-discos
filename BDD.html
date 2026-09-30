@@ -1891,6 +1891,7 @@ async function subirCaratula(file){
     }
 
     $("#ed-portada").value = datos.content.download_url;
+    rutasSubidasEdicion.add(ruta);
     estado.textContent = "Subida correctamente ✓";
     estado.className = "ok";
   }catch(err){
@@ -1900,8 +1901,68 @@ async function subirCaratula(file){
   }
 }
 
+/* ---------- Limpieza de carátulas antiguas en GitHub ---------- */
+// Carátulas subidas al repo durante la edición actual (para no dejar huérfanas
+// las que se sustituyen antes de guardar o las que se descartan al cancelar).
+let rutasSubidasEdicion = new Set();
+
+// Si la URL apunta a la carpeta de portadas de nuestro repo, devuelve su ruta ("Covers/xxx.jpg"); si no, null.
+function rutaCaratulaRepo(url){
+  if(!url) return null;
+  const limpia = String(url).trim().split(/[?#]/)[0];
+  if(!limpia.toLowerCase().includes(GITHUB_REPO.toLowerCase())) return null;
+  const m = limpia.match(new RegExp("/" + GITHUB_CARPETA_PORTADAS + "/([^/]+)$", "i"));
+  if(!m) return null;
+  try{ return GITHUB_CARPETA_PORTADAS + "/" + decodeURIComponent(m[1]); }
+  catch(e){ return GITHUB_CARPETA_PORTADAS + "/" + m[1]; }
+}
+
+async function borrarArchivoGithub(ruta){
+  const urlApi = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${ruta.split("/").map(encodeURIComponent).join("/")}`;
+  const cab = { Authorization: `Bearer ${tokenGithub}` };
+  const resGet = await fetch(`${urlApi}?ref=${encodeURIComponent(GITHUB_RAMA)}`, { headers: cab });
+  if(resGet.status === 404) return;   // ya no existe: nada que borrar
+  if(!resGet.ok){
+    if(resGet.status === 401){ tokenGithub = null; sessionStorage.removeItem("token_github"); }
+    throw new Error("GitHub respondió " + resGet.status);
+  }
+  const { sha } = await resGet.json();
+  const resDel = await fetch(urlApi, {
+    method: "DELETE",
+    headers: Object.assign({ "Content-Type": "application/json" }, cab),
+    body: JSON.stringify({ message: `Borrar carátula antigua: ${ruta}`, sha, branch: GITHUB_RAMA })
+  });
+  if(!resDel.ok){
+    if(resDel.status === 401){ tokenGithub = null; sessionStorage.removeItem("token_github"); }
+    let msg = "GitHub respondió " + resDel.status;
+    try{ const d = await resDel.json(); if(d && d.message) msg = d.message; }catch(e){}
+    throw new Error(msg);
+  }
+}
+
+// Borra de GitHub las carátulas candidatas que ya no usa NINGÚN álbum de la colección.
+// Solo actúa si en esta sesión ya se ha introducido el token de GitHub.
+async function limpiarCaratulasHuerfanas(rutas){
+  if(!tokenGithub || !rutas || !rutas.length) return;
+  const enUso = new Set(ALBUMES.map(x=>rutaCaratulaRepo(x["PORTADA"])).filter(Boolean));
+  const fallos = [];
+  for(const r of rutas){
+    if(!r || enUso.has(r)) continue;
+    try{ await borrarArchivoGithub(r); }
+    catch(err){ console.error(err); fallos.push(`${r} (${err.message})`); }
+  }
+  if(fallos.length) alert("Los cambios se guardaron, pero no se pudo borrar de GitHub:\n\n" + fallos.join("\n"));
+}
+
+async function cancelarEdicionUsuario(){
+  const subidas = [...rutasSubidasEdicion];
+  cancelarEdicion();
+  if(subidas.length) limpiarCaratulasHuerfanas(subidas);
+}
+
 function cancelarEdicion(){
   cancionesAEliminar = [];
+  rutasSubidasEdicion = new Set();
   $("#vista-album").style.display = "";
   $("#edicion-album").style.display = "none";
   $("#btn-modificar").style.display = "";
@@ -1967,6 +2028,9 @@ async function guardarCambios(){
   const btn = $("#btn-guardar-cambios");
   btn.disabled = true;
   btn.textContent = "Guardando…";
+
+  const filaOriginal = ALBUMES.find(x=>x.ALBUM_ID===albumSeleccionado.ALBUM_ID);
+  const portadaAnterior = filaOriginal ? filaOriginal["PORTADA"] : albumSeleccionado["PORTADA"];
 
   const albumEditado = {
     ALBUM_ID: albumSeleccionado.ALBUM_ID,
@@ -2034,6 +2098,13 @@ async function guardarCambios(){
     Object.assign(albumSeleccionado, albumEditado);
     const idxAlbum = ALBUMES.findIndex(x=>x.ALBUM_ID===albumSeleccionado.ALBUM_ID);
     if(idxAlbum>-1) Object.assign(ALBUMES[idxAlbum], albumEditado);
+
+    // Carátula sustituida: se borra de GitHub la antigua (y las subidas y descartadas en esta edición)
+    const candidatas = new Set(rutasSubidasEdicion);
+    const rutaAntigua = rutaCaratulaRepo(portadaAnterior);
+    if(rutaAntigua) candidatas.add(rutaAntigua);
+    candidatas.delete(rutaCaratulaRepo(albumEditado["PORTADA"]));
+    limpiarCaratulasHuerfanas([...candidatas]);   // sin await: no retrasa la interfaz
 
     // Bajas
     cancionesAEliminar.forEach(el=>{
@@ -2388,7 +2459,7 @@ $("#btn-cerrar-sesion").addEventListener("click", ()=> irALogin());
 if(usuarioActual) $("#usuario-conectado").textContent = usuarioActual;
 $("#btn-eliminar-album").addEventListener("click", eliminarAlbumActual);
 $("#btn-guardar-cambios").addEventListener("click", guardarCambios);
-$("#btn-cancelar-edicion").addEventListener("click", cancelarEdicion);
+$("#btn-cancelar-edicion").addEventListener("click", cancelarEdicionUsuario);
 $("#btn-ficha").addEventListener("click", abrirFicha);
 $("#btn-ficha-pdf").addEventListener("click", abrirFichaPDF);
 $("#cerrar-modal").addEventListener("click", cerrarFicha);
