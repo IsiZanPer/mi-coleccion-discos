@@ -1098,6 +1098,7 @@
     <div class="det-acciones">
       <div class="det-botones">
         <button class="btn-modificar" id="btn-modificar" type="button">✎ Modificar</button>
+        <button class="btn-modificar" id="btn-ver-discogs" type="button" title="Abrir este disco en Discogs (nueva pestaña)">↗ Ver en Discogs</button>
         <button class="btn-modificar btn-eliminar-album" id="btn-eliminar-album" type="button">🗑 Eliminar álbum</button>
       </div>
       <span class="cerrar-detalle" id="cerrar-detalle">✕</span>
@@ -2024,6 +2025,7 @@ async function entrarModoEdicion(){
   $("#vista-album").style.display = "none";
   $("#edicion-album").style.display = "block";
   $("#btn-modificar").style.display = "none";
+  $("#btn-ver-discogs").style.display = "none";
   $("#btn-eliminar-album").style.display = "none";
 }
 
@@ -2166,6 +2168,7 @@ function cancelarEdicion(){
   $("#vista-album").style.display = "";
   $("#edicion-album").style.display = "none";
   $("#btn-modificar").style.display = "";
+  $("#btn-ver-discogs").style.display = "";
   $("#btn-eliminar-album").style.display = "";
   $("#ed-campos").innerHTML = "";
   $$(".btn-guardar-ed").forEach(b=>{ b.disabled = false; b.textContent = "Guardar cambios"; });
@@ -3856,6 +3859,35 @@ $("#vd-lista").addEventListener("click", e=>{
   if(modoEstadisticas) alternarEstadisticas(false);
   abrirDetalle(entrada);
 });
+
+/* ---------- Ver el álbum en Discogs ---------- */
+// Con código de barras abre directamente la edición en Discogs; sin él, abre la búsqueda por artista + título.
+async function verEnDiscogs(){
+  if(!albumSeleccionado) return;
+  const a = albumSeleccionado;
+  // En multi-disco, _discos solo guarda ids: se buscan las filas reales para leer el código de barras
+  const filas = [a].concat(idsDeEntrada(a).map(id=> ALBUMES.find(x=> x.ALBUM_ID === id)).filter(Boolean));
+  const barcode = filas.map(f=> String(f["Código de barras"]||"").replace(/\s+/g,"")).find(Boolean) || "";
+  const artista = String(a["ARTISTA ALBUM"]||"").trim(), titulo = String(a["ALBUM"]||"").trim();
+  const buscar = barcode || (artista + " " + titulo).trim();
+  const urlBusqueda = "https://www.discogs.com/search/?q=" + encodeURIComponent(buscar) + "&type=release";
+
+  if(!barcode){ window.open(urlBusqueda, "_blank"); return; }
+
+  // La pestaña se abre ya (dentro del clic) para que el navegador no la bloquee; luego se le pone la dirección buena.
+  const ventana = window.open("about:blank", "_blank");
+  let destino = urlBusqueda;
+  try{
+    const res = await fetch("https://api.discogs.com/database/search?barcode=" + encodeURIComponent(barcode) + "&type=release&per_page=5");
+    if(res.ok){
+      const d = await res.json();
+      const r = (d.results || []).find(x=> x.type !== "master" && x.uri);
+      if(r) destino = "https://www.discogs.com" + r.uri;
+    }
+  }catch(e){ /* se queda con la búsqueda */ }
+  if(ventana) ventana.location.href = destino; else window.open(destino, "_blank");
+}
+$("#btn-ver-discogs").addEventListener("click", verEnDiscogs);
 
 /* ---------- Menú Herramientas ---------- */
 (function(){
