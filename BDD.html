@@ -1087,6 +1087,7 @@
       <button class="herr-item" id="btn-stats" type="button" role="menuitem" title="Ver estadísticas de la colección (respeta el filtro de la izquierda)"><span class="ico">📊</span> Estadísticas</button>
       <button class="herr-item" id="btn-limpiar" type="button" role="menuitem" title="Buscar carátulas de GitHub que ningún álbum usa y borrarlas"><span class="ico">🧹</span> Carátulas</button>
       <button class="herr-item" id="btn-verificar" type="button" role="menuitem" title="Comparar las canciones de tus álbumes con las de Discogs y marcar los que no coinciden"><span class="ico">🔎</span> Comprobar con Discogs</button>
+      <button class="herr-item" id="btn-pantalla-completa" type="button" role="menuitem" title="Poner la página a pantalla completa (Esc para salir)"><span class="ico">⛶</span> <span id="btn-pc-txt">Pantalla completa</span></button>
       <button class="herr-item" id="btn-tema" type="button" role="menuitem" title="Cambiar entre tema oscuro y claro"><span class="ico">☀</span> <span id="btn-tema-txt">Tema claro</span></button>
     </div>
   </div>
@@ -3939,6 +3940,29 @@ async function verEnDiscogs(){
   if(ventana) ventana.location.href = destino; else window.open(destino, "_blank");
 }
 $("#btn-ver-discogs").addEventListener("click", verEnDiscogs);
+
+/* ---------- Pantalla completa ---------- */
+(function(){
+  const el = document.documentElement;
+  const pedir = el.requestFullscreen || el.webkitRequestFullscreen;
+  const btn = $("#btn-pantalla-completa");
+  if(!pedir){ btn.style.display = "none"; return; }   // el navegador no lo permite (p. ej. iPhone)
+  const enPantallaCompleta = ()=> !!(document.fullscreenElement || document.webkitFullscreenElement);
+  function actualizar(){
+    const f = enPantallaCompleta();
+    $("#btn-pc-txt").textContent = f ? "Salir de pantalla completa" : "Pantalla completa";
+    btn.querySelector(".ico").textContent = f ? "🗗" : "⛶";
+  }
+  btn.addEventListener("click", ()=>{
+    try{
+      if(enPantallaCompleta()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else pedir.call(el);
+    }catch(e){}
+  });
+  document.addEventListener("fullscreenchange", actualizar);
+  document.addEventListener("webkitfullscreenchange", actualizar);   // Safari
+  actualizar();
+})();
 
 /* ---------- Tema claro / oscuro ---------- */
 function aplicarTema(claro){
