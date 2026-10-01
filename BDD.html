@@ -784,6 +784,27 @@
   @media (max-width:820px){ .btn-seleccionar .txt{display:none;} }
   @media (max-width:560px){ .mm-fila{grid-template-columns:1fr;} }
 
+  /* ---------- Menú desplegable "Herramientas" ---------- */
+  .menu-herr{position:relative;}
+  .menu-herr-lista{
+    display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:50;min-width:190px;
+    background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:4px;
+    box-shadow:0 8px 24px rgba(0,0,0,.45);
+  }
+  .menu-herr.abierto .menu-herr-lista{display:block;}
+  .herr-item{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    background:transparent;border:none;color:var(--text);padding:9px 12px;border-radius:4px;
+    font-size:13.5px;font-family:inherit;cursor:pointer;white-space:nowrap;
+  }
+  .herr-item .ico{width:18px;text-align:center;}
+  .herr-item:hover{background:var(--panel-hi);color:var(--accent);}
+  .herr-item.activo{color:var(--accent);font-weight:600;}
+  .menu-herr .flecha{font-size:10px;opacity:.8;}
+  .menu-herr.abierto > #btn-herramientas,
+  .menu-herr:has(.herr-item.activo) > #btn-herramientas{border-color:var(--accent);color:var(--accent);}
+  body.modo-movil #menu-herr{display:none !important;}
+
   /* ---------- Modo móvil: solo buscador + álbumes en tarjetas ---------- */
   #btn-modo{white-space:nowrap;}
   body.modo-movil{height:100vh;height:100dvh;}
@@ -974,9 +995,14 @@
     <button type="button" class="vista-btn" data-vista="list" title="Lista">≡</button>
   </div>
   <button class="btn-nuevo-album" id="btn-nuevo-album" type="button">+ Añadir álbum</button>
-  <button class="btn-seleccionar" id="btn-seleccionar" type="button" title="Seleccionar varios álbumes para editarlos en bloque">☑<span class="txt"> Seleccionar</span></button>
-  <button class="btn-seleccionar" id="btn-stats" type="button" title="Ver estadísticas de la colección (respeta el filtro de la izquierda)">📊<span class="txt"> Estadísticas</span></button>
-  <button class="btn-seleccionar" id="btn-limpiar" type="button" title="Buscar carátulas de GitHub que ningún álbum usa y borrarlas">🧹<span class="txt"> Carátulas</span></button>
+  <div class="menu-herr" id="menu-herr">
+    <button class="btn-seleccionar" id="btn-herramientas" type="button" aria-haspopup="true" aria-expanded="false" title="Herramientas">🛠<span class="txt"> Herramientas</span> <span class="flecha">▾</span></button>
+    <div class="menu-herr-lista" id="menu-herr-lista" role="menu">
+      <button class="herr-item" id="btn-seleccionar" type="button" role="menuitem" title="Seleccionar varios álbumes para editarlos en bloque"><span class="ico">☑</span> Seleccionar</button>
+      <button class="herr-item" id="btn-stats" type="button" role="menuitem" title="Ver estadísticas de la colección (respeta el filtro de la izquierda)"><span class="ico">📊</span> Estadísticas</button>
+      <button class="herr-item" id="btn-limpiar" type="button" role="menuitem" title="Buscar carátulas de GitHub que ningún álbum usa y borrarlas"><span class="ico">🧹</span> Carátulas</button>
+    </div>
+  </div>
   <button class="btn-seleccionar" id="btn-modo" type="button"></button>
   <span id="contador"></span>
   <span id="estado-carga">Cargando datos…</span>
@@ -3470,6 +3496,19 @@ function pintarEstadisticas(lista){
   });
 }
 $("#btn-stats").addEventListener("click", ()=> alternarEstadisticas());
+
+/* ---------- Menú Herramientas ---------- */
+(function(){
+  const menu = $("#menu-herr"), btn = $("#btn-herramientas");
+  function abrir(v){
+    menu.classList.toggle("abierto", v);
+    btn.setAttribute("aria-expanded", v ? "true" : "false");
+  }
+  btn.addEventListener("click", e=>{ e.stopPropagation(); abrir(!menu.classList.contains("abierto")); });
+  $("#menu-herr-lista").addEventListener("click", ()=> abrir(false));
+  document.addEventListener("click", e=>{ if(!menu.contains(e.target)) abrir(false); });
+  document.addEventListener("keydown", e=>{ if(e.key === "Escape") abrir(false); });
+})();
 
 /* ---------- Modo móvil (automático por tamaño de pantalla, o forzado con el botón) ---------- */
 // Preferencia guardada: "auto" (según pantalla) | "movil" | "escritorio"
