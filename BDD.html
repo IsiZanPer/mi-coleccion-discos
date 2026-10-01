@@ -520,11 +520,12 @@
     cursor:pointer;
     font-family:inherit;
   }
-  #btn-guardar-cambios{background:var(--accent);border:1px solid var(--accent);color:#14151a;font-weight:600;}
-  #btn-guardar-cambios:hover{background:#5ad3f8;}
-  #btn-guardar-cambios:disabled{opacity:.6;cursor:default;}
-  #btn-cancelar-edicion{background:transparent;border:1px solid var(--border);color:var(--muted);}
-  #btn-cancelar-edicion:hover{border-color:var(--text);color:var(--text);}
+  .acciones-edicion-arriba{margin-top:0;margin-bottom:16px;}
+  .btn-guardar-ed{background:var(--accent);border:1px solid var(--accent);color:#14151a;font-weight:600;}
+  .btn-guardar-ed:hover{background:#5ad3f8;}
+  .btn-guardar-ed:disabled{opacity:.6;cursor:default;}
+  .btn-cancelar-ed{background:transparent;border:1px solid var(--border);color:var(--muted);}
+  .btn-cancelar-ed:hover{border-color:var(--text);color:var(--text);}
 
   /* --- Modal Añadir álbum --- */
   #modal-fondo-nuevo{
@@ -1128,10 +1129,14 @@
     </div>
 
     <div id="edicion-album" style="display:none;">
+      <div class="acciones-edicion acciones-edicion-arriba">
+        <button type="button" class="btn-guardar-ed">Guardar cambios</button>
+        <button type="button" class="btn-cancelar-ed">Cancelar</button>
+      </div>
       <div id="ed-campos"></div>
       <div class="acciones-edicion">
-        <button type="button" id="btn-guardar-cambios">Guardar cambios</button>
-        <button type="button" id="btn-cancelar-edicion">Cancelar</button>
+        <button type="button" id="btn-guardar-cambios" class="btn-guardar-ed">Guardar cambios</button>
+        <button type="button" id="btn-cancelar-edicion" class="btn-cancelar-ed">Cancelar</button>
       </div>
     </div>
   </aside>
@@ -2163,9 +2168,7 @@ function cancelarEdicion(){
   $("#btn-modificar").style.display = "";
   $("#btn-eliminar-album").style.display = "";
   $("#ed-campos").innerHTML = "";
-  const btn = $("#btn-guardar-cambios");
-  btn.disabled = false;
-  btn.textContent = "Guardar cambios";
+  $$(".btn-guardar-ed").forEach(b=>{ b.disabled = false; b.textContent = "Guardar cambios"; });
 }
 
 /* Borra el álbum abierto en el detalle. Si es un grupo multi-disco, borra
@@ -2220,9 +2223,9 @@ async function eliminarAlbumActual(){
 
 async function guardarCambios(){
   if(!albumSeleccionado) return;
-  const btn = $("#btn-guardar-cambios");
-  btn.disabled = true;
-  btn.textContent = "Guardando…";
+  const botonesGuardar = $$(".btn-guardar-ed");
+  const estadoGuardar = (deshabilitado, texto)=> botonesGuardar.forEach(b=>{ b.disabled = deshabilitado; b.textContent = texto; });
+  estadoGuardar(true, "Guardando…");
 
   const filaOriginal = ALBUMES.find(x=>x.ALBUM_ID===albumSeleccionado.ALBUM_ID);
   const portadaAnterior = filaOriginal ? filaOriginal["PORTADA"] : albumSeleccionado["PORTADA"];
@@ -2284,8 +2287,7 @@ async function guardarCambios(){
     if(!json.ok){
       if(manejarErrorSesion(json.error)) return;
       alert("Error al guardar: " + json.error);
-      btn.disabled = false;
-      btn.textContent = "Guardar cambios";
+      estadoGuardar(false, "Guardar cambios");
       return;
     }
 
@@ -2327,8 +2329,7 @@ async function guardarCambios(){
   }catch(err){
     alert("No se pudo conectar para guardar los cambios.");
     console.error(err);
-    btn.disabled = false;
-    btn.textContent = "Guardar cambios";
+    estadoGuardar(false, "Guardar cambios");
   }
 }
 
@@ -2654,8 +2655,8 @@ $("#btn-modificar").addEventListener("click", entrarModoEdicion);
 $("#btn-cerrar-sesion").addEventListener("click", ()=> irALogin());
 if(usuarioActual) $("#usuario-conectado").textContent = usuarioActual;
 $("#btn-eliminar-album").addEventListener("click", eliminarAlbumActual);
-$("#btn-guardar-cambios").addEventListener("click", guardarCambios);
-$("#btn-cancelar-edicion").addEventListener("click", cancelarEdicionUsuario);
+$$(".btn-guardar-ed").forEach(b=> b.addEventListener("click", guardarCambios));
+$$(".btn-cancelar-ed").forEach(b=> b.addEventListener("click", cancelarEdicionUsuario));
 $("#btn-ficha").addEventListener("click", abrirFicha);
 $("#btn-ficha-pdf").addEventListener("click", abrirFichaPDF);
 $("#cerrar-modal").addEventListener("click", cerrarFicha);
