@@ -675,6 +675,11 @@
   }
   .vent-ctrl button:hover:not(:disabled){border-color:#000;color:#000;}
   .vent-ctrl button:disabled{opacity:.35;cursor:default;}
+  .vent-ctrl .vf-menos{font-size:12px;font-weight:600;}
+  .vent-ctrl .vf-mas{font-size:20px;font-weight:600;}
+  .vent-sep{width:1px;height:20px;background:#c9bd9f;margin:0 2px;}
+  /* Tamaño de la letra (botones A): escala solo el texto, no la ventana */
+  #modal-cuerpo,#letra-cuerpo,#modal-titulo,#letra-titulo,#letra-subtitulo{zoom:var(--fz, 1);}
   #modal-ficha .cerrar-detalle{color:#6b5d45;}
   #modal-ficha .cerrar-detalle:hover{color:#000;}
   #modal-ficha a{color:#8a4b00;}
@@ -1178,6 +1183,9 @@
 <div id="modal-fondo">
   <div id="modal-ficha">
     <div class="vent-ctrl">
+      <button type="button" class="vf-menos" title="Letra más pequeña">A</button>
+      <button type="button" class="vf-mas" title="Letra más grande">A</button>
+      <span class="vent-sep"></span>
       <button type="button" class="vz-menos" title="Ventana más pequeña">−</button>
       <button type="button" class="vz-mas" title="Ventana más grande">+</button>
       <span class="cerrar-detalle" id="cerrar-modal">✕</span>
@@ -1190,6 +1198,9 @@
 <div id="modal-fondo-letra">
   <div id="modal-letra">
     <div class="vent-ctrl">
+      <button type="button" class="vf-menos" title="Letra más pequeña">A</button>
+      <button type="button" class="vf-mas" title="Letra más grande">A</button>
+      <span class="vent-sep"></span>
       <button type="button" class="vz-menos" title="Ventana más pequeña">−</button>
       <button type="button" class="vz-mas" title="Ventana más grande">+</button>
       <span class="cerrar-detalle" id="cerrar-modal-letra">✕</span>
@@ -3959,6 +3970,24 @@ function configurarZoomVentana(selector, clave){
   mas.addEventListener("click", ()=>{ if(i < VZ_PASOS.length - 1){ i++; aplicar(); } });
   aplicar();
 }
+const FZ_PASOS = [0.8, 0.9, 1, 1.15, 1.3, 1.5, 1.75];   // multiplicador del texto; 1 = tamaño original
+function configurarZoomLetra(selector, clave){
+  const el = $(selector);
+  let i = 2;
+  try{ const g = parseInt(localStorage.getItem(clave), 10); if(g >= 0 && g < FZ_PASOS.length) i = g; }catch(e){}
+  const menos = el.querySelector(".vf-menos"), mas = el.querySelector(".vf-mas");
+  function aplicar(){
+    el.style.setProperty("--fz", FZ_PASOS[i]);
+    menos.disabled = i <= 0;
+    mas.disabled = i >= FZ_PASOS.length - 1;
+    try{ localStorage.setItem(clave, String(i)); }catch(e){}
+  }
+  menos.addEventListener("click", ()=>{ if(i > 0){ i--; aplicar(); } });
+  mas.addEventListener("click", ()=>{ if(i < FZ_PASOS.length - 1){ i++; aplicar(); } });
+  aplicar();
+}
+configurarZoomLetra("#modal-ficha", "zoom_letra_ficha");
+configurarZoomLetra("#modal-letra", "zoom_letra_letras");
 configurarZoomVentana("#modal-ficha", "zoom_ventana_ficha");
 configurarZoomVentana("#modal-letra", "zoom_ventana_letra");
 
