@@ -629,9 +629,9 @@
   }
   #modal-fondo.abierto, #modal-fondo-letra.abierto{display:flex;}
   #modal-ficha{
-    background-color:#1b1a15;
-    background-image:linear-gradient(#1c1b16,#1c1b16);
-    color:#e9e4d8;
+    background-color:#f4ecd8;
+    background-image:linear-gradient(#f4ecd8,#f4ecd8);
+    color:#000;
     width:min(860px,92vw);
     max-height:85vh;
     overflow-y:auto;
@@ -643,12 +643,14 @@
   }
   #modal-ficha h3{margin-top:0;font-size:26px;}
   #modal-ficha img{max-width:100%;border-radius:4px;margin:12px 0;}
-  #modal-ficha .cerrar-detalle{color:#8c8776;}
+  #modal-ficha .cerrar-detalle{color:#6b5d45;}
+  #modal-ficha .cerrar-detalle:hover{color:#000;}
+  #modal-ficha a{color:#8a4b00;}
 
   #modal-letra{
-    background-color:#16171e;
-    background-image:linear-gradient(#1a1c24,#1a1c24);
-    color:var(--text);
+    background-color:#f4ecd8;
+    background-image:linear-gradient(#f4ecd8,#f4ecd8);
+    color:#000;
     width:min(1300px,98vw);
     max-height:85vh;
     overflow-y:auto;
@@ -660,9 +662,12 @@
     white-space:pre-wrap;
   }
   #modal-letra p{margin:0 0 10px;}
-  #modal-letra h3{margin-top:0;font-size:24px;color:var(--accent);font-family:'Space Grotesk','Inter',system-ui,sans-serif;}
-  #modal-letra .subtitulo{color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:13px;margin:-12px 0 20px;}
-  #modal-letra .cerrar-detalle{color:var(--muted);}
+  #modal-letra h3{margin-top:0;font-size:24px;color:#000;font-family:'Space Grotesk','Inter',system-ui,sans-serif;}
+  #modal-letra .subtitulo{color:#5b4f3a;font-family:Inter,system-ui,sans-serif;font-size:13px;margin:-12px 0 20px;}
+  #modal-letra .cerrar-detalle{color:#6b5d45;}
+  #modal-letra .cerrar-detalle:hover{color:#000;}
+  #modal-letra .letra-nav button{border-color:#c9bd9f;color:#4a3f2b;}
+  #modal-letra .letra-nav button:hover:not(:disabled){border-color:#000;color:#000;}
   .letra-nav{display:flex;justify-content:space-between;margin-bottom:18px;font-family:Inter,system-ui,sans-serif;}
   .letra-nav button{
     background:transparent;
@@ -946,6 +951,12 @@
     padding:3px 8px;font-size:14px;cursor:pointer;
   }
   #ord-reset:hover{color:var(--accent);border-color:var(--accent);}
+  #ord-multi{
+    background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:4px;
+    padding:3px 9px;font-size:12.5px;font-family:inherit;cursor:pointer;white-space:nowrap;
+  }
+  #ord-multi:hover{color:var(--accent);border-color:var(--accent);}
+  #ord-multi.activo{background:var(--accent);border-color:var(--accent);color:#14151a;font-weight:600;}
   .ord-ayuda{color:var(--muted);font-size:11.5px;margin-left:auto;white-space:nowrap;}
   @container (max-width:900px){ .ord-ayuda{display:none;} }
 
@@ -1027,8 +1038,9 @@
     <div id="barra-orden">
       <span class="ord-titulo"><b>⇅</b> Ordenar</span>
       <div id="ord-chips"></div>
-      <button type="button" id="ord-reset" title="Restablecer el orden (Título ↑)">↺</button>
-      <span class="ord-ayuda">Clic: ordenar · Mayús+clic: añadir otro criterio</span>
+      <button type="button" id="ord-multi" title="Combinar criterios: con esto activado, cada criterio que pulses se añade al orden (alternativa a Mayús+clic en tablet)">＋ Combinar</button>
+      <button type="button" id="ord-reset" title="Restablecer el orden (Artista ↑ · Año ↑)">↺</button>
+      <span class="ord-ayuda">Clic: ordenar · Mayús+clic o ＋ Combinar: añadir otro criterio</span>
     </div>
     <div id="barra-seleccion">
       <span id="sel-contador">0 álbumes seleccionados</span>
@@ -2299,7 +2311,7 @@ function mostrarLetraEnIndice(i){
   $("#letra-titulo").textContent = cancion["TITULO"] || "";
   $("#letra-subtitulo").textContent = albumSeleccionado ? (albumSeleccionado["ARTISTA ALBUM"] || "") : "";
   const letra = (cancion["Letras"]||"").trim();
-  $("#letra-cuerpo").innerHTML = letra ? markdownASimpleHTML(letra) : '<p style="color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:14px;">Esta canción no tiene letra guardada.</p>';
+  $("#letra-cuerpo").innerHTML = letra ? markdownASimpleHTML(letra) : '<p style="color:#5b4f3a;font-family:Inter,system-ui,sans-serif;font-size:14px;">Esta canción no tiene letra guardada.</p>';
   $("#btn-letra-anterior").disabled = (i<=0);
   $("#btn-letra-siguiente").disabled = (i>=letraListaActual.length-1);
 }
@@ -3049,7 +3061,7 @@ const CRITERIOS_ORDEN = {
   compra:  { etiqueta:"Compra",  dirIni:"desc", tipo:"num",   valor:a=>numeroFechaCompra(a["Fecha de compra"]) },
   rating:  { etiqueta:"Rating",  dirIni:"desc", tipo:"num",   valor:a=>{ const r = parseInt(a["Rating"],10); return r > 0 ? r : null; } }
 };
-const ORDEN_POR_DEFECTO = () => [{ campo:"titulo", dir:"asc" }];
+const ORDEN_POR_DEFECTO = () => [{ campo:"artista", dir:"asc" }, { campo:"anio", dir:"asc" }];
 const COLATOR_ES = new Intl.Collator("es", { numeric:true });
 
 let ordenActual = (function(){
@@ -3089,7 +3101,7 @@ function pintarBarraOrden(){
     const activo = i > -1;
     const flecha = activo ? `<span class="ord-flecha">${ordenActual[i].dir==="asc" ? "↑" : "↓"}</span>` : "";
     const num = (activo && ordenActual.length > 1) ? `<span class="ord-num">${i+1}</span>` : "";
-    const ayuda = `Ordenar por ${def.etiqueta.toLowerCase()} (clic). Mayús+clic: usarlo también como criterio adicional`;
+    const ayuda = `Ordenar por ${def.etiqueta.toLowerCase()} (clic). Mayús+clic (o ＋ Combinar): usarlo también como criterio adicional`;
     return `<button type="button" class="ord-chip${activo ? " activo" : ""}" data-campo="${campo}" title="${ayuda}">${def.etiqueta}${flecha}${num}</button>`;
   }).join("");
 }
@@ -3127,7 +3139,13 @@ function alternarOrden(campo, añadir){
 
 $("#ord-chips").addEventListener("click", ev=>{
   const b = ev.target.closest(".ord-chip");
-  if(b) alternarOrden(b.dataset.campo, ev.shiftKey || ev.ctrlKey || ev.metaKey);
+  if(b) alternarOrden(b.dataset.campo, ev.shiftKey || ev.ctrlKey || ev.metaKey || modoCombinar);
+});
+// Alternativa táctil a Mayús+clic: con "＋ Combinar" activado, cada criterio pulsado se añade al orden.
+let modoCombinar = false;
+$("#ord-multi").addEventListener("click", ()=>{
+  modoCombinar = !modoCombinar;
+  $("#ord-multi").classList.toggle("activo", modoCombinar);
 });
 $("#ord-reset").addEventListener("click", ()=> cambiarOrden(ORDEN_POR_DEFECTO()));
 pintarBarraOrden();
