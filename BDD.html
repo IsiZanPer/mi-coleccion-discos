@@ -2323,6 +2323,7 @@ async function guardarCambios(){
     construirSidebar();
     abrirDetalle(encontrarEntradaVista(idAlbumEditado) || albumSeleccionado); // ya repinta conservando el scroll
     cancelarEdicion();
+    $("#detalle").scrollTop = 0;   // tras guardar, el detalle vuelve arriba (carátula y botones Modificar/Eliminar)
   }catch(err){
     alert("No se pudo conectar para guardar los cambios.");
     console.error(err);
