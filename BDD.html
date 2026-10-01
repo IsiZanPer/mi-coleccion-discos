@@ -982,6 +982,43 @@
   .lc-item img{width:56px;height:56px;object-fit:cover;border-radius:3px;background:var(--bg);display:block;}
   .lc-nom{font-size:12.5px;word-break:break-all;}
   .lc-tam{color:var(--muted);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  /* ---------- Comprobar álbumes con Discogs ---------- */
+  #modal-verif-fondo{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;
+    align-items:center;justify-content:center;padding:12px;
+  }
+  #modal-verif-fondo.abierto{display:flex;}
+  #modal-verif{
+    background:var(--panel);border:1px solid var(--border);border-radius:6px;
+    padding:22px 24px;width:min(820px,100%);max-height:92vh;display:flex;flex-direction:column;
+  }
+  #modal-verif h3{margin:0 0 4px;font-size:18px;}
+  #vd-info{color:var(--muted);font-size:13px;margin:0 0 10px;line-height:1.45;}
+  #vd-opciones{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 10px;font-size:13px;color:var(--muted);}
+  #vd-opciones label{display:flex;align-items:center;gap:6px;cursor:pointer;}
+  #vd-barra{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin:2px 0 8px;display:none;}
+  #vd-prog{height:100%;width:0;background:var(--accent);transition:width .2s;}
+  #vd-resumen{font-size:13px;margin:0 0 4px;}
+  #vd-actual{color:var(--muted);font-size:12px;margin:0 0 10px;min-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #vd-lista{overflow-y:auto;border:1px solid var(--border);border-radius:6px;display:none;margin-bottom:12px;}
+  .vd-item{padding:10px 12px;border-top:1px solid var(--border);}
+  .vd-item:first-child{border-top:none;}
+  .vd-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .vd-nom{flex:1;min-width:200px;font-size:13.5px;}
+  .vd-badge{font-size:11.5px;padding:2px 8px;border-radius:10px;white-space:nowrap;}
+  .vd-badge.dif{background:rgba(255,159,67,.18);color:#ff9f43;}
+  .vd-badge.nohay{background:rgba(154,160,180,.18);color:#9aa0b4;}
+  .vd-badge.error{background:rgba(255,107,139,.18);color:#ff6b8b;}
+  .vd-det{margin:6px 0 0;font-size:12.5px;color:var(--muted);line-height:1.5;}
+  .vd-det b{color:var(--text);font-weight:600;}
+  .vd-det a{color:var(--accent);}
+  .vd-ver{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:4px;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap;}
+  .vd-ver:hover{border-color:var(--accent);color:var(--accent);}
+  #modal-verif .vd-botones{display:flex;gap:8px;}
+  #btn-vd-empezar{flex:1;background:var(--accent);border:1px solid var(--accent);color:#14151a;font-weight:600;padding:10px;border-radius:4px;cursor:pointer;font-family:inherit;}
+  #btn-vd-empezar:disabled{opacity:.4;cursor:default;}
+  #btn-vd-parar,#btn-vd-cerrar{background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px 14px;border-radius:4px;cursor:pointer;font-family:inherit;}
+  #btn-vd-parar:disabled{opacity:.4;cursor:default;}
 </style>
 </head>
 <body>
@@ -1012,6 +1049,7 @@
       <button class="herr-item" id="btn-seleccionar" type="button" role="menuitem" title="Seleccionar varios álbumes para editarlos en bloque"><span class="ico">☑</span> Seleccionar</button>
       <button class="herr-item" id="btn-stats" type="button" role="menuitem" title="Ver estadísticas de la colección (respeta el filtro de la izquierda)"><span class="ico">📊</span> Estadísticas</button>
       <button class="herr-item" id="btn-limpiar" type="button" role="menuitem" title="Buscar carátulas de GitHub que ningún álbum usa y borrarlas"><span class="ico">🧹</span> Carátulas</button>
+      <button class="herr-item" id="btn-verificar" type="button" role="menuitem" title="Comparar las canciones de tus álbumes con las de Discogs y marcar los que no coinciden"><span class="ico">🔎</span> Comprobar con Discogs</button>
     </div>
   </div>
   <button class="btn-seleccionar" id="btn-modo" type="button"></button>
@@ -1199,6 +1237,24 @@
     <div class="fila-botones">
       <button type="button" id="btn-lc-borrar" disabled>Borrar seleccionadas</button>
       <button type="button" id="btn-lc-cerrar">Cerrar</button>
+    </div>
+  </div>
+</div>
+<div id="modal-verif-fondo">
+  <div id="modal-verif">
+    <h3>Comprobar álbumes con Discogs</h3>
+    <p id="vd-info"></p>
+    <div id="vd-opciones">
+      <label><input type="checkbox" id="vd-omitir" checked> Omitir los ya comprobados antes</label>
+    </div>
+    <div id="vd-barra"><div id="vd-prog"></div></div>
+    <p id="vd-resumen"></p>
+    <p id="vd-actual"></p>
+    <div id="vd-lista"></div>
+    <div class="vd-botones">
+      <button type="button" id="btn-vd-empezar">Empezar</button>
+      <button type="button" id="btn-vd-parar" disabled>Detener</button>
+      <button type="button" id="btn-vd-cerrar">Cerrar</button>
     </div>
   </div>
 </div>
@@ -3514,6 +3570,290 @@ function pintarEstadisticas(lista){
   });
 }
 $("#btn-stats").addEventListener("click", ()=> alternarEstadisticas());
+
+/* ---------- Comprobar álbumes con Discogs ---------- */
+// Compara, para los álbumes que se ven ahora, las canciones de tu hoja con las de Discogs
+// (por código de barras; si no hay, por artista + título) y lista solo los que no coinciden.
+// Discogs sin autenticar permite unas 25 peticiones por minuto, así que se va despacio.
+const VD_PAUSA_MS = 2600;
+const VD_CLAVE_CACHE = "verif_discogs";
+let vdCorriendo = false;
+let vdCancelar = false;
+let vdItems = [];          // resultados de esta sesión
+let vdUltimaPeticion = 0;
+
+function vdLeerCache(){
+  try{ return JSON.parse(localStorage.getItem(VD_CLAVE_CACHE) || "{}") || {}; }catch(e){ return {}; }
+}
+function vdGuardarCache(c){
+  try{ localStorage.setItem(VD_CLAVE_CACHE, JSON.stringify(c)); }catch(e){}
+}
+
+function vdNorm(t){
+  const base = String(t||"").toLowerCase();
+  const n = base
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/\([^)]*\)|\[[^\]]*\]/g," ")      // ignora "(Remastered)", "[Live]"…
+    .replace(/&/g," and ")
+    .replace(/[^\p{L}\p{N}\s]/gu," ")
+    .replace(/\s+/g," ").trim();
+  return n || base.trim();
+}
+function vdDice(a,b){
+  if(a===b) return 1;
+  if(a.length<2 || b.length<2) return 0;
+  const bg = x=>{ const m = new Map(); for(let i=0;i<x.length-1;i++){ const k = x.substr(i,2); m.set(k,(m.get(k)||0)+1); } return m; };
+  const A = bg(a), B = bg(b);
+  let inter = 0;
+  A.forEach((v,k)=>{ if(B.has(k)) inter += Math.min(v,B.get(k)); });
+  return 2*inter/((a.length-1)+(b.length-1));
+}
+// Empareja títulos (iguales tras normalizar, o muy parecidos). Devuelve lo que sobra en cada lado.
+function vdComparar(locales, remotas){
+  const libres = remotas.map((r,i)=>i);
+  const soloLocal = [];
+  locales.forEach(l=>{
+    let j = libres.findIndex(i=> remotas[i].n === l.n);
+    if(j < 0){
+      let mejor = -1, mejorS = 0;
+      libres.forEach((i,k)=>{ const sc = vdDice(l.n, remotas[i].n); if(sc > mejorS){ mejorS = sc; mejor = k; } });
+      if(mejorS >= 0.85) j = mejor;
+    }
+    if(j >= 0) libres.splice(j,1); else soloLocal.push(l.t);
+  });
+  const soloRemoto = libres.map(i=>remotas[i].t);
+  return { soloLocal, soloRemoto, igual: !soloLocal.length && !soloRemoto.length };
+}
+
+function vdPistasLocales(entrada){
+  const ids = new Set(idsDeEntrada(entrada).map(String));
+  return CANCIONES.filter(c=> ids.has(String(c.ALBUM_ID)))
+    .map(c=> String(c["TITULO"]||"").trim()).filter(Boolean)
+    .map(t=>({ t, n: vdNorm(t) }));
+}
+function vdPistasDiscogs(rel){
+  const out = [];
+  (rel.tracklist||[]).forEach(t=>{
+    if(t.type_ === "index" && Array.isArray(t.sub_tracks)) t.sub_tracks.forEach(x=> out.push(x.title));
+    else if(!t.type_ || t.type_ === "track") out.push(t.title);
+  });
+  return out.map(t=>String(t||"").trim()).filter(Boolean).map(t=>({ t, n: vdNorm(t) }));
+}
+function vdFirma(entrada, locales){
+  return [entrada["Código de barras"]||"", entrada["ARTISTA ALBUM"]||"", entrada["ALBUM"]||"", locales.map(l=>l.n).join(";")].join("|");
+}
+
+// Espera interrumpible (para poder detener mientras se espera)
+async function vdDormir(ms){
+  const fin = Date.now() + ms;
+  while(Date.now() < fin){
+    if(vdCancelar) throw new Error("cancelado");
+    await new Promise(r=> setTimeout(r, Math.min(250, fin - Date.now())));
+  }
+}
+async function vdFetchJSON(url){
+  for(let intento = 0; intento < 4; intento++){
+    await vdDormir(Math.max(0, VD_PAUSA_MS - (Date.now() - vdUltimaPeticion)));
+    vdUltimaPeticion = Date.now();
+    const res = await fetch(url);
+    if(res.status === 429){
+      $("#vd-actual").textContent = "Discogs pide ir más despacio; esperando 30 s…";
+      await vdDormir(30000);
+      continue;
+    }
+    if(res.status === 401) throw new Error("Discogs pide autenticación (401)");
+    if(res.status === 404) return null;
+    if(!res.ok) throw new Error("Discogs respondió " + res.status);
+    return await res.json();
+  }
+  throw new Error("Discogs limita las peticiones; espera un minuto y pulsa Continuar");
+}
+
+async function vdBuscarCandidatos(entrada){
+  const enc = encodeURIComponent;
+  const barcode = String(entrada["Código de barras"]||"").replace(/\s+/g,"");
+  const filtrar = d => ((d && d.results) || []).filter(x=> x.type !== "master").slice(0,3).map(x=>x.id);
+  if(barcode){
+    const ids = filtrar(await vdFetchJSON(`https://api.discogs.com/database/search?barcode=${enc(barcode)}&type=release&per_page=5`));
+    if(ids.length) return { por:"código de barras", ids };
+  }
+  const artista = String(entrada["ARTISTA ALBUM"]||"").trim(), album = String(entrada["ALBUM"]||"").trim();
+  if(!artista && !album) return null;
+  let ids = filtrar(await vdFetchJSON(`https://api.discogs.com/database/search?type=release&artist=${enc(artista)}&release_title=${enc(album)}&per_page=5`));
+  if(!ids.length) ids = filtrar(await vdFetchJSON(`https://api.discogs.com/database/search?type=release&q=${enc((artista+" "+album).trim())}&per_page=5`));
+  return ids.length ? { por:"artista y título", ids } : null;
+}
+
+// Prueba hasta 3 ediciones de Discogs: si alguna coincide, el álbum está bien; si no, se muestra la más parecida.
+async function vdComprobarEntrada(entrada, locales){
+  const cand = await vdBuscarCandidatos(entrada);
+  if(!cand) return { estado:"nohay" };
+  let mejor = null;
+  for(const id of cand.ids){
+    const rel = await vdFetchJSON(`https://api.discogs.com/releases/${id}`);
+    if(!rel) continue;
+    const remotas = vdPistasDiscogs(rel);
+    const cmp = vdComparar(locales, remotas);
+    const r = {
+      estado: cmp.igual ? "ok" : "dif", por: cand.por, releaseId: id,
+      nLocal: locales.length, nDiscogs: remotas.length,
+      soloLocal: cmp.soloLocal, soloRemoto: cmp.soloRemoto,
+      peso: cmp.soloLocal.length + cmp.soloRemoto.length
+    };
+    if(cmp.igual) return r;
+    if(!mejor || r.peso < mejor.peso) mejor = r;
+  }
+  return mejor || { estado:"nohay" };
+}
+
+/* --- Interfaz --- */
+function vdCuentas(){
+  const c = { ok:0, dif:0, nohay:0, error:0 };
+  vdItems.forEach(i=>{ c[i.res.estado] = (c[i.res.estado]||0) + 1; });
+  return c;
+}
+function vdPintarResumen(total){
+  const c = vdCuentas();
+  const hechos = vdItems.length;
+  $("#vd-resumen").textContent = hechos
+    ? `Comprobados ${hechos}${total ? "/" + total : ""} · coinciden ${c.ok} · con diferencias ${c.dif} · no encontrados ${c.nohay}` + (c.error ? ` · con error ${c.error}` : "")
+    : "";
+  $("#vd-prog").style.width = (total ? Math.round(hechos*100/total) : 0) + "%";
+}
+function vdListaTitulos(arr){
+  const max = 8;
+  const txt = arr.slice(0,max).map(escapeHTML).join(" · ");
+  return txt + (arr.length > max ? ` · … y ${arr.length - max} más` : "");
+}
+function vdPintarLista(){
+  const orden = { dif:0, nohay:1, error:2 };
+  const malos = vdItems.filter(i=> i.res.estado !== "ok")
+    .sort((a,b)=> (orden[a.res.estado]-orden[b.res.estado]) ||
+      String(a.entrada["ARTISTA ALBUM"]||"").localeCompare(String(b.entrada["ARTISTA ALBUM"]||""), "es"));
+  const cont = $("#vd-lista");
+  cont.style.display = malos.length ? "block" : "none";
+  cont.innerHTML = malos.map(i=>{
+    const r = i.res, e = i.entrada;
+    let badge, detalle = "";
+    if(r.estado === "dif"){
+      badge = r.nLocal !== r.nDiscogs
+        ? `Pistas: ${r.nLocal} tuyas · ${r.nDiscogs} en Discogs`
+        : "Títulos distintos";
+      if(r.soloRemoto.length) detalle += `<div><b>Solo en Discogs:</b> ${vdListaTitulos(r.soloRemoto)}</div>`;
+      if(r.soloLocal.length)  detalle += `<div><b>Solo en tu colección:</b> ${vdListaTitulos(r.soloLocal)}</div>`;
+      detalle += `<div>Encontrado por ${escapeHTML(r.por)} · <a href="https://www.discogs.com/release/${encodeURIComponent(r.releaseId)}" target="_blank" rel="noopener">ver en Discogs</a></div>`;
+    } else if(r.estado === "nohay"){
+      badge = "No encontrado en Discogs";
+    } else {
+      badge = "Error";
+      detalle = `<div>${escapeHTML(r.mensaje||"")}</div>`;
+    }
+    return `<div class="vd-item"><div class="vd-cab">` +
+      `<span class="vd-nom"><b>${escapeHTML(e["ARTISTA ALBUM"]||"")}</b> — ${escapeHTML(e["ALBUM"]||"")}</span>` +
+      `<span class="vd-badge ${r.estado}">${escapeHTML(badge)}</span>` +
+      `<button type="button" class="vd-ver" data-clave="${escapeAttr(i.clave)}">Ver álbum</button></div>` +
+      (detalle ? `<div class="vd-det">${detalle}</div>` : "") + `</div>`;
+  }).join("");
+}
+function vdActualizarBotones(){
+  $("#btn-vd-empezar").disabled = vdCorriendo;
+  $("#btn-vd-parar").disabled = !vdCorriendo;
+  $("#vd-omitir").disabled = vdCorriendo;
+}
+function vdInfoPrevia(){
+  const lista = ultimaLista;
+  const cache = vdLeerCache();
+  const omitir = $("#vd-omitir").checked;
+  let pendientes = 0;
+  lista.forEach(e=>{
+    const sig = vdFirma(e, vdPistasLocales(e));
+    const c = cache[claveEntrada(e)];
+    if(!(omitir && c && c.sig === sig)) pendientes++;
+  });
+  const min = Math.ceil(pendientes * 2 * VD_PAUSA_MS / 60000);
+  $("#vd-info").innerHTML =
+    `Se comprobarán los <b>${lista.length}</b> álbumes que se ven ahora (según el filtro de la izquierda y el buscador). ` +
+    (pendientes ? `Faltan por consultar ${pendientes}: unos ${min} min, porque Discogs limita las peticiones. ` : `Todos tienen ya resultado guardado. `) +
+    `Puedes detenerlo y continuar más tarde. Solo se marcan los que no coinciden en nº de pistas o títulos; no se modifica nada.`;
+}
+
+async function vdEmpezar(){
+  if(vdCorriendo) return;
+  const lista = ultimaLista.slice();
+  if(!lista.length){ $("#vd-info").textContent = "No hay álbumes en la vista actual."; return; }
+  const omitir = $("#vd-omitir").checked;
+  const cache = vdLeerCache();
+  vdCancelar = false; vdCorriendo = true; vdItems = [];
+  vdActualizarBotones();
+  $("#vd-barra").style.display = "block";
+  vdPintarLista(); vdPintarResumen(lista.length);
+  let abortado = "";
+
+  try{
+    for(const entrada of lista){
+      if(vdCancelar) break;
+      const clave = claveEntrada(entrada);
+      const locales = vdPistasLocales(entrada);
+      const sig = vdFirma(entrada, locales);
+      const previo = cache[clave];
+      if(omitir && previo && previo.sig === sig){
+        vdItems.push({ clave, entrada, res: previo.res });
+        if(vdItems.length % 25 === 0){ vdPintarResumen(lista.length); await new Promise(r=>setTimeout(r,0)); }
+        continue;
+      }
+      $("#vd-actual").textContent = "Comprobando: " + (entrada["ARTISTA ALBUM"]||"") + " — " + (entrada["ALBUM"]||"");
+      let res;
+      try{
+        res = await vdComprobarEntrada(entrada, locales);
+        cache[clave] = { sig, res }; vdGuardarCache(cache);
+      }catch(err){
+        if(vdCancelar || err.message === "cancelado") break;
+        if(/401|limita/.test(err.message)){ abortado = err.message; break; }
+        res = { estado:"error", mensaje: err.message };
+      }
+      vdItems.push({ clave, entrada, res });
+      vdPintarResumen(lista.length);
+      if(res.estado !== "ok") vdPintarLista();
+    }
+  }finally{
+    vdCorriendo = false;
+    vdActualizarBotones();
+    vdPintarLista(); vdPintarResumen(lista.length);
+    $("#vd-actual").textContent = abortado
+      ? "Detenido: " + abortado
+      : (vdItems.length >= lista.length ? "Terminado." : "Detenido. Pulsa Continuar para seguir (los ya comprobados se saltan).");
+    $("#btn-vd-empezar").textContent = vdItems.length >= lista.length ? "Volver a empezar" : "Continuar";
+  }
+}
+
+function abrirVerificacionDiscogs(){
+  $("#modal-verif-fondo").classList.add("abierto");
+  if(!vdCorriendo){
+    vdInfoPrevia();
+    if(!vdItems.length){ $("#vd-resumen").textContent = ""; $("#vd-actual").textContent = ""; $("#vd-barra").style.display = "none"; }
+    vdPintarLista();
+  }
+}
+function cerrarVerificacionDiscogs(){
+  vdCancelar = true;   // cerrar equivale a detener; lo ya comprobado queda guardado
+  $("#modal-verif-fondo").classList.remove("abierto");
+}
+
+$("#btn-verificar").addEventListener("click", abrirVerificacionDiscogs);
+$("#btn-vd-empezar").addEventListener("click", vdEmpezar);
+$("#btn-vd-parar").addEventListener("click", ()=>{ vdCancelar = true; });
+$("#btn-vd-cerrar").addEventListener("click", cerrarVerificacionDiscogs);
+$("#modal-verif-fondo").addEventListener("click", e=>{ if(e.target.id === "modal-verif-fondo") cerrarVerificacionDiscogs(); });
+$("#vd-omitir").addEventListener("change", vdInfoPrevia);
+$("#vd-lista").addEventListener("click", e=>{
+  const b = e.target.closest(".vd-ver");
+  if(!b) return;
+  const entrada = ALBUMES_VISTA.find(a=> claveEntrada(a) === b.dataset.clave);
+  if(!entrada) return;
+  cerrarVerificacionDiscogs();
+  if(modoEstadisticas) alternarEstadisticas(false);
+  abrirDetalle(entrada);
+});
 
 /* ---------- Menú Herramientas ---------- */
 (function(){
