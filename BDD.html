@@ -790,6 +790,15 @@
   #barra-seleccion button:disabled{opacity:.4;cursor:default;}
   #barra-seleccion #btn-sel-editar{background:var(--accent);border-color:var(--accent);color:#14151a;font-weight:600;}
   #barra-seleccion #btn-sel-editar:hover:not(:disabled){background:#5ad3f8;color:#14151a;}
+  /* Insignia de álbum con varios discos (Carátulas, Tarjetas y Lista) */
+  .badge-discos{
+    display:inline-flex;align-items:center;gap:4px;white-space:nowrap;
+    background:var(--accent);color:#14151a;font-size:11px;font-weight:700;line-height:1;
+    padding:3px 8px 3px 6px;border-radius:10px;
+  }
+  .badge-discos svg{width:16px;height:11px;flex-shrink:0;}
+  .album-card > .badge-discos{position:absolute;top:8px;right:8px;z-index:2;box-shadow:0 1px 4px rgba(0,0,0,.5);}
+  .fc-formato .badge-discos,.td-album .badge-discos{margin-left:8px;vertical-align:middle;}
   .chk-sel{width:17px;height:17px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
   .album-card{position:relative;}
   .album-card .chk-sel{position:absolute;top:8px;left:8px;z-index:2;}
@@ -1728,6 +1737,12 @@ function pintarGrid(){
   }
 }
 
+function insigniaDiscos(a){
+  if(!a._esGrupo || !a._discos || a._discos.length < 2) return "";
+  const n = a._discos.length;
+  return `<span class="badge-discos" title="Álbum de ${n} discos"><svg viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="5.6"/><circle cx="13" cy="7" r="5.6"/></svg>${n} CD</span>`;
+}
+
 function construirCoverCard(a){
   const card = document.createElement("div");
   card.className = "album-card";
@@ -1737,6 +1752,7 @@ function construirCoverCard(a){
     <div class="cover">${portada ? `<img src="${escapeAttr(portada)}" loading="lazy" alt="">` : escapeHTML(a["ALBUM"]||"")}</div>
     <div class="album-titulo">${escapeHTML(a["ALBUM"]||"(Sin título)")}</div>
     <div class="album-artista">${escapeHTML(a["ARTISTA ALBUM"]||"")}</div>
+    ${insigniaDiscos(a)}
   `;
   prepararSeleccion(card, a);
   return card;
@@ -1753,7 +1769,7 @@ function construirFilaCard(a){
     <div class="fc-info">
       <div class="fc-titulo">${escapeHTML(a["ALBUM"]||"(Sin título)")}</div>
       <div class="fc-artista">${escapeHTML(a["ARTISTA ALBUM"]||"")}</div>
-      <div class="fc-formato">CD${anio ? " – "+escapeHTML(anio) : ""}</div>
+      <div class="fc-formato">CD${anio ? " – "+escapeHTML(anio) : ""}${insigniaDiscos(a)}</div>
     </div>
     <div class="fc-meta">
       <div class="fc-pistas">♫ ${pistas}</div>
@@ -1779,7 +1795,7 @@ function pintarVistaLista(grid, lista){
     const tr = document.createElement("tr");
     if(albumSeleccionado && albumSeleccionado.ALBUM_ID === a.ALBUM_ID) tr.classList.add("selec");
     tr.innerHTML = `
-      <td class="td-album">${escapeHTML(a["ALBUM"]||"(Sin título)")}</td>
+      <td class="td-album">${escapeHTML(a["ALBUM"]||"(Sin título)")}${insigniaDiscos(a)}</td>
       <td>${escapeHTML(a["ARTISTA ALBUM"]||"")}</td>
       <td>${escapeHTML(anio)}</td>
       <td>${escapeHTML(a["GENERO"]||"")}</td>
@@ -4056,6 +4072,22 @@ function irAlAlbumVecino(delta){
 }
 $("#btn-det-ant").addEventListener("click", ()=> irAlAlbumVecino(-1));
 $("#btn-det-sig").addEventListener("click", ()=> irAlAlbumVecino(1));
+
+// Flechas ← → del teclado: álbum anterior / siguiente cuando el detalle está abierto
+document.addEventListener("keydown", e=>{
+  if(e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  if(e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  if(!albumSeleccionado || modoEstadisticas) return;
+  if(!$("#detalle").classList.contains("abierto")) return;
+  if($("#edicion-album").style.display !== "none") return;                       // editando
+  if(document.querySelector('[id^="modal-"][id*="fondo"].abierto')) return;     // hay una ventana abierta
+  const t = e.target;
+  if(t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+  e.preventDefault();
+  irAlAlbumVecino(e.key === "ArrowLeft" ? -1 : 1);
+});
+$("#btn-det-ant").title = "Álbum anterior (←)";
+$("#btn-det-sig").title = "Álbum siguiente (→)";
 
 /* ---------- Menú Herramientas ---------- */
 (function(){
