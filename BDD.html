@@ -719,8 +719,9 @@
     font-family:'Space Grotesk','Inter',system-ui,sans-serif;
     font-size:19px;
     line-height:1.6;
-    white-space:pre-wrap;
+    white-space:normal;   /* si fuera pre-wrap, los saltos de línea del HTML entre título, artista y letra se verían como líneas en blanco */
   }
+  #letra-cuerpo{white-space:pre-wrap;}   /* la letra sí conserva sus saltos de línea */
   #modal-letra p{margin:0 0 10px;}
   #modal-letra h3{margin:0;padding-bottom:6px;border-bottom:1px solid #b8aa88;line-height:1.2;font-size:24px;color:#000;font-family:'Space Grotesk','Inter',system-ui,sans-serif;}
   #modal-letra .subtitulo{color:#5b4f3a;font-family:Inter,system-ui,sans-serif;font-size:13px;margin:2px 0 8px;}
