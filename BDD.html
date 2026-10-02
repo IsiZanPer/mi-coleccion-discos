@@ -882,6 +882,15 @@
 
   /* ---------- Modo móvil: solo buscador + álbumes en tarjetas ---------- */
   #btn-modo{white-space:nowrap;}
+  #btn-sincronizar{
+    display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+    background:transparent;border:1px solid var(--border);color:var(--muted);
+    width:34px;height:34px;padding:0;border-radius:4px;cursor:pointer;
+  }
+  #btn-sincronizar:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+  #btn-sincronizar:disabled{cursor:default;color:var(--accent);border-color:var(--accent);}
+  #btn-sincronizar.sync-girando svg{animation:pc-girar 1s linear infinite;}
+  body.modo-movil #btn-sincronizar{width:auto;height:auto;padding:10px 12px;}
   #btn-tema-movil{display:none;}   /* solo se ve en modo móvil; en PC/tablet el cambio de tema está en Herramientas */
   body.modo-movil #btn-tema-movil{
     display:block;flex-shrink:0;background:transparent;border:1px solid var(--border);color:var(--muted);
@@ -1172,6 +1181,9 @@
     <button type="button" class="vista-btn" data-vista="card" title="Tarjetas">☰</button>
     <button type="button" class="vista-btn" data-vista="list" title="Lista">≡</button>
   </div>
+  <button type="button" id="btn-sincronizar" title="Sincronizar con Google Sheets (vuelve a leer los datos reales de la hoja)" aria-label="Sincronizar con Google Sheets">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+  </button>
   <button class="btn-nuevo-album" id="btn-nuevo-album" type="button">+ Añadir álbum</button>
   <div class="menu-herr" id="menu-herr">
     <button class="btn-seleccionar" id="btn-herramientas" type="button" aria-haspopup="true" aria-expanded="false" title="Herramientas">🛠<span class="txt"> Herramientas</span> <span class="flecha">▾</span></button>
@@ -4215,6 +4227,77 @@ document.addEventListener("keydown", e=>{
 });
 $("#btn-det-ant").title = "Álbum anterior (←)";
 $("#btn-det-sig").title = "Álbum siguiente (→)";
+
+/* ---------- Sincronizar con Google Sheets (en segundo plano) ---------- */
+// Vuelve a leer los datos reales de la hoja saltándose la caché del servidor y actualiza la pantalla
+// sin recargarla: se conservan el filtro, el buscador, el orden, la vista y el álbum abierto.
+let sincronizando = false;
+let temporizadorAvisoSync = null;
+function avisoSync(texto, ms){
+  $("#estado-carga").textContent = texto;
+  clearTimeout(temporizadorAvisoSync);
+  if(ms) temporizadorAvisoSync = setTimeout(()=>{ $("#estado-carga").textContent = ""; }, ms);
+}
+function editandoAlbum(){ return $("#edicion-album").style.display !== "none"; }
+
+async function sincronizarConHoja(){
+  if(sincronizando) return;
+  if(editandoAlbum()){ avisoSync("Termina o cancela la edición antes de sincronizar.", 4000); return; }
+  sincronizando = true;
+  const btn = $("#btn-sincronizar");
+  btn.disabled = true; btn.classList.add("sync-girando");
+  avisoSync("Sincronizando con Google Sheets…");
+  try{
+    const res = await fetch(API_URL + "?sesion=" + encodeURIComponent(sesionActual) + "&forzar=1");
+    const json = await res.json();
+    if(!json.ok){
+      if(manejarErrorSesion(json.error)) return;
+      throw new Error(json.error);
+    }
+    // Si mientras tanto se ha empezado a editar un álbum, no se pisa nada.
+    if(editandoAlbum()){ avisoSync("Sincronización descartada: estabas editando un álbum. Vuelve a intentarlo al guardar.", 6000); return; }
+
+    const antesAlb = ALBUMES.length, antesCan = CANCIONES.length;
+    ALBUMES = json.albumes;
+    CANCIONES = json.canciones;
+    normalizarTextos(ALBUMES, CAMPOS_TEXTO_ALBUM);
+    normalizarTextos(CANCIONES, CAMPOS_TEXTO_CANCION);
+    ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
+
+    // Si el filtro activo ya no existe (p. ej. se borró ese artista), se vuelve a "Todos".
+    if(valorActivo !== "__TODOS__" && !ALBUMES_VISTA.some(a=> valorSegunTab(a, tabActivo) === valorActivo)) valorActivo = "__TODOS__";
+    construirSidebar();
+    const itemActivo = valorActivo === "__TODOS__"
+      ? $('.artista-item[data-valor="__TODOS__"]')
+      : $$("#lista-artistas .artista-item").find(el=> el.dataset.valor === valorActivo);
+    $$(".artista-item").forEach(el=> el.classList.remove("activo"));
+    if(itemActivo) itemActivo.classList.add("activo");
+
+    // La selección múltiple solo conserva álbumes que siguen existiendo.
+    [...seleccionados].forEach(k=>{ if(!ALBUMES_VISTA.some(a=> claveEntrada(a) === k)) seleccionados.delete(k); });
+    pintarGrid();
+
+    // Detalle abierto: se refresca con los datos nuevos (o se cierra si el álbum ya no existe).
+    if(albumSeleccionado){
+      const y = $("#detalle").scrollTop;
+      const nueva = encontrarEntradaVista(albumSeleccionado.ALBUM_ID);
+      if(nueva){ abrirDetalle(nueva); $("#detalle").scrollTop = y; }
+      else cerrarDetalle();
+    }
+
+    const dAlb = ALBUMES.length - antesAlb, dCan = CANCIONES.length - antesCan;
+    const signo = n => n > 0 ? "+" + n : String(n);
+    avisoSync("Sincronizado: " + ALBUMES.length + " álbumes" + (dAlb ? " (" + signo(dAlb) + ")" : "") +
+      ", " + CANCIONES.length + " canciones" + (dCan ? " (" + signo(dCan) + ")" : "") + ".", 6000);
+  }catch(err){
+    console.error(err);
+    avisoSync("No se pudo sincronizar con la hoja. Se mantienen los datos que ya tenías.", 6000);
+  }finally{
+    sincronizando = false;
+    btn.disabled = false; btn.classList.remove("sync-girando");
+  }
+}
+$("#btn-sincronizar").addEventListener("click", sincronizarConHoja);
 
 /* ---------- Menú Herramientas ---------- */
 (function(){
