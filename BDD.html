@@ -881,6 +881,12 @@
 
   /* ---------- Modo móvil: solo buscador + álbumes en tarjetas ---------- */
   #btn-modo{white-space:nowrap;}
+  #btn-tema-movil{display:none;}   /* solo se ve en modo móvil; en PC/tablet el cambio de tema está en Herramientas */
+  body.modo-movil #btn-tema-movil{
+    display:block;flex-shrink:0;background:transparent;border:1px solid var(--border);color:var(--muted);
+    padding:10px 12px;border-radius:4px;font-size:16px;line-height:1;font-family:inherit;cursor:pointer;
+  }
+  body.modo-movil #btn-tema-movil:hover{border-color:var(--accent);color:var(--accent);}
   body.modo-movil{height:100vh;height:100dvh;}
   body.modo-movil header{flex-wrap:wrap;gap:8px;padding:10px 12px;}
   body.modo-movil .marca,
@@ -1159,6 +1165,7 @@
     <input id="buscador" type="text" placeholder="Buscar por álbum o artista…">
     <button type="button" id="buscador-borrar" title="Borrar la búsqueda (Esc)" aria-label="Borrar la búsqueda">✕</button>
   </div>
+  <button type="button" id="btn-tema-movil" title="Cambiar entre tema oscuro y claro">☀</button>
   <div class="vista-selector" id="vista-selector">
     <button type="button" class="vista-btn" data-vista="covers" title="Carátulas">▦</button>
     <button type="button" class="vista-btn" data-vista="card" title="Tarjetas">☰</button>
@@ -4119,11 +4126,15 @@ function aplicarTema(claro){
   try{ localStorage.setItem("tema_visual", claro ? "claro" : "oscuro"); }catch(e){}
   $("#btn-tema .ico").textContent = claro ? "🌙" : "☀";
   $("#btn-tema-txt").textContent = claro ? "Tema oscuro" : "Tema claro";
+  const bm = $("#btn-tema-movil");
+  if(bm){ bm.textContent = claro ? "🌙" : "☀"; bm.title = claro ? "Cambiar a tema oscuro" : "Cambiar a tema claro"; }
 }
 aplicarTema(document.documentElement.getAttribute("data-tema") === "claro");
-$("#btn-tema").addEventListener("click", ()=>{
+function alternarTema(){
   aplicarTema(document.documentElement.getAttribute("data-tema") !== "claro");
-});
+}
+$("#btn-tema").addEventListener("click", alternarTema);
+$("#btn-tema-movil").addEventListener("click", alternarTema);
 
 /* ---------- Tamaño de las ventanas de ficha y letras (− / +) ---------- */
 const VZ_PASOS = [0.8, 0.9, 1, 1.12, 1.25, 1.4];   // multiplicador de ancho y alto; 1 = tamaño original
