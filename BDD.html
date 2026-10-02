@@ -1172,6 +1172,7 @@
       <button type="button" data-tab="etiqueta">Etiquetas</button>
       <button type="button" data-tab="tienda">Tiendas</button>
       <button type="button" data-tab="anio">Años</button>
+      <button type="button" data-tab="decada">Décadas</button>
     </div>
     <div class="artista-item activo" data-valor="__TODOS__">
       <span>Todos</span><span class="n" id="n-todos"></span>
@@ -1489,7 +1490,7 @@ async function asegurarTokenGithub(){
 let ALBUMES = [];        // datos crudos, una fila por disco (tal cual la hoja)
 let ALBUMES_VISTA = [];  // para grid/sidebar: álbumes multi-disco fusionados en una sola entrada
 let CANCIONES = [];
-let tabActivo = "artista";       // 'artista' | 'genero' | 'etiqueta' | 'tienda' | 'anio'
+let tabActivo = "artista";       // 'artista' | 'genero' | 'etiqueta' | 'tienda' | 'anio' | 'decada'
 let valorActivo = "__TODOS__";   // valor seleccionado dentro de la pestaña actual
 let albumSeleccionado = null;
 let modoEstadisticas = false;   // true = el centro y la derecha muestran estadísticas en vez de la rejilla
@@ -1594,10 +1595,14 @@ function valorSegunTab(album, tab){
   if(tab === "etiqueta") return (album["Etiqueta"]||"(Sin etiqueta)").trim();
   if(tab === "tienda") return (album["Tienda"]||"(Sin tienda)").trim();
   if(tab === "anio") return extraerAnio(album["Fecha"]) || "(Sin año)";
+  if(tab === "decada"){
+    const y = anioValido(album["Fecha"]);
+    return y ? (Math.floor(parseInt(y,10)/10)*10) + "s" : "(Sin año)";
+  }
   return "";
 }
 
-/* ---------- Sidebar con pestañas (Artistas/Géneros/Etiquetas/Tiendas/Años) ---------- */
+/* ---------- Sidebar con pestañas (Artistas/Géneros/Etiquetas/Tiendas/Años/Décadas) ---------- */
 function construirSidebar(){
   const conteo = {};
   ALBUMES_VISTA.forEach(a=>{
@@ -1606,8 +1611,8 @@ function construirSidebar(){
   });
 
   let claves = Object.keys(conteo);
-  claves = tabActivo === "anio"
-    ? claves.sort((a,b)=> b.localeCompare(a,'es', {numeric:true})) // años: más reciente primero
+  claves = (tabActivo === "anio" || tabActivo === "decada")
+    ? claves.sort((a,b)=> b.localeCompare(a,'es', {numeric:true})) // años y décadas: más reciente primero
     : claves.sort((a,b)=>a.localeCompare(b,'es'));
 
   $("#n-todos").textContent = ALBUMES_VISTA.length;
@@ -3499,7 +3504,7 @@ document.addEventListener("load", ev=>{
 /* ---------- Estadísticas ---------- */
 // Las estadísticas se calculan sobre la misma lista que ve la rejilla
 // (filtro del sidebar + buscador), así que el sidebar sirve de filtro.
-const NOMBRES_TAB_STATS = { artista:"Artista", genero:"Género", etiqueta:"Sello", tienda:"Tienda", anio:"Año" };
+const NOMBRES_TAB_STATS = { artista:"Artista", genero:"Género", etiqueta:"Sello", tienda:"Tienda", anio:"Año", decada:"Década" };
 
 function alternarEstadisticas(forzar){
   const nuevo = (forzar === undefined) ? !modoEstadisticas : !!forzar;
