@@ -1097,12 +1097,15 @@
   }
   #pantalla-carga .pc-titulo .l-mi{color:var(--text);font-weight:500;margin-right:.18em;}
   #pantalla-carga .pc-texto{color:var(--muted);font-size:15px;letter-spacing:.04em;}
+  #pantalla-carga .pc-version{color:var(--muted);font-size:12px;opacity:.8;margin-top:-14px;}
+  #pantalla-carga .pc-barra{width:220px;height:4px;border-radius:2px;background:var(--border);overflow:hidden;}
+  #pantalla-carga .pc-barra span{display:block;height:100%;width:40%;border-radius:2px;background:var(--accent);animation:pc-barra 1.3s ease-in-out infinite;}
   @keyframes pc-girar{to{transform:rotate(360deg);}}
+  @keyframes pc-barra{0%{transform:translateX(-100%);}100%{transform:translateX(250%);}}
   @media (max-width:700px){
     #pantalla-carga .pc-disco{width:52px;height:52px;}
     #pantalla-carga .pc-titulo{font-size:34px;}
   }
-  @media (prefers-reduced-motion:reduce){ #pantalla-carga .pc-disco{animation:none;} }
 </style>
 </head>
 <body>
@@ -1121,6 +1124,8 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
+  <div class="pc-version">Versión 1.0</div>
+  <div class="pc-barra"><span></span></div>
 </div>
 
 <header>
