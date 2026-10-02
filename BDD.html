@@ -413,6 +413,14 @@
   .det-acciones{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;}
   .det-botones{display:flex;flex-wrap:wrap;gap:8px;}
   .det-acciones .cerrar-detalle{float:none;flex-shrink:0;}
+  .det-nav{display:flex;align-items:center;gap:6px;margin-left:auto;margin-right:10px;flex-shrink:0;}
+  .det-nav button{
+    width:30px;height:30px;padding:0;line-height:1;font-size:20px;border-radius:4px;cursor:pointer;
+    background:transparent;border:1px solid var(--border);color:var(--muted);font-family:inherit;
+  }
+  .det-nav button:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+  .det-nav button:disabled{opacity:.35;cursor:default;}
+  #det-nav-pos{font-size:12px;color:var(--muted);min-width:56px;text-align:center;white-space:nowrap;}
   .btn-modificar{
     background:transparent;
     border:1px solid var(--border);
@@ -1139,6 +1147,11 @@
         <button class="btn-modificar" id="btn-ver-discogs" type="button" title="Abrir este disco en Discogs (nueva pestaña)">↗ Ver en Discogs</button>
         <button class="btn-modificar btn-eliminar-album" id="btn-eliminar-album" type="button">🗑 Eliminar álbum</button>
       </div>
+      <div class="det-nav" id="det-nav">
+        <button type="button" id="btn-det-ant" title="Álbum anterior de la lista">‹</button>
+        <span id="det-nav-pos"></span>
+        <button type="button" id="btn-det-sig" title="Álbum siguiente de la lista">›</button>
+      </div>
       <span class="cerrar-detalle" id="cerrar-detalle">✕</span>
     </div>
 
@@ -1694,6 +1707,7 @@ function pintarGrid(){
   lista.sort(comparadorOrden());
   ultimaLista = lista;
   actualizarBarraSeleccion();
+  actualizarNavDetalle();
 
   $("#contador").textContent = lista.length + (lista.length===1 ? " álbum" : " álbumes");
 
@@ -1812,6 +1826,7 @@ function abrirDetalle(album){
   albumSeleccionado = album;
   cancelarEdicion();
   repintarConservandoScroll(); // para marcar seleccionado, sin perder el scroll
+  actualizarNavDetalle();
 
   $("#det-titulo").textContent = album["ALBUM"] || "(Sin título)";
   $("#det-artista").textContent = album["ARTISTA ALBUM"] || "";
@@ -2078,6 +2093,7 @@ async function entrarModoEdicion(){
   $("#edicion-album").style.display = "block";
   $("#btn-modificar").style.display = "none";
   $("#btn-ver-discogs").style.display = "none";
+  $("#det-nav").style.display = "none";
   $("#btn-eliminar-album").style.display = "none";
 }
 
@@ -2221,6 +2237,7 @@ function cancelarEdicion(){
   $("#edicion-album").style.display = "none";
   $("#btn-modificar").style.display = "";
   $("#btn-ver-discogs").style.display = "";
+  $("#det-nav").style.display = "";
   $("#btn-eliminar-album").style.display = "";
   $("#ed-campos").innerHTML = "";
   $$(".btn-guardar-ed").forEach(b=>{ b.disabled = false; b.textContent = "Guardar cambios"; });
@@ -4014,6 +4031,31 @@ configurarZoomLetra("#modal-ficha", "zoom_letra_ficha");
 configurarZoomLetra("#modal-letra", "zoom_letra_letras");
 configurarZoomVentana("#modal-ficha", "zoom_ventana_ficha");
 configurarZoomVentana("#modal-letra", "zoom_ventana_letra");
+
+/* ---------- Navegar entre álbumes desde el detalle (anterior / siguiente) ---------- */
+// Recorre los álbumes que se ven ahora en la lista (con el filtro, buscador y orden actuales).
+function indiceEnLista(){
+  if(!albumSeleccionado) return -1;
+  const clave = claveEntrada(albumSeleccionado);
+  return ultimaLista.findIndex(a=> claveEntrada(a) === clave);
+}
+function actualizarNavDetalle(){
+  const i = indiceEnLista();
+  $("#btn-det-ant").disabled = i <= 0;
+  $("#btn-det-sig").disabled = i < 0 || i >= ultimaLista.length - 1;
+  $("#det-nav-pos").textContent = i >= 0 ? (i + 1) + " / " + ultimaLista.length : "";
+}
+function irAlAlbumVecino(delta){
+  const i = indiceEnLista();
+  const destino = ultimaLista[i + delta];
+  if(i < 0 || !destino) return;
+  abrirDetalle(destino);
+  $("#detalle").scrollTop = 0;
+  const marcada = document.querySelector("#grid-wrap .selec");
+  if(marcada) marcada.scrollIntoView({ block:"nearest" });
+}
+$("#btn-det-ant").addEventListener("click", ()=> irAlAlbumVecino(-1));
+$("#btn-det-sig").addEventListener("click", ()=> irAlAlbumVecino(1));
 
 /* ---------- Menú Herramientas ---------- */
 (function(){
