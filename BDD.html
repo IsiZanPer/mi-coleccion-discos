@@ -284,6 +284,10 @@
     border-bottom:1px solid var(--border);
     position:sticky;top:var(--h-orden);background:var(--bg);
   }
+  .tabla-albumes thead th[data-campo]{cursor:pointer;user-select:none;white-space:nowrap;}
+  .tabla-albumes thead th[data-campo]:hover{color:var(--accent);}
+  .th-flecha{color:var(--accent);margin-left:4px;font-weight:700;}
+  .th-flecha sup{font-size:9px;margin-left:1px;}
   .tabla-albumes tbody tr{cursor:pointer;border-bottom:1px solid var(--border);}
   .tabla-albumes tbody tr:hover{background:var(--panel-hi);}
   .tabla-albumes tbody tr.selec{background:var(--panel-hi);color:var(--accent);}
@@ -1693,7 +1697,7 @@ function resumenAlbum(a){
   }
   const fechaPub = a["Fecha"] ? String(a["Fecha"]) : "";
   const anio = fechaPub.includes("/") ? fechaPub.split("/").pop() : fechaPub;
-  return { pistas, duracionTexto: segundos ? formatearSegundos(segundos) : "", anio };
+  return { pistas, segundos, duracionTexto: segundos ? formatearSegundos(segundos) : "", anio };
 }
 
 function cambiarVista(nueva){
@@ -1785,9 +1789,17 @@ function pintarVistaLista(grid, lista){
   tabla.className = "tabla-albumes";
   tabla.innerHTML = `
     <thead><tr>
-      ${modoSeleccion ? '<th class="td-chk"></th>' : ''}<th>Álbum</th><th>Artista</th><th>Año</th><th>Género</th><th>Rating</th><th>Duración</th>
+      ${modoSeleccion ? '<th class="td-chk"></th>' : ''}${[["titulo","Álbum"],["artista","Artista"],["anio","Año"],["genero","Género"],["rating","Rating"],["duracion","Duración"]].map(([campo, texto])=>{
+        const i = ordenActual.findIndex(o=>o.campo===campo);
+        const flecha = i > -1 ? `<span class="th-flecha">${ordenActual[i].dir==="asc" ? "↑" : "↓"}${ordenActual.length > 1 ? `<sup>${i+1}</sup>` : ""}</span>` : "";
+        return `<th data-campo="${campo}" title="Ordenar por ${texto.toLowerCase()} (Mayús+clic: añadir como criterio adicional)">${texto}${flecha}</th>`;
+      }).join("")}
     </tr></thead>
   `;
+  tabla.querySelector("thead").addEventListener("click", ev=>{
+    const th = ev.target.closest("th[data-campo]");
+    if(th) alternarOrden(th.dataset.campo, ev.shiftKey || ev.ctrlKey || ev.metaKey || modoCombinar);
+  });
   const tbody = document.createElement("tbody");
   lista.forEach(a=>{
     const { duracionTexto, anio } = resumenAlbum(a);
@@ -3205,8 +3217,17 @@ const CRITERIOS_ORDEN = {
   artista: { etiqueta:"Artista", dirIni:"asc",  tipo:"texto", valor:a=>a["ARTISTA ALBUM"] },
   anio:    { etiqueta:"Año",     dirIni:"asc",  tipo:"num",   valor:a=>{ const y = anioValido(a["Fecha"]); return y ? parseInt(y,10) : null; } },
   compra:  { etiqueta:"Compra",  dirIni:"desc", tipo:"num",   valor:a=>numeroFechaCompra(a["Fecha de compra"]) },
-  rating:  { etiqueta:"Rating",  dirIni:"desc", tipo:"num",   valor:a=>{ const r = parseInt(a["Rating"],10); return r > 0 ? r : null; } }
+  rating:  { etiqueta:"Rating",  dirIni:"desc", tipo:"num",   valor:a=>{ const r = parseInt(a["Rating"],10); return r > 0 ? r : null; } },
+  // Solo desde las cabeceras de la vista Lista: en la barra superior aparecen únicamente mientras están activos
+  genero:   { etiqueta:"Género",   dirIni:"asc",  tipo:"texto", soloColumna:true, valor:a=>a["GENERO"] },
+  duracion: { etiqueta:"Duración", dirIni:"desc", tipo:"num",   soloColumna:true, valor:a=>{ const s = segundosAlbumCache(a); return s > 0 ? s : null; } }
 };
+let cacheDuracionSeg = new Map();   // se vacía en cada ordenación para no recalcular por comparación
+function segundosAlbumCache(a){
+  const k = claveEntrada(a);
+  if(!cacheDuracionSeg.has(k)) cacheDuracionSeg.set(k, resumenAlbum(a).segundos || 0);
+  return cacheDuracionSeg.get(k);
+}
 const ORDEN_POR_DEFECTO = () => [{ campo:"artista", dir:"asc" }, { campo:"anio", dir:"asc" }];
 const COLATOR_ES = new Intl.Collator("es", { numeric:true });
 
@@ -3224,6 +3245,7 @@ let ordenActual = (function(){
 // Devuelve el comparador para lista.sort(): aplica los criterios en cadena.
 // Los álbumes sin dato en un criterio van siempre al final, sea cual sea la dirección.
 function comparadorOrden(){
+  cacheDuracionSeg = new Map();
   const criterios = ordenActual.length ? ordenActual.slice() : ORDEN_POR_DEFECTO();
   if(!criterios.some(o=>o.campo==="titulo")) criterios.push({ campo:"titulo", dir:"asc" });  // desempate
   return (a,b)=>{
@@ -3242,7 +3264,7 @@ function comparadorOrden(){
 }
 
 function pintarBarraOrden(){
-  $("#ord-chips").innerHTML = Object.entries(CRITERIOS_ORDEN).map(([campo, def])=>{
+  $("#ord-chips").innerHTML = Object.entries(CRITERIOS_ORDEN).filter(([campo, def])=> !def.soloColumna || ordenActual.some(o=>o.campo===campo)).map(([campo, def])=>{
     const i = ordenActual.findIndex(o=>o.campo===campo);
     const activo = i > -1;
     const flecha = activo ? `<span class="ord-flecha">${ordenActual[i].dir==="asc" ? "↑" : "↓"}</span>` : "";
@@ -3636,10 +3658,10 @@ function pintarEstadisticas(lista){
   const notaTop = arr => arr.length > 8 ? `Top ${arr.length} · desplaza para ver más` : "";
 
   cont.innerHTML = cab + kpis + '<div class="st-grid">' +
-    card("Álbumes por década de publicación", htmlBarrasV(decadas, PALETA[0]), sinAnio ? `${fmtNum(sinAnio)} sin año` : "", true) +
-    card("Compras por año (álbumes)", htmlPastel(pastelAnios), sinCompra ? `${fmtNum(sinCompra)} sin fecha de compra` : "") +
     card("Gasto por año", conPrecio.length ? htmlBarrasV(compraG, PALETA[1]) : '<div class="st-vacio">Sin datos de precio</div>',
-         conPrecio.length && conPrecio.length < info.length ? `${fmtNum(info.length-conPrecio.length)} álbumes sin precio` : "") +
+         conPrecio.length && conPrecio.length < info.length ? `${fmtNum(info.length-conPrecio.length)} álbumes sin precio` : "", true) +
+    card("Compras por año (álbumes)", htmlPastel(pastelAnios), sinCompra ? `${fmtNum(sinCompra)} sin fecha de compra` : "") +
+    card("Álbumes por década de publicación", htmlBarrasV(decadas, PALETA[0]), sinAnio ? `${fmtNum(sinAnio)} sin año` : "") +
     card("Artistas con más álbumes", htmlBarrasH(tArt.barras, PALETA[2]), tArt.nota) +
     card("Géneros", htmlBarrasH(tGen.barras, PALETA[3]), tGen.nota) +
     card("Sellos", htmlBarrasH(tSel.barras, PALETA[4]), tSel.nota) +
