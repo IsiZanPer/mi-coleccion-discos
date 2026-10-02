@@ -82,7 +82,18 @@
     header h1{font-size:21px;}
     .logo-disco{width:26px;height:26px;}
   }
+  .buscador-caja{flex:1;max-width:320px;position:relative;min-width:0;}
+  #buscador-borrar{
+    display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    width:24px;height:24px;padding:0;line-height:1;border:none;border-radius:50%;
+    background:transparent;color:var(--muted);font-size:14px;cursor:pointer;font-family:inherit;
+  }
+  #buscador-borrar:hover{color:var(--accent);background:var(--panel-hi);}
+  .buscador-caja.tiene-texto #buscador-borrar{display:block;}
+  .buscador-caja.tiene-texto #buscador{padding-right:32px;}
   #buscador{
+    width:100%;
+    box-sizing:border-box;
     flex:1;
     max-width:320px;
     background:var(--bg);
@@ -880,7 +891,10 @@
   body.modo-movil #usuario-conectado,
   body.modo-movil #sidebar,
   body.modo-movil #barra-seleccion{display:none !important;}
+  body.modo-movil .buscador-caja{flex:1;max-width:none;min-width:0;}
   body.modo-movil #buscador{flex:1;max-width:none;min-width:0;font-size:16px;padding:11px 14px;}
+  body.modo-movil .buscador-caja.tiene-texto #buscador{padding-right:38px;}
+  body.modo-movil #buscador-borrar{width:30px;height:30px;font-size:16px;right:8px;}
   body.modo-movil #btn-modo,
   body.modo-movil #btn-cerrar-sesion{
     position:static;padding:10px 12px;font-size:16px;line-height:1;
@@ -1141,7 +1155,10 @@
     </svg>
     <h1><span class="l-mi">Mi</span>colección</h1>
   </div>
-  <input id="buscador" type="text" placeholder="Buscar por álbum o artista…">
+  <div class="buscador-caja" id="buscador-caja">
+    <input id="buscador" type="text" placeholder="Buscar por álbum o artista…">
+    <button type="button" id="buscador-borrar" title="Borrar la búsqueda (Esc)" aria-label="Borrar la búsqueda">✕</button>
+  </div>
   <div class="vista-selector" id="vista-selector">
     <button type="button" class="vista-btn" data-vista="covers" title="Carátulas">▦</button>
     <button type="button" class="vista-btn" data-vista="card" title="Tarjetas">☰</button>
@@ -2623,6 +2640,20 @@ function formatearMinutosTotales(total){
 
 /* ---------- Eventos ---------- */
 $("#buscador").addEventListener("input", pintarGrid);
+// Botón ✕ del buscador: borra lo escrito (también con Esc dentro del cuadro)
+function actualizarBotonBorrarBusqueda(){
+  $("#buscador-caja").classList.toggle("tiene-texto", $("#buscador").value !== "");
+}
+function borrarBusqueda(){
+  $("#buscador").value = "";
+  actualizarBotonBorrarBusqueda();
+  pintarGrid();
+  $("#buscador").focus();
+}
+$("#buscador").addEventListener("input", actualizarBotonBorrarBusqueda);
+$("#buscador").addEventListener("keydown", e=>{ if(e.key === "Escape" && $("#buscador").value !== "") borrarBusqueda(); });
+$("#buscador-borrar").addEventListener("click", borrarBusqueda);
+actualizarBotonBorrarBusqueda();
 $("#cerrar-detalle").addEventListener("click", cerrarDetalle);
 /* ---------- Edición en bloque ---------- */
 const NOMBRES_CAMPOS_MASIVOS = {
