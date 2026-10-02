@@ -932,6 +932,11 @@
   body.modo-movil #btn-stats,
   body.modo-movil #stats-wrap{display:none !important;}
   .st-cab{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 14px;margin-bottom:16px;}
+  .st-salir{
+    margin-left:auto;align-self:center;background:transparent;border:1px solid var(--border);color:var(--muted);
+    padding:6px 14px;border-radius:4px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;
+  }
+  .st-salir:hover{border-color:var(--accent);color:var(--accent);}
   .st-cab h2{margin:0;font-family:'Space Grotesk','Inter',system-ui,sans-serif;font-size:23px;}
   .st-filtro{color:var(--muted);font-size:13px;}
   .st-filtro b{color:var(--accent);font-weight:600;}
@@ -1077,9 +1082,46 @@
   #btn-vd-empezar:disabled{opacity:.4;cursor:default;}
   #btn-vd-parar,#btn-vd-cerrar{background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px 14px;border-radius:4px;cursor:pointer;font-family:inherit;}
   #btn-vd-parar:disabled{opacity:.4;cursor:default;}
+  /* ---------- Pantalla de carga inicial ---------- */
+  #pantalla-carga{
+    position:fixed;inset:0;z-index:200;background:var(--bg);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
+    transition:opacity .4s ease;
+  }
+  #pantalla-carga.oculta{opacity:0;pointer-events:none;}
+  #pantalla-carga .pc-marca{display:flex;align-items:center;gap:18px;}
+  #pantalla-carga .pc-disco{width:84px;height:84px;color:var(--accent);animation:pc-girar 2.4s linear infinite;}
+  #pantalla-carga .pc-titulo{
+    font-family:'Space Grotesk','Inter',system-ui,sans-serif;font-weight:700;font-size:54px;
+    color:var(--accent);letter-spacing:-0.02em;line-height:1;white-space:nowrap;
+  }
+  #pantalla-carga .pc-titulo .l-mi{color:var(--text);font-weight:500;margin-right:.18em;}
+  #pantalla-carga .pc-texto{color:var(--muted);font-size:15px;letter-spacing:.04em;}
+  @keyframes pc-girar{to{transform:rotate(360deg);}}
+  @media (max-width:700px){
+    #pantalla-carga .pc-disco{width:52px;height:52px;}
+    #pantalla-carga .pc-titulo{font-size:34px;}
+  }
+  @media (prefers-reduced-motion:reduce){ #pantalla-carga .pc-disco{animation:none;} }
 </style>
 </head>
 <body>
+
+<div id="pantalla-carga">
+  <div class="pc-marca">
+    <svg class="pc-disco" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="24" cy="24" r="22" fill="#0e0f13" stroke="currentColor" stroke-width="2.4"/>
+      <circle cx="24" cy="24" r="17" fill="none" stroke="currentColor" stroke-width="1" opacity=".35"/>
+      <circle cx="24" cy="24" r="13" fill="none" stroke="currentColor" stroke-width="1" opacity=".35"/>
+      <path d="M9 17 A16 16 0 0 1 20 8.5" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" opacity=".35"/>
+      <path d="M39 31 A16 16 0 0 1 28 39.5" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" opacity=".2"/>
+      <circle cx="24" cy="24" r="7.5" fill="currentColor"/>
+      <circle cx="24" cy="24" r="2" fill="#0e0f13"/>
+    </svg>
+    <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
+  </div>
+  <div class="pc-texto" id="pc-texto">Cargando…</div>
+</div>
 
 <header>
   <div class="marca">
@@ -1503,6 +1545,13 @@ function normalizarTextos(filas, campos){
   }));
 }
 
+function ocultarPantallaCarga(){
+  const pc = $("#pantalla-carga");
+  if(!pc || pc.classList.contains("oculta")) return;
+  pc.classList.add("oculta");
+  setTimeout(()=>{ pc.style.display = "none"; }, 450);
+}
+
 async function cargarDatos(){
   try{
     const res = await fetch(API_URL + "?sesion=" + encodeURIComponent(sesionActual));
@@ -1523,6 +1572,8 @@ async function cargarDatos(){
   }catch(err){
     $("#estado-carga").textContent = "No se pudo conectar con la hoja de datos.";
     console.error(err);
+  }finally{
+    ocultarPantallaCarga();
   }
 }
 
@@ -3557,7 +3608,7 @@ function pintarEstadisticas(lista){
   const txt = $("#buscador").value.trim();
   if(txt) partes.push(`búsqueda: <b>${escapeHTML(txt)}</b>`);
   const filtroHTML = partes.length ? partes.join(" · ") : "Toda la colección";
-  const cab = `<div class="st-cab"><h2>Estadísticas</h2><span class="st-filtro">${filtroHTML}</span></div>`;
+  const cab = `<div class="st-cab"><h2>Estadísticas</h2><span class="st-filtro">${filtroHTML}</span><button type="button" class="st-salir" id="btn-st-salir" title="Salir de estadísticas y volver a la colección">✕ Salir</button></div>`;
 
   if(!lista.length){
     cont.innerHTML = cab + '<div class="st-vacio">No hay álbumes con este filtro.</div>';
@@ -3682,6 +3733,7 @@ function pintarEstadisticas(lista){
   });
 }
 $("#btn-stats").addEventListener("click", ()=> alternarEstadisticas());
+$("#stats-wrap").addEventListener("click", e=>{ if(e.target.closest("#btn-st-salir")) alternarEstadisticas(false); });
 
 /* ---------- Comprobar álbumes con Discogs ---------- */
 // Compara, para los álbumes que se ven ahora, las canciones de tu hoja con las de Discogs
@@ -4170,7 +4222,7 @@ if(consultaMovil){
 }
 aplicarModoVisual(false);
 
-if(sesionActual) cargarDatos();
+if(sesionActual) cargarDatos(); else ocultarPantallaCarga();
 </script>
 </body>
 </html>
