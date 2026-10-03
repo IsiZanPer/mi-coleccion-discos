@@ -1290,7 +1290,7 @@
       <div id="canciones-wrap"></div>
       <button class="btn-ficha" id="btn-ficha">Ver ficha completa</button>
       <button class="btn-ficha" id="btn-ficha-pdf">Ver ficha en PDF ↗</button>
-      <button class="btn-ficha" id="btn-ir-disco" title="Mostrar la imagen del disco en tu PC">💿 Ir A Disco</button>
+      <button class="btn-ficha" id="btn-ir-disco" title="Abrir la imagen del disco en tu PC (la monta Daemon Tools)">💿 Ir A Disco</button>
 
       <div class="det-subtitulo">Detalles particulares</div>
       <div class="det-particulares" id="det-particulares"></div>
@@ -2578,19 +2578,20 @@ function limpiarRutaPC(v){ return String(v||"").trim().replace(/^["']+|["']+$/g,
 async function irADisco(ruta){
   ruta = limpiarRutaPC(ruta);
   if(!ruta) return;
-  // Una página web no puede abrir archivos del PC por sí sola: se lo pide al programa local (lector_cd.py).
+  // Una página web no puede abrir archivos del PC por sí sola: se lo pide al programa local (lector_cd.py),
+  // que abre la imagen con el programa que Windows tenga asociado (Daemon Tools para .mdx) y la monta.
+  let motivo = "";
   try{
     const r = await pedirAlLector("/abrir?ruta=" + encodeURIComponent(ruta), 8000);
-    if(r && r.ok){ avisoSync("Abierto en el Explorador de archivos.", 3000); return; }
-    if(r && r.error){ avisoSync("No se pudo abrir: " + r.error, 6000); return; }
-  }catch(e){ /* el programa local no está en marcha o aún no sabe abrir archivos */ }
-  // Alternativa: copiar la ruta para pegarla en el Explorador.
-  try{
-    await navigator.clipboard.writeText(ruta);
-    avisoSync("Ruta copiada al portapapeles (pégala en el Explorador): " + ruta, 7000);
+    if(r && r.ok){ avisoSync("Abriendo el disco con Daemon Tools…", 4000); return; }
+    motivo = (r && r.error === "No existe.") ? "El lector es una versión antigua: ciérralo y vuelve a abrirlo con iniciar_lector.bat." : ((r && r.error) || "");
   }catch(e){
-    avisoSync("Ruta del disco: " + ruta, 9000);
+    motivo = "El lector no está en marcha (abre iniciar_lector.bat).";
   }
+  // Alternativa: copiar la ruta para pegarla en el Explorador.
+  let copiada = false;
+  try{ await navigator.clipboard.writeText(ruta); copiada = true; }catch(e){}
+  avisoSync("No se pudo abrir el disco. " + motivo + (copiada ? " Ruta copiada al portapapeles." : " Ruta: " + ruta), 9000);
 }
 $("#btn-ir-disco").addEventListener("click", ()=>{ if(albumSeleccionado) irADisco(albumSeleccionado["Imagen MDX"]); });
 
