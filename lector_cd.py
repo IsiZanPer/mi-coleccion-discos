@@ -11,7 +11,8 @@ pistas, sello y código de barras.
 - Solo escucha en 127.0.0.1 (tu propio PC) y solo responde a tu página.
 - No modifica ni escribe nada: lee la TOC del disco y, cuando se lo pides desde la página
   ("Ir A Disco"), abre un archivo de imagen de disco (.mdx, .iso…) con el programa que Windows
-  tenga asociado (p. ej. Daemon Tools, que lo monta).
+  tenga asociado (p. ej. Daemon Tools, que lo monta). También puede mostrar una ventana para
+  elegir un archivo de tu disco duro ("Examinar…") y expulsar/desmontar una unidad ("Desmontar").
 
 Uso: ejecutar iniciar_lector.bat (o "py lector_cd.py") y dejar la ventana abierta.
 """
@@ -21,13 +22,16 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
+import threading
+import time
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-VERSION = "1.1"
+VERSION = "2.1"
 PUERTO = 8765
 # Páginas autorizadas a hablar con este programa. Si algún día cambias de dirección, añádela aquí.
 ORIGENES_PERMITIDOS = {
@@ -86,6 +90,16 @@ def leer_toc_bruta(letra):
         k.CloseHandle(h)
 
 
+def etiqueta_volumen(letra):
+    """Nombre del volumen de la unidad (en un CD suele ser el título del disco). Vacío si no se puede leer."""
+    try:
+        buf = ctypes.create_unicode_buffer(261)
+        ok = ctypes.windll.kernel32.GetVolumeInformationW(letra + "\\", buf, 261, None, None, None, None, 0)
+        return buf.value if ok else ""
+    except Exception:
+        return ""
+
+
 def listar_unidades():
     """Unidades de CD/DVD (físicas o virtuales) y si tienen disco legible."""
     k = _kernel32()
@@ -102,7 +116,7 @@ def listar_unidades():
             con_disco = True
         except OSError:
             con_disco = False
-        unidades.append({"letra": letra, "conDisco": con_disco})
+        unidades.append({"letra": letra, "conDisco": con_disco, "etiqueta": etiqueta_volumen(letra) if con_disco else ""})
     return unidades
 
 
@@ -278,6 +292,110 @@ def abrir_imagen(ruta):
 
 
 # ----------------------------------------------------------------------------------------------
+# 3c) Examinar (elegir archivo) y desmontar (expulsar unidad)
+# ----------------------------------------------------------------------------------------------
+_candado_dialogo = threading.Lock()
+
+
+def elegir_archivo(inicio=""):
+    """Muestra la ventana normal de Windows para elegir un archivo y devuelve su ruta completa ('' si se cancela)."""
+    try:
+        import tkinter
+        from tkinter import filedialog
+    except ImportError:
+        raise RuntimeError("Este Python no incluye tkinter, necesario para la ventana de selección.")
+    if not _candado_dialogo.acquire(False):
+        raise RuntimeError("Ya hay una ventana de selección abierta (puede estar detrás del navegador).")
+    try:
+        carpeta = None
+        inicio = (inicio or "").strip().strip('"')
+        if inicio:
+            base = inicio if os.path.isdir(inicio) else os.path.dirname(inicio)
+            if base and os.path.isdir(base):
+                carpeta = base
+        raiz = tkinter.Tk()
+        raiz.withdraw()
+        try:
+            raiz.attributes("-topmost", True)
+        except Exception:
+            pass
+        try:
+            ruta = filedialog.askopenfilename(
+                parent=raiz, title="Elige la imagen del disco", initialdir=carpeta,
+                filetypes=[("Imágenes de disco", " ".join("*" + e for e in sorted(EXTENSIONES_IMAGEN))),
+                           ("Todos los archivos", "*.*")])
+        finally:
+            raiz.destroy()
+    finally:
+        _candado_dialogo.release()
+    return os.path.normpath(ruta) if ruta else ""
+
+
+IOCTL_STORAGE_MEDIA_REMOVAL = 0x002D4804
+IOCTL_STORAGE_EJECT_MEDIA = 0x002D4808
+FSCTL_LOCK_VOLUME = 0x00090018
+FSCTL_DISMOUNT_VOLUME = 0x00090020
+
+
+def _con_disco(letra):
+    try:
+        leer_toc_bruta(letra)
+        return True
+    except OSError:
+        return False
+
+
+def _esperar_sin_disco(letra, segundos=3.0):
+    fin = time.time() + segundos
+    while time.time() < fin:
+        if not _con_disco(letra):
+            return True
+        time.sleep(0.25)
+    return not _con_disco(letra)
+
+
+def _expulsar_ioctl(letra):
+    k = _kernel32()
+    h = k.CreateFileW("\\\\.\\" + letra, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, None, OPEN_EXISTING, 0, None)
+    if h is None or h == INVALID_HANDLE_VALUE:
+        return
+    try:
+        dev = ctypes.c_uint32(0)
+        k.DeviceIoControl(h, FSCTL_LOCK_VOLUME, None, 0, None, 0, ctypes.byref(dev), None)
+        k.DeviceIoControl(h, FSCTL_DISMOUNT_VOLUME, None, 0, None, 0, ctypes.byref(dev), None)
+        permitir = ctypes.c_ubyte(0)          # PREVENT_MEDIA_REMOVAL = FALSE
+        k.DeviceIoControl(h, IOCTL_STORAGE_MEDIA_REMOVAL, ctypes.byref(permitir), 1, None, 0, ctypes.byref(dev), None)
+        k.DeviceIoControl(h, IOCTL_STORAGE_EJECT_MEDIA, None, 0, None, 0, ctypes.byref(dev), None)
+    finally:
+        k.CloseHandle(h)
+
+
+def _expulsar_explorador(letra):
+    """Equivale a hacer clic derecho > Expulsar en el Explorador de archivos."""
+    orden = "(New-Object -comObject Shell.Application).Namespace(17).ParseName('%s\\').InvokeVerb('Eject')" % letra
+    subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", orden],
+                   timeout=20, creationflags=0x08000000, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def desmontar_unidad(letra):
+    """Expulsa la unidad: en una unidad virtual de Daemon Tools eso desmonta la imagen."""
+    if letra not in [u["letra"] for u in listar_unidades()]:
+        raise ValueError("%s no es una unidad de CD." % letra)
+    if not _con_disco(letra):
+        raise ValueError("La unidad %s no tiene ningún disco montado." % letra)
+    _expulsar_ioctl(letra)
+    if _esperar_sin_disco(letra):
+        return True
+    try:
+        _expulsar_explorador(letra)
+    except Exception:
+        pass
+    if _esperar_sin_disco(letra, 4.0):
+        return True
+    raise RuntimeError("No se pudo desmontar %s (puede estar en uso). Desmóntalo desde Daemon Tools." % letra)
+
+
+# ----------------------------------------------------------------------------------------------
 # 4) Servidor local
 # ----------------------------------------------------------------------------------------------
 class Manejador(BaseHTTPRequestHandler):
@@ -323,10 +441,21 @@ class Manejador(BaseHTTPRequestHandler):
         try:
             if ruta.path in ("/", "/estado"):
                 return self._json(200, {"ok": True, "version": VERSION, "unidades": listar_unidades()})
-            if ruta.path == "/abrir":
+            if ruta.path in ("/abrir", "/elegir", "/desmontar"):
                 # Protección extra: una página ajena no puede lanzarlo "a ciegas" (p. ej. con una imagen oculta).
                 if self.headers.get("Origin") is None and self.headers.get("Sec-Fetch-Site") not in (None, "none", "same-origin"):
                     return self._json(403, {"ok": False, "error": "Origen no autorizado."})
+            if ruta.path == "/elegir":
+                elegida = elegir_archivo((params.get("inicio") or [""])[0])
+                return self._json(200, {"ok": True, "ruta": elegida})
+            if ruta.path == "/desmontar":
+                letra = (params.get("unidad") or [""])[0].upper()
+                if not re.match(r"^[A-Z]:$", letra):
+                    return self._json(400, {"ok": False, "error": "Unidad no válida."})
+                desmontar_unidad(letra)
+                print("  Desmontado: %s" % letra)
+                return self._json(200, {"ok": True, "unidad": letra})
+            if ruta.path == "/abrir":
                 abierto = abrir_imagen((params.get("ruta") or [""])[0])
                 print("  Abierto: %s" % abierto)
                 return self._json(200, {"ok": True, "ruta": abierto})

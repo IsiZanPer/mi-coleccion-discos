@@ -672,7 +672,22 @@
   #btn-ir-disco{margin-left:8px;}
   .btn-ir-disco-sec{background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 9px;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit;margin-left:8px;}
   .btn-ir-disco-sec:hover{border-color:var(--accent);color:var(--accent);}
-  body.modo-movil #btn-ir-disco, body.modo-movil .btn-ir-disco-sec{display:none !important;}
+  #btn-desmontar{margin-left:6px;}
+  .btn-desmontar-sec{background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 9px;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit;margin-left:6px;}
+  .btn-desmontar-sec:hover{border-color:var(--accent);color:var(--accent);}
+  body.modo-movil #btn-ir-disco, body.modo-movil .btn-ir-disco-sec,
+  body.modo-movil #btn-desmontar, body.modo-movil .btn-desmontar-sec,
+  body.modo-movil .btn-examinar-mdx{display:none !important;}
+  .campo-ruta{display:flex;gap:6px;align-items:stretch;}
+  .campo-ruta input{flex:1;min-width:0;}
+  .btn-examinar-mdx{background:var(--panel-hi);border:1px solid var(--border);color:var(--text);padding:0 12px;border-radius:6px;cursor:pointer;font-size:13px;font-family:inherit;white-space:nowrap;}
+  .btn-examinar-mdx:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+  .btn-examinar-mdx:disabled{opacity:.6;cursor:wait;}
+  .pop-unidades-fondo{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;}
+  .pop-unidades{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px 20px;min-width:280px;max-width:90vw;display:flex;flex-direction:column;gap:8px;}
+  .pop-unidades h3{margin:0 0 6px;font-size:15px;color:var(--text);font-weight:600;}
+  .pop-unidades button{background:var(--panel-hi);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;cursor:pointer;font-size:14px;font-family:inherit;text-align:left;}
+  .pop-unidades button:hover{border-color:var(--accent);color:var(--accent);}
 
   /* --- Modal ficha (comentario en modo lectura) --- */
   #modal-fondo, #modal-fondo-letra{
@@ -1171,7 +1186,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 1.0</div>
+  <div class="pc-version">Versión 2.1</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1209,6 +1224,7 @@
       <button class="herr-item" id="btn-stats" type="button" role="menuitem" title="Ver estadísticas de la colección (respeta el filtro de la izquierda)"><span class="ico">📊</span> Estadísticas</button>
       <button class="herr-item" id="btn-limpiar" type="button" role="menuitem" title="Buscar carátulas de GitHub que ningún álbum usa y borrarlas"><span class="ico">🧹</span> Carátulas</button>
       <button class="herr-item" id="btn-verificar" type="button" role="menuitem" title="Comparar las canciones de tus álbumes con las de Discogs y marcar los que no coinciden"><span class="ico">🔎</span> Comprobar con Discogs</button>
+      <button class="herr-item" id="btn-desmontar-herr" type="button" role="menuitem" title="Desmontar la imagen que esté montada en Daemon Tools"><span class="ico">⏏</span> Desmontar disco</button>
       <button class="herr-item" id="btn-pantalla-completa" type="button" role="menuitem" title="Poner la página a pantalla completa (Esc para salir)"><span class="ico">⛶</span> <span id="btn-pc-txt">Pantalla completa</span></button>
       <button class="herr-item" id="btn-tema" type="button" role="menuitem" title="Cambiar entre tema oscuro y claro"><span class="ico">☀</span> <span id="btn-tema-txt">Tema claro</span></button>
     </div>
@@ -1291,6 +1307,7 @@
       <button class="btn-ficha" id="btn-ficha">Ver ficha completa</button>
       <button class="btn-ficha" id="btn-ficha-pdf">Ver ficha en PDF ↗</button>
       <button class="btn-ficha" id="btn-ir-disco" title="Abrir la imagen del disco en tu PC (la monta Daemon Tools)">💿 Ir A Disco</button>
+      <button class="btn-ficha" id="btn-desmontar" title="Desmontar la imagen montada en Daemon Tools">⏏ Desmontar</button>
 
       <div class="det-subtitulo">Detalles particulares</div>
       <div class="det-particulares" id="det-particulares"></div>
@@ -2060,10 +2077,12 @@ function abrirDetalle(album){
       cabecera.innerHTML = `
         <span>Disco ${escapeHTML(String(d.numero))}</span>
         <button type="button" class="btn-editar-disco">✎ Editar este disco</button>
-        ${filaReal && filaReal["Imagen MDX"] ? '<button type="button" class="btn-ir-disco-sec">💿 Ir A Disco</button>' : ''}
+        ${filaReal && filaReal["Imagen MDX"] ? '<button type="button" class="btn-ir-disco-sec">💿 Ir A Disco</button><button type="button" class="btn-desmontar-sec">⏏ Desmontar</button>' : ''}
       `;
       const bIr = cabecera.querySelector(".btn-ir-disco-sec");
       if(bIr) bIr.addEventListener("click", ()=> irADisco(filaReal["Imagen MDX"]));
+      const bDes = cabecera.querySelector(".btn-desmontar-sec");
+      if(bDes) bDes.addEventListener("click", desmontarDisco);
       cabecera.querySelector(".btn-editar-disco").addEventListener("click", ()=>{
         const fila = ALBUMES.find(a=> a.ALBUM_ID === d.ALBUM_ID);
         if(fila){
@@ -2092,6 +2111,7 @@ function abrirDetalle(album){
   $("#btn-ficha-pdf").style.display = album["Ficha PDF"] ? "inline-block" : "none";
   // "Ir A Disco": en álbumes de un solo disco va aquí; en multi-disco hay uno por cada disco (en su cabecera)
   $("#btn-ir-disco").style.display = (!album._esGrupo && album["Imagen MDX"]) ? "inline-block" : "none";
+  $("#btn-desmontar").style.display = (!album._esGrupo && album["Imagen MDX"]) ? "inline-block" : "none";
 
   $("#detalle").classList.add("abierto");
 }
@@ -2213,7 +2233,7 @@ async function entrarModoEdicion(){
     </label>
     <div class="grupo-edicion">
       ${campo("ed-ficha-pdf","URL de la ficha en PDF (Google Drive)",a["Ficha PDF"])}
-      ${campo("ed-imagen-mdx","Imagen MDX: ruta del archivo en tu PC (p. ej. D:\\Discos\\Yes - 90125.mdx)",a["Imagen MDX"])}
+      ${campoImagenMDX("ed-imagen-mdx","Imagen MDX: ruta del archivo en tu PC (p. ej. D:\\Discos\\Yes - 90125.mdx)",a["Imagen MDX"])}
     </div>
     ${campoAncho("ed-comentario","Comentario / ficha completa (Markdown: **negrita**, *cursiva*, __subrayado__)",a["Comentario"],6)}
     <div class="det-subtitulo">Canciones</div>
@@ -2593,6 +2613,81 @@ async function irADisco(ruta){
   try{ await navigator.clipboard.writeText(ruta); copiada = true; }catch(e){}
   avisoSync("No se pudo abrir el disco. " + motivo + (copiada ? " Ruta copiada al portapapeles." : " Ruta: " + ruta), 9000);
 }
+/* ---------- Examinar: elegir la imagen en el disco duro (ventana de Windows abierta por lector_cd.py) ---------- */
+function campoImagenMDX(id, label, valor){
+  return `
+    <label class="campo-edicion">
+      <span>${label}</span>
+      <div class="campo-ruta">
+        <input type="text" id="${id}" value="${escapeAttr(valor==null?"":valor)}">
+        <button type="button" class="btn-examinar-mdx" data-destino="${id}" title="Buscar el archivo en tu PC">📁 Examinar…</button>
+      </div>
+    </label>`;
+}
+// Mensaje común cuando el lector local no responde o es una versión sin la función pedida
+function motivoLector(r, e){
+  if(e) return "El lector no está en marcha (abre iniciar_lector.bat).";
+  if(r && r.error === "No existe.") return "El lector es una versión antigua: ciérralo y vuelve a abrirlo con iniciar_lector.bat.";
+  return (r && r.error) || "Error desconocido.";
+}
+async function examinarImagen(btn){
+  const inp = document.getElementById(btn.dataset.destino);
+  if(!inp) return;
+  const textoOrig = btn.textContent;
+  btn.disabled = true; btn.textContent = "Elige en la ventana…";
+  try{
+    const r = await pedirAlLector("/elegir?inicio=" + encodeURIComponent(limpiarRutaPC(inp.value)), 300000);
+    if(r && r.ok){
+      if(r.ruta){ inp.value = r.ruta; inp.dispatchEvent(new Event("input", {bubbles:true})); }
+    }else{
+      avisoSync("No se pudo abrir el selector. " + motivoLector(r), 8000);
+    }
+  }catch(e){
+    avisoSync("No se pudo abrir el selector. " + motivoLector(null, e), 8000);
+  }finally{
+    btn.disabled = false; btn.textContent = textoOrig;
+  }
+}
+document.addEventListener("click", ev=>{
+  const b = ev.target.closest && ev.target.closest(".btn-examinar-mdx");
+  if(b){ ev.preventDefault(); examinarImagen(b); }
+});
+
+/* ---------- Desmontar: expulsar la unidad virtual de Daemon Tools ---------- */
+function elegirUnidadMontada(unidades){
+  return new Promise(resolver=>{
+    const f = document.createElement("div");
+    f.className = "pop-unidades-fondo";
+    f.innerHTML = `<div class="pop-unidades"><h3>¿Qué disco quieres desmontar?</h3>` +
+      unidades.map(u=>`<button type="button" data-l="${escapeAttr(u.letra)}">⏏ ${escapeHTML(u.letra)}${u.etiqueta ? " — " + escapeHTML(u.etiqueta) : ""}</button>`).join("") +
+      `<button type="button" data-l="">Cancelar</button></div>`;
+    f.addEventListener("click", e=>{
+      const b = e.target.closest("button");
+      if(b || e.target === f){ f.remove(); resolver(b ? b.dataset.l : ""); }
+    });
+    document.body.appendChild(f);
+  });
+}
+async function desmontarDisco(){
+  let est;
+  try{ est = await pedirAlLector("/estado", 10000); }
+  catch(e){ avisoSync("No se pudo desmontar. " + motivoLector(null, e), 8000); return; }
+  if(!est || !est.ok){ avisoSync("No se pudo desmontar. " + motivoLector(est), 8000); return; }
+  const montadas = (est.unidades || []).filter(u=>u.conDisco);
+  if(!montadas.length){ avisoSync("No hay ningún disco montado.", 4000); return; }
+  const letra = montadas.length === 1 ? montadas[0].letra : await elegirUnidadMontada(montadas);
+  if(!letra) return;
+  try{
+    const r = await pedirAlLector("/desmontar?unidad=" + encodeURIComponent(letra), 25000);
+    if(r && r.ok) avisoSync("Disco desmontado (" + letra + ").", 4000);
+    else avisoSync("No se pudo desmontar. " + motivoLector(r), 8000);
+  }catch(e){
+    avisoSync("No se pudo desmontar. " + motivoLector(null, e), 8000);
+  }
+}
+$("#btn-desmontar").addEventListener("click", desmontarDisco);
+$("#btn-desmontar-herr").addEventListener("click", desmontarDisco);
+
 $("#btn-ir-disco").addEventListener("click", ()=>{ if(albumSeleccionado) irADisco(albumSeleccionado["Imagen MDX"]); });
 
 function abrirFichaPDF(){
@@ -3140,7 +3235,7 @@ function mostrarConfirmacion(datos){
       ${campo("nv-barcode","Código de barras",a["Código de barras"])}
       ${campo("nv-portada","URL de la carátula (si es de Discogs, se copiará a tu repositorio)",a["PORTADA"])}
       ${campo("nv-ficha-pdf","URL de la ficha en PDF (Google Drive)",a["Ficha PDF"])}
-      ${campo("nv-imagen-mdx","Imagen MDX: ruta del archivo en tu PC (opcional)",a["Imagen MDX"])}
+      ${campoImagenMDX("nv-imagen-mdx","Imagen MDX: ruta del archivo en tu PC (opcional)",a["Imagen MDX"])}
       ${campo("nv-rating","Rating (0-10)",a["Rating"],"number")}
       ${campo("nv-precio","Precio (€)",a["Precio"],"number")}
       ${campo("nv-fecha-compra","Fecha de compra",a["Fecha de compra"])}
