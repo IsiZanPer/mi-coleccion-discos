@@ -669,6 +669,10 @@
   }
   .btn-ficha:hover{background:var(--accent);color:#14151a;}
   #btn-ficha-pdf{margin-left:8px;}
+  #btn-ir-disco{margin-left:8px;}
+  .btn-ir-disco-sec{background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 9px;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit;margin-left:8px;}
+  .btn-ir-disco-sec:hover{border-color:var(--accent);color:var(--accent);}
+  body.modo-movil #btn-ir-disco, body.modo-movil .btn-ir-disco-sec{display:none !important;}
 
   /* --- Modal ficha (comentario en modo lectura) --- */
   #modal-fondo, #modal-fondo-letra{
@@ -1286,6 +1290,7 @@
       <div id="canciones-wrap"></div>
       <button class="btn-ficha" id="btn-ficha">Ver ficha completa</button>
       <button class="btn-ficha" id="btn-ficha-pdf">Ver ficha en PDF ↗</button>
+      <button class="btn-ficha" id="btn-ir-disco" title="Mostrar la imagen del disco en tu PC">💿 Ir A Disco</button>
 
       <div class="det-subtitulo">Detalles particulares</div>
       <div class="det-particulares" id="det-particulares"></div>
@@ -1601,7 +1606,7 @@ function encontrarEntradaVista(albumId){
 // Google Sheets devuelve como NÚMERO las celdas que parecen numéricas (p. ej. un álbum
 // llamado "1989" o "21"). Los campos de texto se pasan a string para que ordenar,
 // buscar y agrupar no fallen.
-const CAMPOS_TEXTO_ALBUM = ["ALBUM","ARTISTA ALBUM","GENERO","Etiqueta","Tienda","Número de Catalogo","Código de barras","Comentario","Ficha PDF","PORTADA"];
+const CAMPOS_TEXTO_ALBUM = ["ALBUM","ARTISTA ALBUM","GENERO","Etiqueta","Tienda","Número de Catalogo","Código de barras","Comentario","Ficha PDF","PORTADA","Imagen MDX"];
 const CAMPOS_TEXTO_CANCION = ["TITULO","ARTISTA","Letras"];
 function normalizarTextos(filas, campos){
   (filas || []).forEach(f=> campos.forEach(c=>{
@@ -2055,7 +2060,10 @@ function abrirDetalle(album){
       cabecera.innerHTML = `
         <span>Disco ${escapeHTML(String(d.numero))}</span>
         <button type="button" class="btn-editar-disco">✎ Editar este disco</button>
+        ${filaReal && filaReal["Imagen MDX"] ? '<button type="button" class="btn-ir-disco-sec">💿 Ir A Disco</button>' : ''}
       `;
+      const bIr = cabecera.querySelector(".btn-ir-disco-sec");
+      if(bIr) bIr.addEventListener("click", ()=> irADisco(filaReal["Imagen MDX"]));
       cabecera.querySelector(".btn-editar-disco").addEventListener("click", ()=>{
         const fila = ALBUMES.find(a=> a.ALBUM_ID === d.ALBUM_ID);
         if(fila){
@@ -2082,6 +2090,8 @@ function abrirDetalle(album){
 
   $("#btn-ficha").style.display = album["Comentario"] ? "inline-block" : "none";
   $("#btn-ficha-pdf").style.display = album["Ficha PDF"] ? "inline-block" : "none";
+  // "Ir A Disco": en álbumes de un solo disco va aquí; en multi-disco hay uno por cada disco (en su cabecera)
+  $("#btn-ir-disco").style.display = (!album._esGrupo && album["Imagen MDX"]) ? "inline-block" : "none";
 
   $("#detalle").classList.add("abierto");
 }
@@ -2203,6 +2213,7 @@ async function entrarModoEdicion(){
     </label>
     <div class="grupo-edicion">
       ${campo("ed-ficha-pdf","URL de la ficha en PDF (Google Drive)",a["Ficha PDF"])}
+      ${campo("ed-imagen-mdx","Imagen MDX: ruta del archivo en tu PC (p. ej. D:\\Discos\\Yes - 90125.mdx)",a["Imagen MDX"])}
     </div>
     ${campoAncho("ed-comentario","Comentario / ficha completa (Markdown: **negrita**, *cursiva*, __subrayado__)",a["Comentario"],6)}
     <div class="det-subtitulo">Canciones</div>
@@ -2461,6 +2472,7 @@ async function guardarCambios(){
     "Rating": $("#ed-rating").value.trim(),
     "PORTADA": $("#ed-portada").value.trim(),
     "Ficha PDF": $("#ed-ficha-pdf").value.trim(),
+    "Imagen MDX": limpiarRutaPC($("#ed-imagen-mdx").value),
     "Fecha de compra": $("#ed-fecha-compra").value.trim(),
     "Precio": $("#ed-precio").value.trim(),
     "Tienda": $("#ed-tienda").value.trim(),
@@ -2559,6 +2571,28 @@ function abrirFicha(){
   $("#modal-cuerpo").innerHTML = markdownASimpleHTML(albumSeleccionado["Comentario"] || "");
   $("#modal-fondo").classList.add("abierto");
 }
+
+/* ---------- Ir A Disco: mostrar en el PC el archivo de imagen (.mdx) del disco ---------- */
+// Quita las comillas que Windows añade con "Copiar como ruta de acceso" y los espacios sobrantes.
+function limpiarRutaPC(v){ return String(v||"").trim().replace(/^["']+|["']+$/g, "").trim(); }
+async function irADisco(ruta){
+  ruta = limpiarRutaPC(ruta);
+  if(!ruta) return;
+  // Una página web no puede abrir archivos del PC por sí sola: se lo pide al programa local (lector_cd.py).
+  try{
+    const r = await pedirAlLector("/abrir?ruta=" + encodeURIComponent(ruta), 8000);
+    if(r && r.ok){ avisoSync("Abierto en el Explorador de archivos.", 3000); return; }
+    if(r && r.error){ avisoSync("No se pudo abrir: " + r.error, 6000); return; }
+  }catch(e){ /* el programa local no está en marcha o aún no sabe abrir archivos */ }
+  // Alternativa: copiar la ruta para pegarla en el Explorador.
+  try{
+    await navigator.clipboard.writeText(ruta);
+    avisoSync("Ruta copiada al portapapeles (pégala en el Explorador): " + ruta, 7000);
+  }catch(e){
+    avisoSync("Ruta del disco: " + ruta, 9000);
+  }
+}
+$("#btn-ir-disco").addEventListener("click", ()=>{ if(albumSeleccionado) irADisco(albumSeleccionado["Imagen MDX"]); });
 
 function abrirFichaPDF(){
   if(!albumSeleccionado) return;
@@ -3105,6 +3139,7 @@ function mostrarConfirmacion(datos){
       ${campo("nv-barcode","Código de barras",a["Código de barras"])}
       ${campo("nv-portada","URL de la carátula (si es de Discogs, se copiará a tu repositorio)",a["PORTADA"])}
       ${campo("nv-ficha-pdf","URL de la ficha en PDF (Google Drive)",a["Ficha PDF"])}
+      ${campo("nv-imagen-mdx","Imagen MDX: ruta del archivo en tu PC (opcional)",a["Imagen MDX"])}
       ${campo("nv-rating","Rating (0-10)",a["Rating"],"number")}
       ${campo("nv-precio","Precio (€)",a["Precio"],"number")}
       ${campo("nv-fecha-compra","Fecha de compra",a["Fecha de compra"])}
@@ -3230,6 +3265,7 @@ async function crearAlbumNuevo(){
     "Código de barras": $("#nv-barcode").value.trim(),
     "PORTADA": $("#nv-portada").value.trim(),
     "Ficha PDF": $("#nv-ficha-pdf").value.trim(),
+    "Imagen MDX": limpiarRutaPC($("#nv-imagen-mdx").value),
     "Rating": $("#nv-rating").value.trim(),
     "Precio": $("#nv-precio").value.trim(),
     "Fecha de compra": $("#nv-fecha-compra").value.trim(),
