@@ -12,7 +12,8 @@ pistas, sello y código de barras.
 - No modifica ni escribe nada: lee la TOC del disco y, cuando se lo pides desde la página
   ("Ir A Disco"), abre un archivo de imagen de disco (.mdx, .iso…) con el programa que Windows
   tenga asociado (p. ej. Daemon Tools, que lo monta). También puede mostrar una ventana para
-  elegir un archivo de tu disco duro ("Examinar…") y expulsar/desmontar una unidad ("Desmontar").
+  elegir un archivo de tu disco duro ("Examinar…"), expulsar/desmontar una unidad ("Desmontar")
+  y leer solo la TOC de un disco montado, sin internet, para compararla con un álbum ("Comprobar disco").
 
 Uso: ejecutar iniciar_lector.bat (o "py lector_cd.py") y dejar la ventana abierta.
 """
@@ -31,7 +32,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-VERSION = "2.1"
+VERSION = "2.3"
 PUERTO = 8765
 # Páginas autorizadas a hablar con este programa. Si algún día cambias de dirección, añádela aquí.
 ORIGENES_PERMITIDOS = {
@@ -253,6 +254,19 @@ def consultar_musicbrainz(discid, toc_txt, n_pistas):
     return candidatos[:MAX_CANDIDATOS]
 
 
+def leer_toc_simple(letra):
+    """Solo la TOC del disco (nº de pistas y duraciones), sin consultar MusicBrainz: rápido y sin internet."""
+    toc = parsear_toc(leer_toc_bruta(letra))
+    audio, leadout = preparar_disco(toc)
+    return {
+        "ok": True,
+        "unidad": letra,
+        "etiqueta": etiqueta_volumen(letra),
+        "discid": calcular_discid(audio, leadout),
+        "pistas": duraciones(audio, leadout),
+    }
+
+
 def leer_disco(letra):
     toc = parsear_toc(leer_toc_bruta(letra))
     audio, leadout = preparar_disco(toc)
@@ -459,6 +473,13 @@ class Manejador(BaseHTTPRequestHandler):
                 abierto = abrir_imagen((params.get("ruta") or [""])[0])
                 print("  Abierto: %s" % abierto)
                 return self._json(200, {"ok": True, "ruta": abierto})
+            if ruta.path == "/toc":
+                letra = (params.get("unidad") or [""])[0].upper()
+                if not re.match(r"^[A-Z]:$", letra):
+                    return self._json(400, {"ok": False, "error": "Unidad no válida."})
+                if letra not in [u["letra"] for u in listar_unidades()]:
+                    return self._json(400, {"ok": False, "error": "%s no es una unidad de CD." % letra})
+                return self._json(200, leer_toc_simple(letra))
             if ruta.path == "/leer":
                 letra = (params.get("unidad") or [""])[0].upper()
                 if not re.match(r"^[A-Z]:$", letra):

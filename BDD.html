@@ -670,12 +670,24 @@
   #btn-ir-disco{margin-left:8px;}
   .btn-ir-disco-sec{background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 9px;border-radius:4px;cursor:pointer;font-size:calc(12px * var(--ft,1));font-family:inherit;margin-left:8px;}
   .btn-ir-disco-sec:hover{border-color:var(--accent);color:var(--accent);}
-  #btn-desmontar{margin-left:6px;}
+  #btn-desmontar,#btn-comprobar-disco{margin-left:6px;}
+  .btn-comprobar-sec{background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 9px;border-radius:4px;cursor:pointer;font-size:calc(12px * var(--ft,1));font-family:inherit;margin-left:8px;}
+  .btn-comprobar-sec:hover{border-color:var(--accent);color:var(--accent);}
+  .pop-resultado{max-width:min(520px,92vw);max-height:84vh;overflow-y:auto;}
+  .pop-resultado h3{font-family:inherit;}
+  .pop-resultado h3.ok{color:#4cc38a;} .pop-resultado h3.dudoso{color:#e0b341;} .pop-resultado h3.mal{color:#ef6b6b;}
+  .pop-resultado .pr-sub{margin:0;color:var(--muted);font-size:calc(12.5px * var(--ft,1));line-height:1.45;}
+  .pop-resultado table{border-collapse:collapse;width:100%;font-size:calc(13px * var(--ft,1));color:var(--text);}
+  .pop-resultado td,.pop-resultado th{padding:4px 8px;border-bottom:1px solid var(--border);text-align:left;font-weight:400;}
+  .pop-resultado td:not(:first-child),.pop-resultado th:not(:first-child){text-align:right;white-space:nowrap;}
+  .pop-resultado th{color:var(--muted);font-size:calc(11.5px * var(--ft,1));}
+  .pop-resultado ul{margin:0;padding-left:18px;font-size:calc(12.5px * var(--ft,1));color:var(--text);line-height:1.5;}
   .btn-desmontar-sec{background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 9px;border-radius:4px;cursor:pointer;font-size:calc(12px * var(--ft,1));font-family:inherit;margin-left:6px;}
   .btn-desmontar-sec:hover{border-color:var(--accent);color:var(--accent);}
   body.modo-movil #btn-ir-disco, body.modo-movil .btn-ir-disco-sec,
   body.modo-movil #btn-desmontar, body.modo-movil .btn-desmontar-sec,
-  body.modo-movil .btn-examinar-mdx{display:none !important;}
+  body.modo-movil .btn-examinar-mdx,
+  body.modo-movil #btn-comprobar-disco, body.modo-movil .btn-comprobar-sec{display:none !important;}
   .campo-ruta{display:flex;gap:6px;align-items:stretch;}
   .campo-ruta input{flex:1;min-width:0;}
   .btn-examinar-mdx{background:var(--panel-hi);border:1px solid var(--border);color:var(--text);padding:0 12px;border-radius:6px;cursor:pointer;font-size:calc(13px * var(--ft,1));font-family:inherit;white-space:nowrap;}
@@ -863,6 +875,9 @@
     background:var(--panel);border:1px solid var(--border);border-radius:6px;
     padding:24px;width:min(560px,100%);max-height:92vh;overflow-y:auto;
   }
+  #modal-masivo,#modal-limpieza,#modal-verif{position:relative;}
+  #modal-masivo > .cerrar-detalle,#modal-limpieza > .cerrar-detalle,#modal-verif > .cerrar-detalle{position:absolute;top:12px;right:16px;float:none;z-index:2;}
+  #modal-masivo h3,#modal-limpieza h3,#modal-verif h3{padding-right:28px;}
   #modal-masivo h3{margin:0 0 4px;font-size:calc(18px * var(--ft,1));}
   #modal-masivo .mm-sub{margin:0 0 16px;color:var(--muted);font-size:calc(12.5px * var(--ft,1));}
   .mm-fila{display:grid;grid-template-columns:170px 1fr;gap:8px 12px;align-items:center;margin-bottom:10px;}
@@ -1191,7 +1206,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.2</div>
+  <div class="pc-version">Versión 2.3</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1322,6 +1337,7 @@
       <button class="btn-ficha" id="btn-ficha-pdf">Ver ficha en PDF ↗</button>
       <button class="btn-ficha" id="btn-ir-disco" title="Abrir la imagen del disco en tu PC (la monta Daemon Tools)">💿 Ir A Disco</button>
       <button class="btn-ficha" id="btn-desmontar" title="Desmontar la imagen montada en Daemon Tools">⏏ Desmontar</button>
+      <button class="btn-ficha" id="btn-comprobar-disco" title="Comparar el disco montado con las pistas de este álbum">🔍 Comprobar disco</button>
 
       <div class="det-subtitulo">Detalles particulares</div>
       <div class="det-particulares" id="det-particulares"></div>
@@ -1416,6 +1432,7 @@
 
 <div id="modal-masivo-fondo">
   <div id="modal-masivo">
+    <span class="cerrar-detalle" id="cerrar-modal-masivo" title="Cerrar">✕</span>
     <h3 id="mm-titulo">Editar álbumes en bloque</h3>
     <p class="mm-sub">Marca solo los campos que quieras cambiar; los demás no se tocan.</p>
     <div class="mm-fila" data-campo="GENERO">
@@ -1455,6 +1472,7 @@
 </div>
 <div id="modal-limpieza-fondo">
   <div id="modal-limpieza">
+    <span class="cerrar-detalle" id="cerrar-modal-limpieza" title="Cerrar">✕</span>
     <h3>Carátulas sin usar en GitHub</h3>
     <p id="lc-estado"></p>
     <p id="lc-nota">Se compara la carpeta Covers/ con los álbumes cargados en esta página. Si has editado el Sheet a mano, ejecuta limpiarCacheAMano() y recarga antes.</p>
@@ -1468,6 +1486,7 @@
 </div>
 <div id="modal-verif-fondo">
   <div id="modal-verif">
+    <span class="cerrar-detalle" id="cerrar-modal-verif" title="Cerrar">✕</span>
     <h3>Comprobar álbumes con Discogs</h3>
     <p id="vd-info"></p>
     <div id="vd-opciones">
@@ -2101,10 +2120,12 @@ function abrirDetalle(album){
       cabecera.innerHTML = `
         <span>Disco ${escapeHTML(String(d.numero))}</span>
         <button type="button" class="btn-editar-disco">✎ Editar este disco</button>
+        <button type="button" class="btn-comprobar-sec">🔍 Comprobar disco</button>
         ${filaReal && filaReal["Imagen MDX"] ? '<button type="button" class="btn-ir-disco-sec">💿 Ir A Disco</button><button type="button" class="btn-desmontar-sec">⏏ Desmontar</button>' : ''}
       `;
       const bIr = cabecera.querySelector(".btn-ir-disco-sec");
       if(bIr) bIr.addEventListener("click", ()=> irADisco(filaReal["Imagen MDX"]));
+      cabecera.querySelector(".btn-comprobar-sec").addEventListener("click", ()=> comprobarDiscoMontado(canciones, "Disco " + d.numero + " de " + (album["ALBUM"] || "")));
       const bDes = cabecera.querySelector(".btn-desmontar-sec");
       if(bDes) bDes.addEventListener("click", desmontarDisco);
       cabecera.querySelector(".btn-editar-disco").addEventListener("click", ()=>{
@@ -2136,6 +2157,7 @@ function abrirDetalle(album){
   // "Ir A Disco": en álbumes de un solo disco va aquí; en multi-disco hay uno por cada disco (en su cabecera)
   $("#btn-ir-disco").style.display = (!album._esGrupo && album["Imagen MDX"]) ? "inline-block" : "none";
   $("#btn-desmontar").style.display = (!album._esGrupo && album["Imagen MDX"]) ? "inline-block" : "none";
+  $("#btn-comprobar-disco").style.display = album._esGrupo ? "none" : "inline-block";
 
   $("#detalle").classList.add("abierto");
 }
@@ -2687,7 +2709,7 @@ function elegirUnidadMontada(unidades){
       `<button type="button" data-l="">Cancelar</button></div>`;
     f.addEventListener("click", e=>{
       const b = e.target.closest("button");
-      if(b || e.target === f){ f.remove(); resolver(b ? b.dataset.l : ""); }
+      if(b){ f.remove(); resolver(b.dataset.l); }
     });
     document.body.appendChild(f);
   });
@@ -2709,6 +2731,87 @@ async function desmontarDisco(){
     avisoSync("No se pudo desmontar. " + motivoLector(null, e), 8000);
   }
 }
+/* ---------- Comprobar disco: compara el disco montado con las pistas del álbum (usa la TOC, sin internet) ---------- */
+const TOLERANCIA_SEG = 3;     // las duraciones de la TOC y las de Discogs pueden diferir un par de segundos
+function compararConTOC(canciones, pistasDisco){
+  const nA = canciones.length, nD = pistasDisco.length;
+  const dursA = canciones.map(c=> segundosDeDuracion(c["Duración"]));
+  const dursD = pistasDisco.map(p=> p.segundos || 0);
+  const totA = dursA.reduce((x,y)=>x+y, 0), totD = dursD.reduce((x,y)=>x+y, 0);
+  let comparables = 0, dentro = 0; const difs = [];
+  for(let i = 0; i < Math.min(nA, nD); i++){
+    if(!dursA[i]) continue;
+    comparables++;
+    if(Math.abs(dursA[i] - dursD[i]) <= TOLERANCIA_SEG) dentro++;
+    else difs.push({ n: i + 1, titulo: canciones[i]["TITULO"] || "", a: dursA[i], d: dursD[i] });
+  }
+  let nivel, titulo;
+  if(nA !== nD){
+    nivel = "mal"; titulo = "✗ No coincide: distinto número de pistas";
+  }else if(!comparables){
+    nivel = "dudoso"; titulo = "? Mismo número de pistas (el álbum no tiene duraciones para comparar)";
+  }else{
+    const r = dentro / comparables;
+    if(r >= 0.9){ nivel = "ok"; titulo = "✓ El disco montado coincide con el álbum"; }
+    else if(r >= 0.5){ nivel = "dudoso"; titulo = "? Parecido, pero varias duraciones no cuadran"; }
+    else { nivel = "mal"; titulo = "✗ No coincide: las duraciones son distintas"; }
+  }
+  return { nivel, titulo, nA, nD, totA, totD, comparables, dentro, difs, puntos: (nA === nD ? 1000 : 0) + (comparables ? dentro / comparables * 100 : 0) - Math.abs(nA - nD) };
+}
+function mostrarResultadoDisco(html){
+  const f = document.createElement("div");
+  f.className = "pop-unidades-fondo";
+  f.innerHTML = `<div class="pop-unidades pop-resultado">${html}<button type="button">Cerrar</button></div>`;
+  f.querySelector("button").addEventListener("click", ()=> f.remove());   // solo se cierra con el botón
+  document.body.appendChild(f);
+}
+async function comprobarDiscoMontado(canciones, nombreAlbum){
+  if(!canciones || !canciones.length){ avisoSync("Este álbum no tiene canciones guardadas con las que comparar.", 6000); return; }
+  let est;
+  try{ est = await pedirAlLector("/estado", 10000); }
+  catch(e){ avisoSync("No se pudo comprobar. " + motivoLector(null, e), 8000); return; }
+  if(!est || !est.ok){ avisoSync("No se pudo comprobar. " + motivoLector(est), 8000); return; }
+  const montadas = (est.unidades || []).filter(u=>u.conDisco);
+  if(!montadas.length){ avisoSync("No hay ningún disco montado.", 4000); return; }
+  avisoSync("Leyendo el disco montado…", 3000);
+  const resultados = [];
+  for(const u of montadas){
+    try{
+      const r = await pedirAlLector("/toc?unidad=" + encodeURIComponent(u.letra), 15000);
+      if(r && r.ok) resultados.push({ unidad: u, toc: r, cmp: compararConTOC(canciones, r.pistas) });
+      else if(r && r.error === "No existe."){ avisoSync("No se pudo comprobar. " + motivoLector(r), 8000); return; }
+    }catch(e){ /* esa unidad no respondió: se ignora */ }
+  }
+  if(!resultados.length){ avisoSync("No se pudo leer ningún disco montado (¿es un CD de audio?).", 7000); return; }
+  resultados.sort((x,y)=> y.cmp.puntos - x.cmp.puntos);
+  const m = resultados[0], c = m.cmp;
+  const mmss = t=> segundosAMmss(t);
+  const etiqueta = m.toc.etiqueta ? " (" + escapeHTML(m.toc.etiqueta) + ")" : "";
+  const dTot = c.totD - c.totA;
+  let html = `<h3 class="${c.nivel}">${escapeHTML(c.titulo)}</h3>
+    <p class="pr-sub">Unidad ${escapeHTML(m.unidad.letra)}${etiqueta} · ${escapeHTML(nombreAlbum || "")}</p>
+    <table>
+      <tr><th></th><th>Álbum</th><th>Disco</th></tr>
+      <tr><td>Pistas</td><td>${c.nA}</td><td>${c.nD}</td></tr>
+      <tr><td>Duración total</td><td>${c.totA ? mmss(c.totA) : "—"}</td><td>${mmss(c.totD)}${c.totA ? " (" + (dTot >= 0 ? "+" : "−") + Math.abs(dTot) + " s)" : ""}</td></tr>
+      ${c.comparables ? `<tr><td>Pistas con la misma duración (±${TOLERANCIA_SEG} s)</td><td colspan="2">${c.dentro} de ${c.comparables}</td></tr>` : ""}
+    </table>`;
+  if(c.difs.length && c.nA === c.nD){
+    html += `<ul>` + c.difs.slice(0, 8).map(x=> `<li>Pista ${x.n}${x.titulo ? " «" + escapeHTML(x.titulo) + "»" : ""}: álbum ${mmss(x.a)} · disco ${mmss(x.d)}</li>`).join("") +
+      (c.difs.length > 8 ? `<li>… y ${c.difs.length - 8} más</li>` : "") + `</ul>`;
+  }
+  if(resultados.length > 1){
+    html += `<p class="pr-sub">Había ${resultados.length} discos montados; se muestra el que más se parece. Los demás: ` +
+      resultados.slice(1).map(x=> escapeHTML(x.unidad.letra) + " (" + x.cmp.nD + " pistas)").join(", ") + `.</p>`;
+  }
+  mostrarResultadoDisco(html);
+}
+$("#btn-comprobar-disco").addEventListener("click", ()=>{
+  if(!albumSeleccionado) return;
+  const cs = CANCIONES.filter(c=> c.ALBUM_ID === albumSeleccionado.ALBUM_ID)
+    .sort((a,b)=> (parseInt(a["PISTA Nº"])||0) - (parseInt(b["PISTA Nº"])||0));
+  comprobarDiscoMontado(cs, (albumSeleccionado["ARTISTA ALBUM"] || "") + " — " + (albumSeleccionado["ALBUM"] || ""));
+});
 $("#btn-desmontar").addEventListener("click", desmontarDisco);
 $("#btn-desmontar-herr").addEventListener("click", desmontarDisco);
 
@@ -3030,16 +3133,12 @@ $("#btn-sel-ninguno").addEventListener("click", ()=>{
 $("#btn-sel-editar").addEventListener("click", abrirModalMasivo);
 $("#btn-mm-cancelar").addEventListener("click", cerrarModalMasivo);
 $("#btn-mm-aplicar").addEventListener("click", aplicarEdicionMasiva);
-$("#modal-masivo-fondo").addEventListener("click", (e)=>{ if(e.target.id === "modal-masivo-fondo") cerrarModalMasivo(); });
 $("#modal-masivo").addEventListener("input", (e)=>{
   const fila = e.target.closest(".mm-fila");
   if(fila && e.target.type !== "checkbox") fila.querySelector(".mm-chk").checked = true; // escribir en un campo lo marca como "cambiar"
   actualizarResumenMasivo();
 });
 $("#modal-masivo").addEventListener("change", (e)=>{ if(e.target.type === "checkbox") actualizarResumenMasivo(); });
-document.addEventListener("keydown", (e)=>{
-  if(e.key === "Escape" && $("#modal-masivo-fondo").classList.contains("abierto")) cerrarModalMasivo();
-});
 
 $("#btn-modificar").addEventListener("click", entrarModoEdicion);
 $("#btn-cerrar-sesion").addEventListener("click", ()=> irALogin());
@@ -3050,11 +3149,10 @@ $$(".btn-cancelar-ed").forEach(b=> b.addEventListener("click", cancelarEdicionUs
 $("#btn-ficha").addEventListener("click", abrirFicha);
 $("#btn-ficha-pdf").addEventListener("click", abrirFichaPDF);
 $("#cerrar-modal").addEventListener("click", cerrarFicha);
-$("#modal-fondo").addEventListener("click", (e)=>{ if(e.target.id==="modal-fondo") cerrarFicha(); });
 $("#cerrar-modal-letra").addEventListener("click", cerrarLetra);
 $("#btn-letra-anterior").addEventListener("click", ()=> mostrarLetraEnIndice(letraIndiceActual-1));
 $("#btn-letra-siguiente").addEventListener("click", ()=> mostrarLetraEnIndice(letraIndiceActual+1));
-$("#modal-fondo-letra").addEventListener("click", (e)=>{ if(e.target.id==="modal-fondo-letra") cerrarLetra(); });
+// (Las ventanas ficha, letras, edición masiva, carátulas y comprobación solo se cierran con su ✕.)
 
 /* ---------- Añadir álbum nuevo (búsqueda en Discogs) ---------- */
 function abrirModalNuevoAlbum(){
@@ -3623,6 +3721,7 @@ $("#btn-leer-cd").addEventListener("click", leerCD);
 
 $("#btn-nuevo-album").addEventListener("click", abrirModalNuevoAlbum);
 $("#cerrar-modal-nuevo").addEventListener("click", cerrarModalNuevoAlbum);
+$("#cerrar-modal-masivo").addEventListener("click", cerrarModalMasivo);
 // (Ya no se cierra al pulsar fuera: se perdía lo escrito. Solo se cierra con la ✕.)
 $("#btn-buscar-barcode").addEventListener("click", buscarPorBarcode);
 $("#btn-buscar-texto").addEventListener("click", buscarPorTexto);
@@ -3860,7 +3959,7 @@ async function borrarCaratulasSeleccionadas(){
 
 $("#btn-limpiar").addEventListener("click", abrirLimpiezaCaratulas);
 $("#btn-lc-cerrar").addEventListener("click", ()=> $("#modal-limpieza-fondo").classList.remove("abierto"));
-$("#modal-limpieza-fondo").addEventListener("click", e=>{ if(e.target.id === "modal-limpieza-fondo") $("#modal-limpieza-fondo").classList.remove("abierto"); });
+$("#cerrar-modal-limpieza").addEventListener("click", ()=> $("#modal-limpieza-fondo").classList.remove("abierto"));
 $("#btn-lc-borrar").addEventListener("click", borrarCaratulasSeleccionadas);
 $("#lc-lista").addEventListener("change", lcActualizarBoton);
 $("#lc-todas").addEventListener("click", ()=>{
@@ -4397,7 +4496,7 @@ $("#btn-verificar").addEventListener("click", abrirVerificacionDiscogs);
 $("#btn-vd-empezar").addEventListener("click", vdEmpezar);
 $("#btn-vd-parar").addEventListener("click", ()=>{ vdCancelar = true; });
 $("#btn-vd-cerrar").addEventListener("click", cerrarVerificacionDiscogs);
-$("#modal-verif-fondo").addEventListener("click", e=>{ if(e.target.id === "modal-verif-fondo") cerrarVerificacionDiscogs(); });
+$("#cerrar-modal-verif").addEventListener("click", cerrarVerificacionDiscogs);
 $("#vd-omitir").addEventListener("change", vdInfoPrevia);
 $("#vd-lista").addEventListener("click", e=>{
   const b = e.target.closest(".vd-ver");
