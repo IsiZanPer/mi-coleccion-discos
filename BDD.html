@@ -681,8 +681,8 @@
   }
   #modal-fondo.abierto, #modal-fondo-letra.abierto{display:flex;}
   #modal-ficha{
-    background-color:#f4ecd8;
-    background-image:linear-gradient(#f4ecd8,#f4ecd8);
+    background-color:var(--sepia,#f4ecd8);
+    background-image:linear-gradient(var(--sepia,#f4ecd8),var(--sepia,#f4ecd8));
     color:#000;
     width:min(calc(860px * var(--vz, 1)), 98vw);
     max-height:min(calc(85vh * var(--vz, 1)), 96vh);
@@ -702,13 +702,18 @@
   }
   .vent-ctrl button{
     width:28px;height:28px;padding:0;line-height:1;border-radius:4px;cursor:pointer;
-    background:rgba(244,236,216,.9);border:1px solid #c9bd9f;color:#4a3f2b;font-size:18px;font-family:inherit;
+    background:var(--sepia,#f4ecd8);border:1px solid #9c8f6e;color:#4a3f2b;font-size:18px;font-family:inherit;
   }
   .vent-ctrl button:hover:not(:disabled){border-color:#000;color:#000;}
   .vent-ctrl button:disabled{opacity:.35;cursor:default;}
   .vent-ctrl .vf-menos{font-size:12px;font-weight:600;}
   .vent-ctrl .vf-mas{font-size:20px;font-weight:600;}
-  .vent-sep{width:1px;height:20px;background:#c9bd9f;margin:0 2px;}
+  .vent-sep{width:1px;height:20px;background:#9c8f6e;margin:0 2px;}
+  .vent-ctrl .vs-tono{font-size:16px;}
+  /* Negrita, cursiva y subrayado dentro de ficha y letras */
+  #modal-ficha strong,#modal-letra strong{font-weight:700;color:#000;}
+  #modal-ficha em,#modal-letra em{font-style:italic;}
+  #modal-ficha u,#modal-letra u{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px;}
   /* Tamaño de la letra (botones A): escala solo el texto, no la ventana */
   #modal-cuerpo,#letra-cuerpo,#modal-titulo,#letra-titulo,#letra-subtitulo{zoom:var(--fz, 1);}
   #modal-ficha .cerrar-detalle{color:#6b5d45;}
@@ -716,8 +721,8 @@
   #modal-ficha a{color:#8a4b00;}
 
   #modal-letra{
-    background-color:#f4ecd8;
-    background-image:linear-gradient(#f4ecd8,#f4ecd8);
+    background-color:var(--sepia,#f4ecd8);
+    background-image:linear-gradient(var(--sepia,#f4ecd8),var(--sepia,#f4ecd8));
     color:#000;
     width:min(calc(1300px * var(--vz, 1)), 98vw);
     max-height:min(calc(85vh * var(--vz, 1)), 96vh);
@@ -1303,6 +1308,8 @@
 <div id="modal-fondo">
   <div id="modal-ficha">
     <div class="vent-ctrl">
+      <button type="button" class="vs-tono" title="Cambiar el tono del fondo">◐</button>
+      <span class="vent-sep"></span>
       <button type="button" class="vf-menos" title="Letra más pequeña">A</button>
       <button type="button" class="vf-mas" title="Letra más grande">A</button>
       <span class="vent-sep"></span>
@@ -1318,6 +1325,8 @@
 <div id="modal-fondo-letra">
   <div id="modal-letra">
     <div class="vent-ctrl">
+      <button type="button" class="vs-tono" title="Cambiar el tono del fondo">◐</button>
+      <span class="vent-sep"></span>
       <button type="button" class="vf-menos" title="Letra más pequeña">A</button>
       <button type="button" class="vf-mas" title="Letra más grande">A</button>
       <span class="vent-sep"></span>
@@ -2195,7 +2204,7 @@ async function entrarModoEdicion(){
     <div class="grupo-edicion">
       ${campo("ed-ficha-pdf","URL de la ficha en PDF (Google Drive)",a["Ficha PDF"])}
     </div>
-    ${campoAncho("ed-comentario","Comentario / ficha completa (admite Markdown)",a["Comentario"],6)}
+    ${campoAncho("ed-comentario","Comentario / ficha completa (Markdown: **negrita**, *cursiva*, __subrayado__)",a["Comentario"],6)}
     <div class="det-subtitulo">Canciones</div>
     <div id="ed-canciones"></div>
     <button type="button" class="btn-anadir-cancion" id="btn-anadir-cancion">+ Añadir canción</button>
@@ -2589,7 +2598,7 @@ function cerrarLetra(){
 }
 
 /* Conversor Markdown -> HTML muy simple, sin dependencias externas.
-   Soporta: # ## ### encabezados, **negrita**, *cursiva*, listas con "- ",
+   Soporta: # ## ### encabezados, **negrita**, *cursiva*, __subrayado__, listas con "- ",
    imágenes ![alt](url), enlaces [texto](url), párrafos. */
 function markdownASimpleHTML(md){
   if(!md) return "";
@@ -2629,6 +2638,9 @@ function inlineMD(texto){
   let t = escapeHTML(texto);
   t = t.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m,alt,url)=>`<img src="${url}" alt="${alt}">`);
   t = t.replace(/\[([^\]]*)\]\(([^)]+)\)/g, (m,txt,url)=>`<a href="${url}" target="_blank" rel="noopener">${txt}</a>`);
+  // Etiquetas HTML sencillas permitidas: <b> <strong> <i> <em> <u>
+  t = t.replace(/&lt;(\/?)(b|strong|i|em|u)&gt;/gi, (m,c,tag)=>`<${c}${tag.toLowerCase()}>`);
+  t = t.replace(/__([^_]+)__/g, "<u>$1</u>");
   t = t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   t = t.replace(/\*([^*]+)\*/g, "<em>$1</em>");
   return t;
@@ -4343,6 +4355,23 @@ function configurarZoomLetra(selector, clave){
   mas.addEventListener("click", ()=>{ if(i < FZ_PASOS.length - 1){ i++; aplicar(); } });
   aplicar();
 }
+/* ---------- Tono del fondo sepia (de más claro a más oscuro) ---------- */
+const SEPIA_TONOS = ["#fbf6e9", "#f4ecd8", "#eadcb8", "#dcc9a0", "#c8b184"];   // el 1 es el sepia original
+function configurarTonoSepia(selector, clave){
+  const el = $(selector);
+  let i = 1;
+  try{ const g = parseInt(localStorage.getItem(clave), 10); if(g >= 0 && g < SEPIA_TONOS.length) i = g; }catch(e){}
+  const b = el.querySelector(".vs-tono");
+  function aplicar(){
+    el.style.setProperty("--sepia", SEPIA_TONOS[i]);
+    b.title = "Tono del fondo " + (i+1) + "/" + SEPIA_TONOS.length + " (clic para oscurecer; al final vuelve al más claro)";
+    try{ localStorage.setItem(clave, String(i)); }catch(e){}
+  }
+  b.addEventListener("click", ()=>{ i = (i + 1) % SEPIA_TONOS.length; aplicar(); });
+  aplicar();
+}
+configurarTonoSepia("#modal-ficha", "sepia_ficha");
+configurarTonoSepia("#modal-letra", "sepia_letras");
 configurarZoomLetra("#modal-ficha", "zoom_letra_ficha");
 configurarZoomLetra("#modal-letra", "zoom_letra_letras");
 configurarZoomVentana("#modal-ficha", "zoom_ventana_ficha");
