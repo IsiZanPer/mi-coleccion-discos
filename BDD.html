@@ -602,6 +602,14 @@
     font-family:inherit;
   }
   .grupo-busqueda-nuevo input:focus{outline:none;border-color:var(--accent);}
+  .grupo-busqueda-nuevo select{
+    background:var(--bg);border:1px solid var(--border);color:var(--text);
+    padding:9px 10px;border-radius:4px;font-size:13.5px;font-family:inherit;
+  }
+  #btn-leer-cd{flex:1;}
+  #btn-leer-cd:disabled{opacity:.6;cursor:default;}
+  .resultado-busqueda .cd-ico{width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--bg);border-radius:3px;}
+  .resultado-busqueda .etiqueta-exacto{color:var(--accent);font-weight:600;}
   .grupo-busqueda-nuevo button{
     background:var(--accent);
     border:1px solid var(--accent);
@@ -1340,6 +1348,10 @@
       <div class="grupo-busqueda-nuevo">
         <input type="text" id="buscar-texto" placeholder="Título del álbum y/o artista">
         <button type="button" id="btn-buscar-texto">Buscar por título</button>
+      </div>
+      <div class="grupo-busqueda-nuevo">
+        <select id="cd-unidad" style="display:none;" title="Unidad con disco"></select>
+        <button type="button" id="btn-leer-cd" title="Lee un CD de la unidad, o un disco montado con Daemon Tools (necesita el programa lector_cd.py en marcha)">💿 Leer un CD (unidad o disco montado)</button>
       </div>
       <div id="estado-busqueda"></div>
       <div id="resultados-busqueda"></div>
@@ -2884,6 +2896,8 @@ function abrirModalNuevoAlbum(){
   $("#buscar-texto").value = "";
   $("#estado-busqueda").textContent = "";
   $("#resultados-busqueda").innerHTML = "";
+  $("#cd-unidad").style.display = "none";
+  $("#cd-unidad").innerHTML = "";
   $("#paso-busqueda").style.display = "block";
   $("#paso-confirmar").style.display = "none";
   $("#modal-fondo-nuevo").classList.add("abierto");
@@ -3043,9 +3057,11 @@ function mapearReleaseDiscogs(r){
 // Guarda, mientras el modal de "álbum nuevo" está abierto, qué discos hay
 // que crear y en qué contenedor del DOM está la lista de canciones de cada uno.
 let discosPendientesNuevoAlbum = [];
+let forzarNumeroDiscoNuevo = null;   // al leer un CD que es el disco N de un álbum de varios discos
 
 function mostrarConfirmacion(datos){
   const a = datos.album || {};
+  forzarNumeroDiscoNuevo = datos.forzarNumeroDisco || null;
   const campo = (id,label,valor,tipo="text") => `
     <label class="campo-edicion">
       <span>${label}</span>
@@ -3082,7 +3098,7 @@ function mostrarConfirmacion(datos){
       ${campo("nv-fecha-compra","Fecha de compra",a["Fecha de compra"])}
       ${campo("nv-tienda","Tienda",a["Tienda"])}
     </div>
-    <div class="det-subtitulo">Canciones${discos.length>1 ? " (álbum de " + discos.length + " discos — se crearán " + discos.length + " fichas de álbum enlazadas)" : ""}</div>
+    <div class="det-subtitulo">Canciones${discos.length>1 ? " (álbum de " + discos.length + " discos — se crearán " + discos.length + " fichas de álbum enlazadas)" : (forzarNumeroDiscoNuevo ? " (disco " + forzarNumeroDiscoNuevo + " de un álbum de varios discos: se añade solo este disco)" : "")}</div>
     ${tabsHtml}
     ${contenedoresHtml}
     <button type="button" class="btn-anadir-cancion" id="btn-nv-anadir-cancion">+ Añadir canción</button>
@@ -3251,7 +3267,7 @@ async function crearAlbumNuevo(){
       }));
 
       const albumDisco = Object.assign({}, albumBase);
-      if(esMultiDisco) albumDisco["Disco #"] = d.numero;
+      if(esMultiDisco || forzarNumeroDiscoNuevo) albumDisco["Disco #"] = d.numero;
 
       const res = await fetch(API_URL, {
         method: "POST",
@@ -3291,6 +3307,151 @@ async function crearAlbumNuevo(){
     btn.textContent = "Añadir a mi colección";
   }
 }
+
+/* ---------- Añadir álbum leyendo un CD (unidad física o disco montado con Daemon Tools) ---------- */
+// Necesita el programa lector_cd.py en marcha en este PC (Windows). Él lee la TOC del disco,
+// la busca en MusicBrainz y aquí se completa con Discogs (género, carátula…).
+const CD_LECTOR_URL = "http://127.0.0.1:8765";
+
+async function pedirAlLector(ruta, ms){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=> ctrl.abort(), ms || 45000);
+  try{
+    const res = await fetch(CD_LECTOR_URL + ruta, { signal: ctrl.signal });
+    return await res.json();
+  }finally{ clearTimeout(t); }
+}
+function segundosAMmss(seg){
+  const s = Math.max(0, Math.round(seg || 0));
+  return Math.floor(s/60) + ":" + String(s%60).padStart(2, "0");
+}
+function mismoNombre(a, b){
+  const n = t => String(t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^\p{L}\p{N}]+/gu," ").trim();
+  return n(a) === n(b);
+}
+
+async function leerCD(){
+  const estado = $("#estado-busqueda"), cont = $("#resultados-busqueda"), sel = $("#cd-unidad"), btn = $("#btn-leer-cd");
+  cont.innerHTML = "";
+  estado.textContent = "Conectando con el lector de CD…";
+  btn.disabled = true;
+  try{
+    let letra = sel.style.display !== "none" ? sel.value : "";
+    if(!letra){
+      let est;
+      try{ est = await pedirAlLector("/estado", 8000); }
+      catch(e){
+        estado.textContent = "No encuentro el programa lector de CD. Ejecuta iniciar_lector.bat en este PC, deja su ventana abierta y vuelve a intentarlo. (Si el navegador pregunta por el acceso a la red local, permítelo.)";
+        return;
+      }
+      const conDisco = (est.unidades || []).filter(u=> u.conDisco);
+      if(!conDisco.length){
+        estado.textContent = "No hay ningún disco legible: inserta un CD o monta una imagen con Daemon Tools y vuelve a intentarlo.";
+        return;
+      }
+      if(conDisco.length > 1){
+        sel.innerHTML = conDisco.map(u=> `<option value="${escapeAttr(u.letra)}">${escapeHTML(u.letra)}</option>`).join("");
+        sel.style.display = "";
+        estado.textContent = "Hay varios discos disponibles: elige la unidad y pulsa de nuevo «Leer un CD».";
+        return;
+      }
+      letra = conDisco[0].letra;
+    }
+    estado.textContent = "Leyendo el disco de " + letra + " y buscándolo en MusicBrainz…";
+    const datos = await pedirAlLector("/leer?unidad=" + encodeURIComponent(letra), 60000);
+    if(!datos.ok){ estado.textContent = datos.error || "No se pudo leer el disco."; return; }
+    mostrarCandidatosCD(datos);
+  }catch(err){
+    console.error(err);
+    estado.textContent = "No se pudo leer el CD (¿tardó demasiado?). Inténtalo de nuevo.";
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function mostrarCandidatosCD(datos){
+  const estado = $("#estado-busqueda"), cont = $("#resultados-busqueda");
+  cont.innerHTML = "";
+  const total = datos.pistas.length;
+  const resumen = `Disco de ${total} pista${total===1?"":"s"} (${formatearSegundos(datos.pistas.reduce((s,p)=>s+p.segundos,0))}).`;
+  const cands = datos.candidatos || [];
+  estado.textContent = cands.length
+    ? `${resumen} ${cands.length} coincidencia(s), elige la correcta:`
+    : `${resumen} MusicBrainz no conoce este disco; puedes usar solo las pistas y duraciones.`;
+
+  cands.forEach(c=>{
+    const div = document.createElement("div");
+    div.className = "resultado-busqueda";
+    const sub = [
+      c.exacto ? '<span class="etiqueta-exacto">Coincidencia exacta</span>' : "Parecido",
+      escapeHTML([c.fecha, c.pais, c.sello].filter(Boolean).join(" · ")),
+      c.totalMedios > 1 ? `disco ${c.medioLeido || "?"} de ${c.totalMedios}` : "",
+      c.mismoNumPistas ? "" : "distinto nº de pistas"
+    ].filter(Boolean).join(" · ");
+    div.innerHTML = `<div class="cd-ico">💿</div><div class="info"><div class="tit">${escapeHTML((c.artista||"") + " — " + (c.titulo||""))}</div><div class="sub">${sub}</div></div>`;
+    div.addEventListener("click", ()=> seleccionarCandidatoCD(c, datos));
+    cont.appendChild(div);
+  });
+
+  const solo = document.createElement("div");
+  solo.className = "resultado-busqueda";
+  solo.innerHTML = `<div class="cd-ico">✎</div><div class="info"><div class="tit">Ninguno es el mío: usar solo las pistas del disco</div><div class="sub">Rellena el nº de pistas y las duraciones; los títulos los escribes tú</div></div>`;
+  solo.addEventListener("click", ()=>{
+    mostrarConfirmacion({
+      album: {},
+      discos: [{ numero: 1, canciones: datos.pistas.map(p=>({
+        "PISTA Nº": p.n, "TITULO": "", "ARTISTA": "", "Duración": segundosAMmss(p.segundos), "Original Release Year": ""
+      })) }]
+    });
+  });
+  cont.appendChild(solo);
+}
+
+// Rellena lo que MusicBrainz no trae (género, carátula…) con la edición de Discogs. Si falla, se ignora.
+async function enriquecerConDiscogs(album, porBarcode){
+  try{
+    const consulta = porBarcode
+      ? `barcode=${encodeURIComponent(album["Código de barras"])}`
+      : `q=${encodeURIComponent((album["ARTISTA ALBUM"] + " " + album["ALBUM"]).trim())}&type=release`;
+    const b = await (await fetch(`https://api.discogs.com/database/search?${consulta}&per_page=5`)).json();
+    const hit = (b.results || []).find(x=> x.type !== "master" && x.id);
+    if(!hit) return;
+    const rel = await (await fetch(`https://api.discogs.com/releases/${hit.id}`)).json();
+    const d = mapearReleaseDiscogs(rel).album;
+    ["GENERO", "PORTADA"].forEach(k=>{ if(!album[k] && d[k]) album[k] = d[k]; });
+    if(porBarcode) ["Número de Catalogo", "Etiqueta", "Código de barras"].forEach(k=>{ if(!album[k] && d[k]) album[k] = d[k]; });
+  }catch(e){ console.warn("No se pudo completar con Discogs:", e); }
+}
+
+async function seleccionarCandidatoCD(c, datos){
+  const estado = $("#estado-busqueda");
+  estado.textContent = "Completando datos con Discogs…";
+  const medio = c.medios.find(m=> m.numero === c.medioLeido) || c.medios[0];
+  const canciones = (medio ? medio.pistas : []).map((p,i)=>({
+    "PISTA Nº": p.n != null ? p.n : (i + 1),
+    "TITULO": p.titulo || "",
+    "ARTISTA": mismoNombre(p.artista, c.artista) ? "" : (p.artista || ""),
+    "Duración": segundosAMmss(p.segundos != null ? p.segundos : (datos.pistas[i] ? datos.pistas[i].segundos : 0)),
+    "Original Release Year": ""
+  }));
+  const album = {
+    "ARTISTA ALBUM": c.artista || "",
+    "ALBUM": c.titulo || "",
+    "GENERO": "",
+    "Etiqueta": c.sello || "",
+    "Fecha": c.fecha || "",
+    "Número de Catalogo": c.catalogo || "",
+    "Código de barras": c.barcode || "",
+    "PORTADA": ""
+  };
+  await enriquecerConDiscogs(album, !!album["Código de barras"]);
+  mostrarConfirmacion({
+    album,
+    discos: [{ numero: medio ? medio.numero : 1, canciones }],
+    forzarNumeroDisco: (c.totalMedios > 1 && medio) ? medio.numero : null
+  });
+}
+$("#btn-leer-cd").addEventListener("click", leerCD);
 
 $("#btn-nuevo-album").addEventListener("click", abrirModalNuevoAlbum);
 $("#cerrar-modal-nuevo").addEventListener("click", cerrarModalNuevoAlbum);
