@@ -1223,7 +1223,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.6</div>
+  <div class="pc-version">Versión 2.7</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -4036,7 +4036,9 @@ async function alternarRevisado(){
   const album = albumSeleccionado;
   const filas = filasDelAlbum(album);
   if(!filas.length) return;
-  if(!("Revisado" in filas[0])){
+  // La columna existe si la tiene CUALQUIER álbum cargado: un álbum recién añadido en esta sesión
+  // todavía no trae el campo hasta que se sincroniza, y no por eso falta la columna en la hoja.
+  if(!ALBUMES.some(a=> "Revisado" in a)){
     alert("Falta la columna «Revisado» en la hoja ALBUNES. Créala (con ese nombre exacto, en la fila de cabeceras) y pulsa ↻ Sincronizar.");
     return;
   }
