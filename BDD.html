@@ -351,7 +351,7 @@
   .chip-revisado:disabled{opacity:.6;cursor:wait;}
   /* Carátula en grande */
   #det-cover img{cursor:zoom-in;}
-  #modal-fondo-caratula{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:60;align-items:center;justify-content:center;}
+  #modal-fondo-caratula{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:80;align-items:center;justify-content:center;}
   #modal-fondo-caratula.abierto{display:flex;}
   #modal-caratula{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;max-width:94vw;}
   #modal-caratula img{max-width:92vw;max-height:84vh;object-fit:contain;border-radius:4px;box-shadow:0 8px 40px rgba(0,0,0,.6);background:var(--panel-hi);}
@@ -586,7 +586,7 @@
     display:none;
     position:fixed;inset:0;
     background:rgba(0,0,0,.6);
-    z-index:55;
+    z-index:80;
     align-items:center;
     justify-content:center;
   }
@@ -717,7 +717,7 @@
     display:none;
     position:fixed;inset:0;
     background:rgba(0,0,0,.6);
-    z-index:50;
+    z-index:80;
     align-items:center;
     justify-content:center;
   }
@@ -807,7 +807,7 @@
     display:none;
     position:fixed;inset:0;
     background:rgba(0,0,0,.6);
-    z-index:60;
+    z-index:80;
     align-items:center;
     justify-content:center;
   }
@@ -883,7 +883,7 @@
   #grid-wrap.modo-sel .tabla-albumes thead th{top:calc(var(--h-orden) + 46px);}
 
   #modal-masivo-fondo{
-    display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:80;
     align-items:center;justify-content:center;padding:12px;
   }
   #modal-masivo-fondo.abierto{display:flex;}
@@ -997,6 +997,7 @@
   body.modo-movil .fc-artista{font-size:calc(15px * var(--ft,1));}
   body.modo-movil .fc-formato{font-size:calc(13.5px * var(--ft,1));}
   body.modo-movil .fc-meta{font-size:calc(14px * var(--ft,1));}
+  /* z-index del detalle en móvil = 70: todas las ventanas modales (fondos) deben tener más (80) para verse por delante */
   body.modo-movil #detalle{top:0;bottom:0;right:0;width:100%;max-width:650px;position:fixed;z-index:70;}
   body.modo-movil .det-cabecera{flex-direction:column;}
   body.modo-movil .cover-mediana{width:160px;height:160px;margin:0 auto;}
@@ -1124,7 +1125,7 @@
   /* ---------- Limpieza de carátulas sin usar ---------- */
   body.modo-movil #btn-limpiar{display:none !important;}
   #modal-limpieza-fondo{
-    display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:80;
     align-items:center;justify-content:center;padding:12px;
   }
   #modal-limpieza-fondo.abierto{display:flex;}
@@ -1145,7 +1146,7 @@
   .lc-tam{color:var(--muted);font-size:calc(12px * var(--ft,1));white-space:nowrap;font-variant-numeric:tabular-nums;}
   /* ---------- Comprobar álbumes con Discogs ---------- */
   #modal-verif-fondo{
-    display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:80;
     align-items:center;justify-content:center;padding:12px;
   }
   #modal-verif-fondo.abierto{display:flex;}
@@ -1222,7 +1223,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.5</div>
+  <div class="pc-version">Versión 2.6</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
