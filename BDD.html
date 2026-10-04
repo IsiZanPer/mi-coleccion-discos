@@ -344,6 +344,19 @@
   .det-sello-anio{font-size:calc(15px * var(--ft,1));font-weight:600;color:var(--text);}
   .det-genero{font-size:calc(13px * var(--ft,1));color:var(--muted);}
   .det-badges{display:flex;gap:8px;margin:4px 0 2px;}
+  /* Revisado: botón-interruptor en el detalle */
+  .chip-revisado{align-self:flex-start;display:inline-flex;align-items:center;gap:7px;margin:4px 0 2px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:999px;cursor:pointer;font-size:calc(12.5px * var(--ft,1));font-family:inherit;}
+  .chip-revisado:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+  .chip-revisado.si{border-color:#4cc38a;color:#4cc38a;background:rgba(76,195,138,.12);font-weight:600;}
+  .chip-revisado:disabled{opacity:.6;cursor:wait;}
+  /* Carátula en grande */
+  #det-cover img{cursor:zoom-in;}
+  #modal-fondo-caratula{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:60;align-items:center;justify-content:center;}
+  #modal-fondo-caratula.abierto{display:flex;}
+  #modal-caratula{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;max-width:94vw;}
+  #modal-caratula img{max-width:92vw;max-height:84vh;object-fit:contain;border-radius:4px;box-shadow:0 8px 40px rgba(0,0,0,.6);background:var(--panel-hi);}
+  #modal-caratula .cerrar-detalle{position:absolute;top:-6px;right:-6px;float:none;transform:translate(50%,-50%);width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--panel);border:1px solid var(--border);border-radius:50%;color:var(--text);z-index:2;font-size:calc(16px * var(--ft,1));}
+  #caratula-medidas{color:#ddd;font-size:calc(12px * var(--ft,1));}
   .badge-id, .badge-rating{
     display:inline-flex;align-items:center;gap:5px;
     background:var(--panel-hi);
@@ -857,6 +870,9 @@
   .badge-discos svg{width:16px;height:11px;flex-shrink:0;}
   .album-card > .badge-discos{position:absolute;top:8px;right:8px;z-index:2;box-shadow:0 1px 4px rgba(0,0,0,.5);}
   .fc-formato .badge-discos,.td-album .badge-discos{margin-left:8px;vertical-align:middle;}
+  .badge-revisado{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#4cc38a;color:#0f2a1d;font-size:calc(11px * var(--ft,1));font-weight:700;line-height:1;flex-shrink:0;}
+  .album-card > .badge-revisado{position:absolute;top:8px;left:8px;z-index:2;box-shadow:0 1px 4px rgba(0,0,0,.5);}
+  .fc-formato .badge-revisado,.td-album .badge-revisado{margin-left:8px;vertical-align:middle;}
   .chk-sel{width:17px;height:17px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
   .album-card{position:relative;}
   .album-card .chk-sel{position:absolute;top:8px;left:8px;z-index:2;}
@@ -1206,7 +1222,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.3</div>
+  <div class="pc-version">Versión 2.5</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1271,6 +1287,7 @@
         <option value="anio">Años</option>
         <option value="decada">Décadas</option>
         <option value="disco">Con Disco</option>
+        <option value="revisado">Revisado</option>
       </select>
     </div>
     <div class="artista-item activo" data-valor="__TODOS__">
@@ -1322,6 +1339,7 @@
           <div class="det-sello-anio" id="det-sello-anio"></div>
           <div class="det-genero" id="det-genero"></div>
           <div class="det-badges" id="det-badges"></div>
+          <button type="button" class="chip-revisado" id="btn-revisado" title="Marca el álbum como revisado cuando hayas comprobado que todos sus datos son correctos">☐ Sin revisar</button>
           <div class="det-catalogo" id="det-catalogo"></div>
           <div class="det-codbarras" id="det-codbarras"></div>
           <div class="det-resumen" id="det-resumen"></div>
@@ -1393,6 +1411,14 @@
     <h3 id="letra-titulo"></h3>
     <div class="subtitulo" id="letra-subtitulo"></div>
     <div id="letra-cuerpo"></div>
+  </div>
+</div>
+
+<div id="modal-fondo-caratula">
+  <div id="modal-caratula">
+    <span class="cerrar-detalle" id="cerrar-modal-caratula" title="Cerrar">✕</span>
+    <img id="caratula-grande" alt="">
+    <div id="caratula-medidas"></div>
   </div>
 </div>
 
@@ -1603,7 +1629,7 @@ async function asegurarTokenGithub(){
 let ALBUMES = [];        // datos crudos, una fila por disco (tal cual la hoja)
 let ALBUMES_VISTA = [];  // para grid/sidebar: álbumes multi-disco fusionados en una sola entrada
 let CANCIONES = [];
-let tabActivo = "artista";       // 'artista' | 'genero' | 'etiqueta' | 'tienda' | 'anio' | 'decada' | 'disco'
+let tabActivo = "artista";       // 'artista' | 'genero' | 'etiqueta' | 'tienda' | 'anio' | 'decada' | 'disco' | 'revisado'
 let valorActivo = "__TODOS__";   // valor seleccionado dentro de la pestaña actual
 let albumSeleccionado = null;
 let modoEstadisticas = false;   // true = el centro y la derecha muestran estadísticas en vez de la rejilla
@@ -1724,10 +1750,11 @@ function valorSegunTab(album, tab){
     return y ? (Math.floor(parseInt(y,10)/10)*10) + "s" : "(Sin año)";
   }
   if(tab === "disco") return tieneImagenDisco(album) ? "Con disco" : "Sin disco";
+  if(tab === "revisado") return albumRevisado(album) ? "Revisado" : "Sin revisar";
   return "";
 }
 
-/* ---------- Sidebar con desplegable (Artistas/Géneros/Etiquetas/Tiendas/Años/Décadas/Con Disco) ---------- */
+/* ---------- Sidebar con desplegable (Artistas/Géneros/Etiquetas/Tiendas/Años/Décadas/Con Disco/Revisado) ---------- */
 function construirSidebar(){
   const conteo = {};
   ALBUMES_VISTA.forEach(a=>{
@@ -1940,7 +1967,7 @@ function construirCoverCard(a){
     <div class="cover">${portada ? `<img src="${escapeAttr(portada)}" loading="lazy" alt="">` : escapeHTML(a["ALBUM"]||"")}</div>
     <div class="album-titulo">${escapeHTML(a["ALBUM"]||"(Sin título)")}</div>
     <div class="album-artista">${escapeHTML(a["ARTISTA ALBUM"]||"")}</div>
-    ${insigniaDiscos(a)}
+    ${insigniaDiscos(a)}${insigniaRevisado(a)}
   `;
   prepararSeleccion(card, a);
   return card;
@@ -1957,7 +1984,7 @@ function construirFilaCard(a){
     <div class="fc-info">
       <div class="fc-titulo">${escapeHTML(a["ALBUM"]||"(Sin título)")}</div>
       <div class="fc-artista">${escapeHTML(a["ARTISTA ALBUM"]||"")}</div>
-      <div class="fc-formato">CD${anio ? " – "+escapeHTML(anio) : ""}${insigniaDiscos(a)}</div>
+      <div class="fc-formato">CD${anio ? " – "+escapeHTML(anio) : ""}${insigniaDiscos(a)}${insigniaRevisado(a)}</div>
     </div>
     <div class="fc-meta">
       <div class="fc-pistas">♫ ${pistas}</div>
@@ -1991,7 +2018,7 @@ function pintarVistaLista(grid, lista){
     const tr = document.createElement("tr");
     if(albumSeleccionado && albumSeleccionado.ALBUM_ID === a.ALBUM_ID) tr.classList.add("selec");
     tr.innerHTML = `
-      <td class="td-album">${escapeHTML(a["ALBUM"]||"(Sin título)")}${insigniaDiscos(a)}</td>
+      <td class="td-album">${escapeHTML(a["ALBUM"]||"(Sin título)")}${insigniaDiscos(a)}${insigniaRevisado(a)}</td>
       <td>${escapeHTML(a["ARTISTA ALBUM"]||"")}</td>
       <td>${escapeHTML(anio)}</td>
       <td>${escapeHTML(a["GENERO"]||"")}</td>
@@ -2070,6 +2097,8 @@ function abrirDetalle(album){
     <span class="badge-id">#${escapeHTML(String(album["ALBUM_ID"]||""))}</span>
     <span class="badge-rating">${htmlEstrellas} ${ratingNum > 0 ? ratingNum+'/10' : ''}</span>
   `;
+
+  pintarBotonRevisado(album);
 
   $("#det-catalogo").innerHTML = album["Número de Catalogo"]
     ? `Nº de catálogo: ${escapeHTML(String(album["Número de Catalogo"]))}`
@@ -3968,6 +3997,99 @@ $("#lc-todas").addEventListener("click", ()=>{
   lcActualizarBoton();
 });
 
+/* ---------- Revisado: el álbum tiene todos sus datos comprobados ---------- */
+// Columna "Revisado" de ALBUNES. Se guarda como VERDADERO/FALSO (sirve también si la columna usa casillas de Sheets).
+function esRevisado(v){
+  if(v === true) return true;
+  return /^(true|verdadero|s[ií]|x|1|ok|✓|✔)$/i.test(String(v == null ? "" : v).trim());
+}
+// ¿Está revisado el álbum tal como se ve en la lista? (multi-disco: solo si lo están todos sus discos)
+function albumRevisado(a){
+  if(!a) return false;
+  if(a._esGrupo) return a._discos.length > 0 && a._discos.every(d=>{
+    const f = ALBUMES.find(x=> x.ALBUM_ID === d.ALBUM_ID);
+    return !!f && esRevisado(f["Revisado"]);
+  });
+  return esRevisado(a["Revisado"]);
+}
+function insigniaRevisado(a){
+  return albumRevisado(a) ? '<span class="badge-revisado" title="Revisado">✓</span>' : "";
+}
+// Filas reales de la hoja que forman el álbum (un álbum multi-disco tiene una por disco)
+function filasDelAlbum(album){
+  if(album && album._esGrupo) return album._discos.map(d=> ALBUMES.find(a=> a.ALBUM_ID === d.ALBUM_ID)).filter(Boolean);
+  const f = ALBUMES.find(a=> a.ALBUM_ID === (album && album.ALBUM_ID));
+  return f ? [f] : (album ? [album] : []);
+}
+function pintarBotonRevisado(album){
+  const b = $("#btn-revisado");
+  if(!b) return;
+  const filas = filasDelAlbum(album);
+  const si = filas.length > 0 && filas.every(f=> esRevisado(f["Revisado"]));
+  b.classList.toggle("si", si);
+  b.textContent = si ? "✅ Revisado" : "☐ Sin revisar";
+  b.title = si ? "Revisado: pulsa para quitar la marca" : "Márcalo cuando hayas comprobado que todos los datos del álbum son correctos";
+}
+async function alternarRevisado(){
+  if(!albumSeleccionado) return;
+  const album = albumSeleccionado;
+  const filas = filasDelAlbum(album);
+  if(!filas.length) return;
+  if(!("Revisado" in filas[0])){
+    alert("Falta la columna «Revisado» en la hoja ALBUNES. Créala (con ese nombre exacto, en la fila de cabeceras) y pulsa ↻ Sincronizar.");
+    return;
+  }
+  const nuevo = !filas.every(f=> esRevisado(f["Revisado"]));
+  const b = $("#btn-revisado");
+  b.disabled = true;
+  try{
+    for(const f of filas){           // un álbum multi-disco se marca disco a disco
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ sesion: sesionActual, album: { ALBUM_ID: f.ALBUM_ID, "Revisado": nuevo } })
+      });
+      const json = await res.json();
+      if(!json.ok){
+        if(manejarErrorSesion(json.error)) return;
+        throw new Error(json.error);
+      }
+      f["Revisado"] = nuevo;
+      if(album.ALBUM_ID === f.ALBUM_ID) album["Revisado"] = nuevo;
+    }
+  }catch(err){
+    alert("No se pudo guardar «Revisado»: " + (err && err.message ? err.message : err));
+  }finally{
+    b.disabled = false;
+    if(albumSeleccionado === album) pintarBotonRevisado(album);
+    refrescarTrasRevisado();
+  }
+}
+function refrescarTrasRevisado(){
+  // Si el filtro activo ya no tiene ningún álbum (p. ej. era "Sin revisar" y se revisó el último), vuelve a "Todos"
+  if(valorActivo !== "__TODOS__" && !ALBUMES_VISTA.some(a=> valorSegunTab(a, tabActivo) === valorActivo)) valorActivo = "__TODOS__";
+  construirSidebar();   // actualiza los recuentos (esto repinta la lista de valores)
+  $$(".artista-item").forEach(el=> el.classList.toggle("activo", el.dataset.valor === valorActivo));
+  repintarConservandoScroll();
+}
+$("#btn-revisado").addEventListener("click", alternarRevisado);
+
+/* ---------- Carátula en grande (clic en la carátula del detalle) ---------- */
+function abrirCaratulaGrande(){
+  const img = $("#det-cover img");
+  if(!img) return;
+  const g = $("#caratula-grande");
+  g.onload = ()=>{ $("#caratula-medidas").textContent = g.naturalWidth ? g.naturalHeight + " × " + g.naturalWidth + " px" : ""; };
+  $("#caratula-medidas").textContent = "";
+  g.src = img.getAttribute("src");
+  $("#modal-fondo-caratula").classList.add("abierto");
+}
+function cerrarCaratulaGrande(){
+  $("#modal-fondo-caratula").classList.remove("abierto");
+  $("#caratula-grande").removeAttribute("src");
+}
+$("#det-cover").addEventListener("click", e=>{ if(e.target.tagName === "IMG") abrirCaratulaGrande(); });
+$("#cerrar-modal-caratula").addEventListener("click", cerrarCaratulaGrande);   // solo se cierra con la ✕
+
 /* ---------- Tooltip con el tamaño de la carátula ---------- */
 // Cuando una imagen de carátula termina de cargar (rejilla, tarjetas o detalle),
 // se le pone como tooltip su tamaño real: alto × ancho en píxeles.
@@ -3983,7 +4105,7 @@ document.addEventListener("load", ev=>{
 /* ---------- Estadísticas ---------- */
 // Las estadísticas se calculan sobre la misma lista que ve la rejilla
 // (filtro del sidebar + buscador), así que el sidebar sirve de filtro.
-const NOMBRES_TAB_STATS = { artista:"Artista", genero:"Género", etiqueta:"Sello", tienda:"Tienda", anio:"Año", decada:"Década", disco:"Disco" };
+const NOMBRES_TAB_STATS = { artista:"Artista", genero:"Género", etiqueta:"Sello", tienda:"Tienda", anio:"Año", decada:"Década", disco:"Disco", revisado:"Revisado" };
 
 function alternarEstadisticas(forzar){
   const nuevo = (forzar === undefined) ? !modoEstadisticas : !!forzar;
