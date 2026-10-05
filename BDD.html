@@ -303,6 +303,8 @@
   .tabla-albumes tbody tr.selec{background:var(--panel-hi);color:var(--accent);}
   .tabla-albumes td{padding:8px 10px;}
   .tabla-albumes .td-album{font-weight:600;}
+  .tabla-albumes .td-dim{white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .tabla-albumes thead th.th-dim{white-space:nowrap;}
 
   #vacio{color:var(--muted);padding:40px;text-align:center;}
 
@@ -1246,7 +1248,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.10</div>
+  <div class="pc-version">Versión 2.11</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -2055,7 +2057,7 @@ function pintarVistaLista(grid, lista){
         const i = ordenActual.findIndex(o=>o.campo===campo);
         const flecha = i > -1 ? `<span class="th-flecha">${ordenActual[i].dir==="asc" ? "↑" : "↓"}${ordenActual.length > 1 ? `<sup>${i+1}</sup>` : ""}</span>` : "";
         return `<th data-campo="${campo}" title="Ordenar por ${texto.toLowerCase()} (Mayús+clic: añadir como criterio adicional)">${texto}${flecha}</th>`;
-      }).join("")}
+      }).join("")}<th class="th-dim" title="Dimensión de la carátula: alto × ancho en píxeles">Carátula (px)</th>
     </tr></thead>
   `;
   tabla.querySelector("thead").addEventListener("click", ev=>{
@@ -2075,12 +2077,50 @@ function pintarVistaLista(grid, lista){
       <td>${escapeHTML(a["GENERO"]||"")}</td>
       <td>${rating ? rating+"/10" : ""}</td>
       <td>${escapeHTML(duracionTexto)}</td>
+      <td class="td-dim"></td>
     `;
+    ponerDimensionCaratula(tr.lastElementChild, a["PORTADA"]);
     prepararSeleccion(tr, a);
     tbody.appendChild(tr);
   });
   tabla.appendChild(tbody);
   grid.appendChild(tabla);
+}
+
+/* ---------- Dimensión de la carátula (columna de la vista Lista) ---------- */
+// El tamaño real solo se conoce al cargar la imagen, así que se mide en segundo plano
+// (máx. 6 a la vez) y se guarda en caché por URL para no repetirlo al reordenar o filtrar.
+const DIM_CARATULAS = new Map();      // url -> "alto × ancho" ("—" si no se pudo medir)
+const DIM_PENDIENTES = new Map();     // url -> celdas <td> esperando ese valor
+const DIM_COLA = [];
+let dimActivas = 0;
+function ponerDimensionCaratula(td, url){
+  url = String(url||"").trim();
+  if(!url){ return; }
+  if(DIM_CARATULAS.has(url)){ td.textContent = DIM_CARATULAS.get(url); return; }
+  td.textContent = "…";
+  if(DIM_PENDIENTES.has(url)){ DIM_PENDIENTES.get(url).push(td); return; }
+  DIM_PENDIENTES.set(url, [td]);
+  DIM_COLA.push(url);
+  procesarColaDimensiones();
+}
+function procesarColaDimensiones(){
+  while(dimActivas < 6 && DIM_COLA.length){
+    const url = DIM_COLA.shift();
+    dimActivas++;
+    const img = new Image();
+    const fin = texto=>{
+      img.onload = img.onerror = null;
+      DIM_CARATULAS.set(url, texto);
+      (DIM_PENDIENTES.get(url)||[]).forEach(td=>{ td.textContent = texto; });
+      DIM_PENDIENTES.delete(url);
+      dimActivas--;
+      procesarColaDimensiones();
+    };
+    img.onload = ()=> fin(img.naturalWidth ? img.naturalHeight + " × " + img.naturalWidth : "—");
+    img.onerror = ()=> fin("—");
+    img.src = url;
+  }
 }
 
 /* Construye un <ol> de canciones (reutilizable tanto para álbumes normales
