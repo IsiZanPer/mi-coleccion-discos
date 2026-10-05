@@ -304,7 +304,6 @@
   .tabla-albumes td{padding:8px 10px;}
   .tabla-albumes .td-album{font-weight:600;}
   .tabla-albumes .td-dim{white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums;}
-  .tabla-albumes thead th.th-dim{white-space:nowrap;}
 
   #vacio{color:var(--muted);padding:40px;text-align:center;}
 
@@ -1248,7 +1247,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.11</div>
+  <div class="pc-version">Versión 2.12</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1286,6 +1285,7 @@
       <button class="herr-item" id="btn-stats" type="button" role="menuitem" title="Ver estadísticas de la colección (respeta el filtro de la izquierda)"><span class="ico">📊</span> Estadísticas</button>
       <button class="herr-item" id="btn-limpiar" type="button" role="menuitem" title="Buscar carátulas de GitHub que ningún álbum usa y borrarlas"><span class="ico">🧹</span> Carátulas</button>
       <button class="herr-item" id="btn-verificar" type="button" role="menuitem" title="Comparar las canciones de tus álbumes con las de Discogs y marcar los que no coinciden"><span class="ico">🔎</span> Comprobar con Discogs</button>
+      <button class="herr-item" id="btn-iniciar-lector" type="button" role="menuitem" title="Arrancar en este PC el programa lector de CD (equivale a ejecutar iniciar_lector.bat)"><span class="ico">▶</span> Iniciar lector de CD</button>
       <button class="herr-item" id="btn-desmontar-herr" type="button" role="menuitem" title="Desmontar la imagen que esté montada en Daemon Tools"><span class="ico">⏏</span> Desmontar disco</button>
       <div class="herr-tam" id="herr-tam" title="Tamaño de todas las letras de la página (clic en el porcentaje para volver al 100 %)">
         <span class="ico">Aa</span><span class="herr-tam-txt">Tamaño de letra</span>
@@ -1981,6 +1981,7 @@ function pintarGrid(){
     return campo.includes(texto);
   });
 
+  if(ordenActual.some(o=>o.campo==="caratula")) asegurarDimensiones(lista);
   lista.sort(comparadorOrden());
   ultimaLista = lista;
   actualizarBarraSeleccion();
@@ -2053,11 +2054,11 @@ function pintarVistaLista(grid, lista){
   tabla.className = "tabla-albumes";
   tabla.innerHTML = `
     <thead><tr>
-      ${modoSeleccion ? '<th class="td-chk"></th>' : ''}${[["titulo","Álbum"],["artista","Artista"],["anio","Año"],["genero","Género"],["rating","Rating"],["duracion","Duración"]].map(([campo, texto])=>{
+      ${modoSeleccion ? '<th class="td-chk"></th>' : ''}${[["titulo","Álbum"],["artista","Artista"],["anio","Año"],["genero","Género"],["rating","Rating"],["duracion","Duración"],["caratula","Carátula (px)"]].map(([campo, texto])=>{
         const i = ordenActual.findIndex(o=>o.campo===campo);
         const flecha = i > -1 ? `<span class="th-flecha">${ordenActual[i].dir==="asc" ? "↑" : "↓"}${ordenActual.length > 1 ? `<sup>${i+1}</sup>` : ""}</span>` : "";
         return `<th data-campo="${campo}" title="Ordenar por ${texto.toLowerCase()} (Mayús+clic: añadir como criterio adicional)">${texto}${flecha}</th>`;
-      }).join("")}<th class="th-dim" title="Dimensión de la carátula: alto × ancho en píxeles">Carátula (px)</th>
+      }).join("")}
     </tr></thead>
   `;
   tabla.querySelector("thead").addEventListener("click", ev=>{
@@ -2091,6 +2092,8 @@ function pintarVistaLista(grid, lista){
 // El tamaño real solo se conoce al cargar la imagen, así que se mide en segundo plano
 // (máx. 6 a la vez) y se guarda en caché por URL para no repetirlo al reordenar o filtrar.
 const DIM_CARATULAS = new Map();      // url -> "alto × ancho" ("—" si no se pudo medir)
+const DIM_VALORES = new Map();        // url -> píxeles totales (alto × ancho), para ordenar
+let dimRepintarAlTerminar = false;
 const DIM_PENDIENTES = new Map();     // url -> celdas <td> esperando ese valor
 const DIM_COLA = [];
 let dimActivas = 0;
@@ -2104,6 +2107,20 @@ function ponerDimensionCaratula(td, url){
   DIM_COLA.push(url);
   procesarColaDimensiones();
 }
+// Al ordenar por esta columna hacen falta las medidas de TODAS las carátulas de la lista:
+// se piden las que faltan y, al terminar, se repinta para ordenar con los datos completos.
+function asegurarDimensiones(lista){
+  const faltan = [...new Set(lista.map(a=> String(a["PORTADA"]||"").trim()).filter(u=> u && !DIM_CARATULAS.has(u)))];
+  if(!faltan.length) return;
+  dimRepintarAlTerminar = true;
+  avisoSync("Midiendo carátulas para ordenar…", 0);
+  faltan.forEach(u=>{
+    if(DIM_PENDIENTES.has(u)) return;
+    DIM_PENDIENTES.set(u, []);
+    DIM_COLA.push(u);
+  });
+  procesarColaDimensiones();
+}
 function procesarColaDimensiones(){
   while(dimActivas < 6 && DIM_COLA.length){
     const url = DIM_COLA.shift();
@@ -2112,10 +2129,16 @@ function procesarColaDimensiones(){
     const fin = texto=>{
       img.onload = img.onerror = null;
       DIM_CARATULAS.set(url, texto);
+      if(img.naturalWidth) DIM_VALORES.set(url, img.naturalWidth * img.naturalHeight);
       (DIM_PENDIENTES.get(url)||[]).forEach(td=>{ td.textContent = texto; });
       DIM_PENDIENTES.delete(url);
       dimActivas--;
       procesarColaDimensiones();
+      if(dimRepintarAlTerminar && !DIM_COLA.length && dimActivas === 0){
+        dimRepintarAlTerminar = false;
+        avisoSync("", 0);
+        repintarConservandoScroll();   // ya se conocen todas las medidas: reordena
+      }
     };
     img.onload = ()=> fin(img.naturalWidth ? img.naturalHeight + " × " + img.naturalWidth : "—");
     img.onerror = ()=> fin("—");
@@ -3074,7 +3097,7 @@ function campoImagenMDX(id, label, valor){
 }
 // Mensaje común cuando el lector local no responde o es una versión sin la función pedida
 function motivoLector(r, e){
-  if(e) return "El lector no está en marcha (abre iniciar_lector.bat).";
+  if(e) return "El lector no está en marcha (usa Herramientas > Iniciar lector de CD, o abre iniciar_lector.bat).";
   if(r && r.error === "No existe.") return "El lector es una versión antigua: ciérralo y vuelve a abrirlo con iniciar_lector.bat.";
   return (r && r.error) || "Error desconocido.";
 }
@@ -3216,6 +3239,37 @@ $("#btn-comprobar-disco").addEventListener("click", ()=>{
 });
 $("#btn-desmontar").addEventListener("click", desmontarDisco);
 $("#btn-desmontar-herr").addEventListener("click", desmontarDisco);
+
+/* ---------- Iniciar el lector de CD desde la página (solo PC con Windows) ---------- */
+// Una página web no puede ejecutar archivos del PC. Se usa un protocolo propio "lectorcd://" que
+// instalar_boton_lector.bat registra una sola vez en Windows para que apunte a iniciar_lector.bat.
+let iniciandoLector = false;
+async function iniciarLectorLocal(){
+  if(iniciandoLector) return;
+  iniciandoLector = true;
+  try{
+    try{
+      const r = await pedirAlLector("/estado", 2500);
+      if(r && r.ok){ avisoSync("El lector de CD ya está en marcha.", 4000); return; }
+    }catch(e){ /* no responde: hay que arrancarlo */ }
+    avisoSync("Iniciando el lector de CD… (si el navegador pregunta, pulsa «Abrir»)", 0);
+    const a = document.createElement("a");
+    a.href = "lectorcd://iniciar";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    for(let i = 0; i < 20; i++){
+      await new Promise(r=> setTimeout(r, 1000));
+      try{
+        const r = await pedirAlLector("/estado", 2000);
+        if(r && r.ok){ avisoSync("✓ Lector de CD iniciado.", 5000); return; }
+      }catch(e){ /* aún no está listo */ }
+    }
+    avisoSync("No se ha iniciado el lector. Ejecuta una vez instalar_boton_lector.bat (junto a iniciar_lector.bat) y vuelve a probar.", 14000);
+  }finally{ iniciandoLector = false; }
+}
+$("#btn-iniciar-lector").addEventListener("click", iniciarLectorLocal);
 
 $("#btn-ir-disco").addEventListener("click", ()=>{ if(albumSeleccionado) irADisco(albumSeleccionado["Imagen MDX"]); });
 
@@ -4167,7 +4221,9 @@ const CRITERIOS_ORDEN = {
   rating:  { etiqueta:"Rating",  dirIni:"desc", tipo:"num",   valor:a=>{ const r = parseInt(a["Rating"],10); return r > 0 ? r : null; } },
   // Solo desde las cabeceras de la vista Lista: en la barra superior aparecen únicamente mientras están activos
   genero:   { etiqueta:"Género",   dirIni:"asc",  tipo:"texto", soloColumna:true, valor:a=>a["GENERO"] },
-  duracion: { etiqueta:"Duración", dirIni:"desc", tipo:"num",   soloColumna:true, valor:a=>{ const s = segundosAlbumCache(a); return s > 0 ? s : null; } }
+  duracion: { etiqueta:"Duración", dirIni:"desc", tipo:"num",   soloColumna:true, valor:a=>{ const s = segundosAlbumCache(a); return s > 0 ? s : null; } },
+  // Píxeles totales (alto × ancho) de la carátula; sin carátula o sin medir, al final
+  caratula: { etiqueta:"Carátula", dirIni:"desc", tipo:"num",   soloColumna:true, valor:a=>{ const v = DIM_VALORES.get(String(a["PORTADA"]||"").trim()); return v > 0 ? v : null; } }
 };
 let cacheDuracionSeg = new Map();   // se vacía en cada ordenación para no recalcular por comparación
 function segundosAlbumCache(a){
