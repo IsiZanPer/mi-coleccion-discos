@@ -872,6 +872,7 @@
   .edcom-barra .ayuda{color:var(--muted);font-size:calc(12px * var(--ft,1));margin-left:auto;}
   #edcom-texto{flex:1;min-height:0;width:100%;resize:none;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:12px 14px;font-family:inherit;font-size:calc(15px * var(--ft,1));line-height:1.55;}
   #edcom-texto:focus{outline:none;border-color:var(--accent);}
+  #edcom-texto,#ed-comentario{tab-size:4;-moz-tab-size:4;}
   .edcom-pie{display:flex;justify-content:flex-end;gap:8px;}
   .edcom-pie button{padding:8px 18px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:calc(14px * var(--ft,1));border:1px solid var(--border);background:var(--panel-hi);color:var(--text);}
   .edcom-pie button.principal{background:var(--accent);border-color:var(--accent);color:#14151a;font-weight:600;}
@@ -1245,7 +1246,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.9</div>
+  <div class="pc-version">Versión 2.10</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1450,8 +1451,11 @@
       <button type="button" id="edcom-cursiva" title="Cursiva (Ctrl+I)"><i>I</i></button>
       <button type="button" id="edcom-subrayado" title="Subrayado (Ctrl+U)"><u>U</u></button>
       <span class="sep"></span>
+      <button type="button" id="edcom-desangrar" title="Quitar sangría (Mayús+Tab)">⇤</button>
+      <button type="button" id="edcom-sangrar" title="Añadir sangría (Tab)">⇥</button>
+      <span class="sep"></span>
       <button type="button" id="edcom-copiar" title="Copiar todo el texto">📋</button>
-      <span class="ayuda">Selecciona texto y pulsa B, I o U (pulsar de nuevo lo quita)</span>
+      <span class="ayuda">B, I, U sobre el texto seleccionado · Tab = sangría · al pegar se conservan negritas y subrayados</span>
     </div>
     <textarea id="edcom-texto" spellcheck="true"></textarea>
     <div class="edcom-pie">
@@ -2783,6 +2787,21 @@ function cerrarEditorComentario(aplicar){
   $("#modal-fondo-edcom").classList.remove("abierto");
   edComDestino = null;
 }
+// Reemplaza t[desde:hasta] por "texto" conservando el historial de deshacer (Ctrl+Z) y deja la selección indicada
+function aplicarEdicion(ta, desde, hasta, texto, selIni, selFin){
+  const antes = ta.value;
+  const esperado = antes.slice(0, desde) + texto + antes.slice(hasta);
+  const y = ta.scrollTop;
+  ta.focus();
+  ta.setSelectionRange(desde, hasta);
+  try{ document.execCommand("insertText", false, texto); }catch(e){}
+  if(ta.value !== esperado){                 // alternativa si el navegador no admite execCommand
+    ta.value = esperado;
+    ta.dispatchEvent(new Event("input", {bubbles:true}));
+  }
+  if(selIni != null) ta.setSelectionRange(selIni, selFin == null ? selIni : selFin);
+  ta.scrollTop = y;
+}
 // Pone (o quita, si ya estaba puesto) el marcador alrededor del texto seleccionado.
 // Cursiva = *texto*, negrita = **texto**, ambas = ***texto***, subrayado = __texto__.
 function formatearSeleccion(marca){
@@ -2806,22 +2825,180 @@ function formatearSeleccion(marca){
     presente = a >= m && t.substr(a - m, m) === marca && t.substr(b, m) === marca;
   }
   const sel = t.slice(a, b);
-  let nuevo, ini, fin;
-  if(presente){
-    nuevo = t.slice(0, a - m) + sel + t.slice(b + m); ini = a - m; fin = b - m;
-  }else{
-    nuevo = t.slice(0, a) + marca + sel + marca + t.slice(b); ini = a + m; fin = b + m;
-  }
-  const y = ta.scrollTop;
-  ta.value = nuevo;
-  ta.focus(); ta.setSelectionRange(ini, fin); ta.scrollTop = y;
+  if(presente) aplicarEdicion(ta, a - m, b + m, sel, a - m, b - m);
+  else aplicarEdicion(ta, a, b, marca + sel + marca, a + m, b + m);
 }
+// Sangría: Tab añade un tabulador al principio de cada línea seleccionada; Mayús+Tab lo quita (o hasta 4 espacios)
+function sangrar(quitar){
+  const ta = $("#edcom-texto"), t = ta.value;
+  const a = ta.selectionStart, b = ta.selectionEnd;
+  const iniL = t.lastIndexOf("\n", a - 1) + 1;
+  let finL = t.indexOf("\n", (b > a && t[b-1] === "\n") ? b - 1 : b);
+  if(finL < 0) finL = t.length;
+  const lineas = t.slice(iniL, finL).split("\n");
+  let delta0 = 0, deltaTot = 0;
+  const nuevas = lineas.map((l, k)=>{
+    let n;
+    if(!quitar) n = (l === "" && lineas.length > 1) ? l : "\t" + l;
+    else if(l.startsWith("\t")) n = l.slice(1);
+    else { const mm = l.match(/^ {1,4}/); n = mm ? l.slice(mm[0].length) : l; }
+    const d = n.length - l.length;
+    if(k === 0) delta0 = d;
+    deltaTot += d;
+    return n;
+  });
+  const selIni = Math.max(iniL, a + delta0);
+  const selFin = Math.max(selIni, b + deltaTot);
+  aplicarEdicion(ta, iniL, finL, nuevas.join("\n"), selIni, selFin);
+}
+
+/* ---------- Pegar con formato: HTML copiado de otro sitio -> Markdown (negrita, cursiva, subrayado, listas, enlaces, sangrías) ---------- */
+function pxDeLongitud(v){
+  const m = String(v || "").trim().match(/^(-?[\d.]+)\s*(px|pt|in|cm|mm|em|rem)?$/i);
+  if(!m) return 0;
+  const n = parseFloat(m[1]);
+  switch((m[2] || "px").toLowerCase()){
+    case "pt": return n * 96 / 72;
+    case "in": return n * 96;
+    case "cm": return n * 37.8;
+    case "mm": return n * 3.78;
+    case "em": case "rem": return n * 16;
+    default: return n;
+  }
+}
+function htmlTieneFormato(html){
+  return /<(b|strong|i|em|u|ins|h[1-6]|li|a|blockquote|table)\b/i.test(html) ||
+         /font-weight\s*:\s*(bold|[6-9]00)|font-style\s*:\s*(italic|oblique)|text-decoration[^;"]*underline|margin-left|padding-left|text-indent|mso-list/i.test(html);
+}
+function htmlAMarkdown(html){
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const tokens = [];                         // {t, b, i, u} de texto, o {nl: n} de saltos de línea
+  const IGNORAR = new Set(["SCRIPT","STYLE","HEAD","TITLE","META","LINK","NOSCRIPT","IMG","SVG"]);
+  const BLOQUES = new Set(["P","DIV","UL","OL","LI","H1","H2","H3","H4","H5","H6","BLOCKQUOTE","PRE","TABLE","TR","SECTION","ARTICLE","HEADER","FOOTER","FIGURE","DL","DT","DD"]);
+  function texto(t, f){ if(t) tokens.push({ t, b: f.b, i: f.i, u: f.u }); }
+  function salto(n){ tokens.push({ nl: n }); }
+  function visita(nodo, f){
+    if(nodo.nodeType === 3){
+      texto(f.pre ? nodo.nodeValue : nodo.nodeValue.replace(/[\s\u00a0]+/g, " "), f);
+      return;
+    }
+    if(nodo.nodeType !== 1) return;
+    const tag = nodo.tagName.toUpperCase();
+    if(IGNORAR.has(tag)) return;
+    const st = nodo.style || {};
+    const estiloAttr = nodo.getAttribute("style") || "";
+    if(/mso-list\s*:\s*ignore/i.test(estiloAttr)) return;       // viñetas "falsas" de Word
+    const g = Object.assign({}, f);
+    // formato (las etiquetas y los estilos en línea de Word, Google Docs o páginas web)
+    if(tag === "B" || tag === "STRONG") g.b = true;
+    if(tag === "I" || tag === "EM" || tag === "CITE") g.i = true;
+    if(tag === "U" || tag === "INS") g.u = true;
+    const fw = String(st.fontWeight || "").toLowerCase();
+    if(fw) g.b = (fw === "bold" || fw === "bolder" || parseInt(fw, 10) >= 600);          // "normal" anula la negrita heredada
+    const fs = String(st.fontStyle || "").toLowerCase();
+    if(fs === "italic" || fs === "oblique") g.i = true; else if(fs === "normal") g.i = false;
+    const td = String(st.textDecorationLine || st.textDecoration || "").toLowerCase();
+    if(tag !== "A"){ if(td.includes("underline")) g.u = true; else if(td.includes("none") && tag !== "U") g.u = false; }
+    if(tag === "PRE") g.pre = true;
+    if(tag === "BR"){ salto(1); return; }
+
+    const bloque = BLOQUES.has(tag) || /mso-list/i.test(estiloAttr);
+    // sangría por estilos (margen/relleno/sangría de primera línea; ~48 px = un nivel) y por citas
+    let nivel = f.nivel || 0;
+    if(bloque){
+      const px = pxDeLongitud(st.marginLeft) + pxDeLongitud(st.paddingLeft) + Math.max(0, pxDeLongitud(st.textIndent));
+      nivel += Math.round(px / 48);
+      if(tag === "BLOCKQUOTE") nivel += 1;
+    }
+    g.nivel = nivel;
+
+    // listas
+    let prefijo = "";
+    if(tag === "UL" || tag === "OL"){ g.lista = { tipo: tag, n: 0 }; g.profLista = (f.profLista || 0) + 1; }
+    const esItemWord = tag !== "LI" && /mso-list/i.test(estiloAttr) && !/mso-list\s*:\s*none/i.test(estiloAttr);
+    let nivelTabs = nivel;
+    if(tag === "LI"){
+      let marca = "- ";
+      if(f.lista && f.lista.tipo === "OL"){ f.lista.n++; marca = f.lista.n + ". "; }
+      prefijo = marca;
+      nivelTabs = nivel + Math.max(0, (f.profLista || 1) - 1);            // listas anidadas = un nivel más
+    }else if(esItemWord){
+      prefijo = "- ";
+      nivelTabs = Math.max(0, nivel - 1);                                   // en Word, el nivel 1 de lista ya lleva margen
+    }
+    if(/^H[1-6]$/.test(tag)){ prefijo = "#".repeat(Math.min(3, Number(tag[1]))) + " "; g.b = false; }
+
+    if(bloque){
+      salto(1);
+      if(nivelTabs > 0 && !/^H[1-6]$/.test(tag)) texto("\t".repeat(nivelTabs), { b:false, i:false, u:false });
+      if(prefijo) texto(prefijo, { b:false, i:false, u:false });
+    }
+    if(tag === "TD" || tag === "TH"){
+      if(f.celdaPrevia){ texto(" | ", { b:false, i:false, u:false }); }
+    }
+    // enlaces
+    const href = tag === "A" ? (nodo.getAttribute("href") || "") : "";
+    const enlace = /^https?:\/\//i.test(href) && nodo.textContent.trim() !== "";
+    if(enlace) texto("[", g);
+    let hijosCelda = false;
+    nodo.childNodes.forEach(h=>{
+      if(tag === "TR" && h.nodeType === 1 && /^(TD|TH)$/i.test(h.tagName)){ g.celdaPrevia = hijosCelda; hijosCelda = true; }
+      visita(h, g);
+    });
+    if(enlace) texto("](" + href + ")", g);
+    if(bloque){
+      const doble = ((tag === "P" && !esItemWord) || /^H[1-6]$/.test(tag) || tag === "BLOCKQUOTE" || tag === "TABLE");
+      salto(doble ? 2 : 1);
+    }
+  }
+  visita(doc.body, { b:false, i:false, u:false, nivel:0, pre:false });
+
+  // agrupar texto seguido con el mismo formato y poner las marcas (por línea, porque el renderizado va línea a línea)
+  const envolver = (t, f)=>{
+    const m = t.match(/^(\s*)([\s\S]*?)(\s*)$/);
+    let core = m[2];
+    if(!core) return t;
+    if(f.u) core = "__" + core + "__";
+    if(f.b && f.i) core = "***" + core + "***"; else if(f.b) core = "**" + core + "**"; else if(f.i) core = "*" + core + "*";
+    return m[1] + core + m[3];
+  };
+  let out = "", grupo = null;
+  const cierra = ()=>{ if(grupo){ out += envolver(grupo.t, grupo); grupo = null; } };
+  for(const tk of tokens){
+    if(tk.nl){ cierra(); const ya = (out.match(/\n*$/)[0]).length; if(tk.nl > ya) out += "\n".repeat(tk.nl - ya); continue; }   // saltos seguidos: se queda el mayor
+    if(grupo && grupo.b === !!tk.b && grupo.i === !!tk.i && grupo.u === !!tk.u) grupo.t += tk.t;
+    else{ cierra(); grupo = { t: tk.t, b: !!tk.b, i: !!tk.i, u: !!tk.u }; }
+  }
+  cierra();
+  return out.split("\n")
+    .map(l=> l.replace(/^(\t*) +/, "$1").replace(/[ \t]+$/, ""))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/^\n+|\n+$/g, "");
+}
+document.addEventListener("paste", ev=>{
+  const ta = ev.target;
+  if(!ta || !ta.matches || !ta.matches("#edcom-texto, #ed-comentario")) return;
+  const cd = ev.clipboardData;
+  const html = cd && cd.getData ? cd.getData("text/html") : "";
+  if(!html || !htmlTieneFormato(html)) return;           // sin formato: pegado normal
+  let md = "";
+  try{ md = htmlAMarkdown(html); }catch(e){ return; }
+  if(!md.trim()) return;
+  ev.preventDefault();
+  const a = ta.selectionStart, b = ta.selectionEnd;
+  const fin = a + md.length;
+  if(ta.id === "edcom-texto") aplicarEdicion(ta, a, b, md, fin, fin);
+  else{ ta.focus(); try{ document.execCommand("insertText", false, md); }catch(e){ ta.setRangeText(md, a, b, "end"); ta.dispatchEvent(new Event("input", {bubbles:true})); } }
+});
 // los botones no le quitan la selección al texto
-["#edcom-negrita","#edcom-cursiva","#edcom-subrayado","#edcom-copiar"].forEach(sel=>
+["#edcom-negrita","#edcom-cursiva","#edcom-subrayado","#edcom-copiar","#edcom-sangrar","#edcom-desangrar"].forEach(sel=>
   $(sel).addEventListener("mousedown", e=> e.preventDefault()));
 $("#edcom-negrita").addEventListener("click", ()=> formatearSeleccion("**"));
 $("#edcom-cursiva").addEventListener("click", ()=> formatearSeleccion("*"));
 $("#edcom-subrayado").addEventListener("click", ()=> formatearSeleccion("__"));
+$("#edcom-sangrar").addEventListener("click", ()=> sangrar(false));
+$("#edcom-desangrar").addEventListener("click", ()=> sangrar(true));
 $("#edcom-copiar").addEventListener("click", async e=>{
   const btn = e.currentTarget, orig = btn.textContent;
   let ok = false;
@@ -2829,6 +3006,7 @@ $("#edcom-copiar").addEventListener("click", async e=>{
   btn.textContent = ok ? "✓" : "✗"; setTimeout(()=>{ btn.textContent = orig; }, 1400);
 });
 $("#edcom-texto").addEventListener("keydown", e=>{
+  if(e.key === "Tab" && !e.ctrlKey && !e.metaKey && !e.altKey){ e.preventDefault(); sangrar(e.shiftKey); return; }
   if(!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
   const k = e.key.toLowerCase();
   if(k === "b"){ e.preventDefault(); formatearSeleccion("**"); }
@@ -3039,7 +3217,7 @@ function cerrarLetra(){
 }
 
 /* Conversor Markdown -> HTML muy simple, sin dependencias externas.
-   Soporta: # ## ### encabezados, **negrita**, *cursiva*, __subrayado__, listas con "- ",
+   Soporta: # ## ### encabezados, **negrita**, *cursiva*, __subrayado__, listas con "- ", sangrías (tabulador o 4 espacios al empezar la línea),
    imágenes ![alt](url), enlaces [texto](url), párrafos. */
 function markdownASimpleHTML(md){
   if(!md) return "";
@@ -3048,6 +3226,11 @@ function markdownASimpleHTML(md){
   let enLista = false;
 
   lineas.forEach(linea=>{
+    // Sangría: un tabulador = 1 nivel, 4 espacios = 1 nivel (cada nivel se dibuja con 2 em de margen)
+    const ancho = [...(linea.match(/^[ \t]*/)[0])].reduce((n,c)=> n + (c === "\t" ? 4 : 1), 0);
+    const nivel = Math.floor(ancho / 4);
+    const estP  = nivel ? ` style="margin-left:${nivel * 2}em"` : "";
+    const estLi = nivel ? ` style="margin-left:${nivel * 1.6}em"` : "";
     let l = linea.trim();
 
     if(l === ""){
@@ -3065,12 +3248,12 @@ function markdownASimpleHTML(md){
 
     if(l.startsWith("- ")){
       if(!enLista){ html += "<ul>"; enLista = true; }
-      html += `<li>${inlineMD(l.slice(2))}</li>`;
+      html += `<li${estLi}>${inlineMD(l.slice(2))}</li>`;
       return;
     }
 
     if(enLista){ html += "</ul>"; enLista = false; }
-    html += `<p>${inlineMD(l)}</p>`;
+    html += `<p${estP}>${inlineMD(l)}</p>`;
   });
   if(enLista) html += "</ul>";
   return html;
