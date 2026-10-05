@@ -856,6 +856,25 @@
   .fila-etiqueta{display:flex;align-items:center;justify-content:space-between;gap:10px;}
   .btn-copiar-campo{background:var(--panel-hi);border:1px solid var(--border);color:var(--muted);padding:2px 10px;border-radius:4px;cursor:pointer;font-size:calc(12px * var(--ft,1));font-family:inherit;white-space:nowrap;}
   .btn-copiar-campo:hover{border-color:var(--accent);color:var(--accent);}
+  .botones-etiqueta{display:inline-flex;gap:6px;}
+  .btn-ampliar-campo{background:var(--panel-hi);border:1px solid var(--border);color:var(--muted);padding:2px 10px;border-radius:4px;cursor:pointer;font-size:calc(12px * var(--ft,1));font-family:inherit;white-space:nowrap;}
+  .btn-ampliar-campo:hover{border-color:var(--accent);color:var(--accent);}
+  /* Editor grande del comentario */
+  #modal-fondo-edcom{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:80;align-items:center;justify-content:center;}
+  #modal-fondo-edcom.abierto{display:flex;}
+  #modal-edcom{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:20px 24px;width:min(900px,95vw);height:min(86vh,820px);display:flex;flex-direction:column;gap:10px;}
+  #modal-edcom h3{margin:0;padding-right:34px;font-family:inherit;font-size:calc(17px * var(--ft,1));}
+  #modal-edcom > .cerrar-detalle{position:absolute;top:12px;right:16px;float:none;z-index:2;}
+  .edcom-barra{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+  .edcom-barra button{background:var(--panel-hi);border:1px solid var(--border);color:var(--text);min-width:36px;height:32px;padding:0 10px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:calc(15px * var(--ft,1));line-height:1;}
+  .edcom-barra button:hover{border-color:var(--accent);color:var(--accent);}
+  .edcom-barra .sep{width:1px;height:22px;background:var(--border);margin:0 4px;}
+  .edcom-barra .ayuda{color:var(--muted);font-size:calc(12px * var(--ft,1));margin-left:auto;}
+  #edcom-texto{flex:1;min-height:0;width:100%;resize:none;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:12px 14px;font-family:inherit;font-size:calc(15px * var(--ft,1));line-height:1.55;}
+  #edcom-texto:focus{outline:none;border-color:var(--accent);}
+  .edcom-pie{display:flex;justify-content:flex-end;gap:8px;}
+  .edcom-pie button{padding:8px 18px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:calc(14px * var(--ft,1));border:1px solid var(--border);background:var(--panel-hi);color:var(--text);}
+  .edcom-pie button.principal{background:var(--accent);border-color:var(--accent);color:#14151a;font-weight:600;}
   #sel-contador{color:var(--text);font-weight:600;margin-right:auto;}
   #barra-seleccion button{
     background:transparent;border:1px solid var(--border);color:var(--muted);
@@ -1226,7 +1245,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.8</div>
+  <div class="pc-version">Versión 2.9</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1419,6 +1438,26 @@
     <h3 id="letra-titulo"></h3>
     <div class="subtitulo" id="letra-subtitulo"></div>
     <div id="letra-cuerpo"></div>
+  </div>
+</div>
+
+<div id="modal-fondo-edcom">
+  <div id="modal-edcom">
+    <span class="cerrar-detalle" id="cerrar-modal-edcom" title="Cerrar sin aplicar los cambios">✕</span>
+    <h3 id="edcom-titulo">Comentario / ficha completa</h3>
+    <div class="edcom-barra">
+      <button type="button" id="edcom-negrita" title="Negrita (Ctrl+B)"><b>B</b></button>
+      <button type="button" id="edcom-cursiva" title="Cursiva (Ctrl+I)"><i>I</i></button>
+      <button type="button" id="edcom-subrayado" title="Subrayado (Ctrl+U)"><u>U</u></button>
+      <span class="sep"></span>
+      <button type="button" id="edcom-copiar" title="Copiar todo el texto">📋</button>
+      <span class="ayuda">Selecciona texto y pulsa B, I o U (pulsar de nuevo lo quita)</span>
+    </div>
+    <textarea id="edcom-texto" spellcheck="true"></textarea>
+    <div class="edcom-pie">
+      <button type="button" id="edcom-cancelar">Cancelar</button>
+      <button type="button" id="edcom-aplicar" class="principal">Aplicar al álbum</button>
+    </div>
   </div>
 </div>
 
@@ -2296,7 +2335,7 @@ async function entrarModoEdicion(){
   // Igual que campoAncho, pero con un botoncito para copiar todo el texto del campo
   const campoAnchoCopiar = (id,label,valor,filas) => `
     <label class="campo-edicion campo-edicion-ancho">
-      <span class="fila-etiqueta"><span>${label}</span><button type="button" class="btn-copiar-campo" data-destino="${id}" title="Copiar todo el texto de este campo">📋 Copiar</button></span>
+      <span class="fila-etiqueta"><span>${label}</span><span class="botones-etiqueta"><button type="button" class="btn-ampliar-campo" data-destino="${id}" title="Abrir en una ventana más grande para editarlo con negrita, cursiva y subrayado">✎ Ampliar</button><button type="button" class="btn-copiar-campo" data-destino="${id}" title="Copiar todo el texto de este campo">📋 Copiar</button></span></span>
       <textarea id="${id}" rows="${filas}">${escapeHTML(valor||"")}</textarea>
     </label>`;
 
@@ -2718,6 +2757,90 @@ async function copiarTextoCampo(btn){
 document.addEventListener("click", ev=>{
   const b = ev.target.closest && ev.target.closest(".btn-copiar-campo");
   if(b){ ev.preventDefault(); copiarTextoCampo(b); }
+});
+
+/* ---------- Editor grande del comentario (lapicero ✎ en la edición) ---------- */
+let edComDestino = null, edComOriginal = "";
+function abrirEditorComentario(idCampo){
+  const dest = document.getElementById(idCampo);
+  if(!dest) return;
+  edComDestino = dest; edComOriginal = dest.value;
+  const titulo = (document.getElementById("ed-album") || {}).value || "";
+  $("#edcom-titulo").textContent = "Comentario / ficha completa" + (titulo ? " — " + titulo : "");
+  const ta = $("#edcom-texto");
+  ta.value = dest.value;
+  $("#modal-fondo-edcom").classList.add("abierto");
+  ta.focus(); ta.setSelectionRange(0, 0); ta.scrollTop = 0;
+}
+function cerrarEditorComentario(aplicar){
+  const ta = $("#edcom-texto");
+  if(aplicar && edComDestino){
+    edComDestino.value = ta.value;
+    edComDestino.dispatchEvent(new Event("input", {bubbles:true}));
+  }else if(!aplicar && ta.value !== edComOriginal){
+    if(!confirm("¿Descartar los cambios hechos en esta ventana?")) return;
+  }
+  $("#modal-fondo-edcom").classList.remove("abierto");
+  edComDestino = null;
+}
+// Pone (o quita, si ya estaba puesto) el marcador alrededor del texto seleccionado.
+// Cursiva = *texto*, negrita = **texto**, ambas = ***texto***, subrayado = __texto__.
+function formatearSeleccion(marca){
+  const ta = $("#edcom-texto");
+  const t = ta.value;
+  let a = ta.selectionStart, b = ta.selectionEnd;
+  const m = marca.length;
+  const esAst = marca.charAt(0) === "*";
+  let presente;
+  if(esAst){
+    // si la selección ya incluye sus asteriscos de los extremos, se trabaja con el interior
+    while(b - a > 2 && t[a] === "*" && t[b-1] === "*"){ a++; b--; }
+    let izq = 0, der = 0;
+    while(a - izq - 1 >= 0 && t[a - izq - 1] === "*") izq++;
+    while(b + der < t.length && t[b + der] === "*") der++;
+    const racha = Math.min(izq, der);                // 1 = cursiva, 2 = negrita, 3 = ambas
+    presente = (m === 1) ? (racha % 2 === 1) : (racha >= 2);
+  }else{
+    const sel0 = t.slice(a, b);
+    if(sel0.length > 2*m && sel0.startsWith(marca) && sel0.endsWith(marca)){ a += m; b -= m; }
+    presente = a >= m && t.substr(a - m, m) === marca && t.substr(b, m) === marca;
+  }
+  const sel = t.slice(a, b);
+  let nuevo, ini, fin;
+  if(presente){
+    nuevo = t.slice(0, a - m) + sel + t.slice(b + m); ini = a - m; fin = b - m;
+  }else{
+    nuevo = t.slice(0, a) + marca + sel + marca + t.slice(b); ini = a + m; fin = b + m;
+  }
+  const y = ta.scrollTop;
+  ta.value = nuevo;
+  ta.focus(); ta.setSelectionRange(ini, fin); ta.scrollTop = y;
+}
+// los botones no le quitan la selección al texto
+["#edcom-negrita","#edcom-cursiva","#edcom-subrayado","#edcom-copiar"].forEach(sel=>
+  $(sel).addEventListener("mousedown", e=> e.preventDefault()));
+$("#edcom-negrita").addEventListener("click", ()=> formatearSeleccion("**"));
+$("#edcom-cursiva").addEventListener("click", ()=> formatearSeleccion("*"));
+$("#edcom-subrayado").addEventListener("click", ()=> formatearSeleccion("__"));
+$("#edcom-copiar").addEventListener("click", async e=>{
+  const btn = e.currentTarget, orig = btn.textContent;
+  let ok = false;
+  try{ await navigator.clipboard.writeText($("#edcom-texto").value); ok = true; }catch(err){}
+  btn.textContent = ok ? "✓" : "✗"; setTimeout(()=>{ btn.textContent = orig; }, 1400);
+});
+$("#edcom-texto").addEventListener("keydown", e=>{
+  if(!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+  const k = e.key.toLowerCase();
+  if(k === "b"){ e.preventDefault(); formatearSeleccion("**"); }
+  else if(k === "i"){ e.preventDefault(); formatearSeleccion("*"); }
+  else if(k === "u"){ e.preventDefault(); formatearSeleccion("__"); }
+});
+$("#edcom-aplicar").addEventListener("click", ()=> cerrarEditorComentario(true));
+$("#edcom-cancelar").addEventListener("click", ()=> cerrarEditorComentario(false));
+$("#cerrar-modal-edcom").addEventListener("click", ()=> cerrarEditorComentario(false));   // solo se cierra con ✕ o sus botones
+document.addEventListener("click", ev=>{
+  const b = ev.target.closest && ev.target.closest(".btn-ampliar-campo");
+  if(b){ ev.preventDefault(); abrirEditorComentario(b.dataset.destino); }
 });
 
 /* ---------- Examinar: elegir la imagen en el disco duro (ventana de Windows abierta por lector_cd.py) ---------- */
