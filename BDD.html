@@ -118,7 +118,8 @@
     white-space:nowrap;
   }
   .btn-nuevo-album:hover{background:#5ad3f8;}
-  #contador{color:var(--muted);white-space:nowrap;}
+  #sidebar-contadores{padding:4px 14px 10px;color:var(--muted);font-size:calc(13px * var(--ft,1));line-height:1.55;}
+  #sidebar-contadores b{color:var(--text);font-weight:600;}
   #estado-carga{color:var(--muted);font-size:calc(13px * var(--ft,1));}
 
   /* ---------- Cuerpo: 3 columnas ---------- */
@@ -852,6 +853,9 @@
     padding:8px 20px;font-size:calc(13px * var(--ft,1));
   }
   #barra-seleccion.abierta{display:flex;}
+  .fila-etiqueta{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .btn-copiar-campo{background:var(--panel-hi);border:1px solid var(--border);color:var(--muted);padding:2px 10px;border-radius:4px;cursor:pointer;font-size:calc(12px * var(--ft,1));font-family:inherit;white-space:nowrap;}
+  .btn-copiar-campo:hover{border-color:var(--accent);color:var(--accent);}
   #sel-contador{color:var(--text);font-weight:600;margin-right:auto;}
   #barra-seleccion button{
     background:transparent;border:1px solid var(--border);color:var(--muted);
@@ -971,7 +975,6 @@
   body.modo-movil .vista-selector,
   body.modo-movil .btn-nuevo-album,
   body.modo-movil .btn-seleccionar:not(#btn-modo),
-  body.modo-movil #contador,
   body.modo-movil #usuario-conectado,
   body.modo-movil #sidebar,
   body.modo-movil #barra-seleccion{display:none !important;}
@@ -1223,7 +1226,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.7</div>
+  <div class="pc-version">Versión 2.8</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1273,12 +1276,16 @@
     </div>
   </div>
   <button class="btn-seleccionar" id="btn-modo" type="button"></button>
-  <span id="contador"></span>
   <span id="estado-carga">Cargando datos…</span>
 </header>
 
 <div id="cuerpo">
   <nav id="sidebar">
+    <div id="sidebar-contadores">
+      <div>Álbumes: <b id="cont-albumes">0</b></div>
+      <div>Discos: <b id="cont-discos">0</b></div>
+      <div>Canciones: <b id="cont-canciones">0</b></div>
+    </div>
     <div class="sidebar-tabs" id="sidebar-tabs">
       <select id="sidebar-select" aria-label="Filtrar por">
         <option value="artista" selected>Artistas</option>
@@ -1934,7 +1941,7 @@ function pintarGrid(){
   actualizarBarraSeleccion();
   actualizarNavDetalle();
 
-  $("#contador").textContent = lista.length + (lista.length===1 ? " álbum" : " álbumes");
+  actualizarContadores(lista);
 
   if(modoEstadisticas){ pintarEstadisticas(lista); return; }
 
@@ -2286,6 +2293,12 @@ async function entrarModoEdicion(){
       <span>${label}</span>
       <textarea id="${id}" rows="${filas}">${escapeHTML(valor||"")}</textarea>
     </label>`;
+  // Igual que campoAncho, pero con un botoncito para copiar todo el texto del campo
+  const campoAnchoCopiar = (id,label,valor,filas) => `
+    <label class="campo-edicion campo-edicion-ancho">
+      <span class="fila-etiqueta"><span>${label}</span><button type="button" class="btn-copiar-campo" data-destino="${id}" title="Copiar todo el texto de este campo">📋 Copiar</button></span>
+      <textarea id="${id}" rows="${filas}">${escapeHTML(valor||"")}</textarea>
+    </label>`;
 
   let html = `
     <div class="grupo-edicion">
@@ -2311,7 +2324,7 @@ async function entrarModoEdicion(){
       ${campo("ed-ficha-pdf","URL de la ficha en PDF (Google Drive)",a["Ficha PDF"])}
       ${campoImagenMDX("ed-imagen-mdx","Imagen MDX: ruta del archivo en tu PC (p. ej. D:\\Discos\\Yes - 90125.mdx)",a["Imagen MDX"])}
     </div>
-    ${campoAncho("ed-comentario","Comentario / ficha completa (Markdown: **negrita**, *cursiva*, __subrayado__)",a["Comentario"],6)}
+    ${campoAnchoCopiar("ed-comentario","Comentario / ficha completa (Markdown: **negrita**, *cursiva*, __subrayado__)",a["Comentario"],6)}
     <div class="det-subtitulo">Canciones</div>
     <div id="ed-canciones"></div>
     <button type="button" class="btn-anadir-cancion" id="btn-anadir-cancion">+ Añadir canción</button>
@@ -2689,6 +2702,24 @@ async function irADisco(ruta){
   try{ await navigator.clipboard.writeText(ruta); copiada = true; }catch(e){}
   avisoSync("No se pudo abrir el disco. " + motivo + (copiada ? " Ruta copiada al portapapeles." : " Ruta: " + ruta), 9000);
 }
+/* ---------- Copiar el texto de un campo (botón del Comentario en la edición) ---------- */
+async function copiarTextoCampo(btn){
+  const ta = document.getElementById(btn.dataset.destino);
+  if(!ta) return;
+  const original = btn.textContent;
+  let ok = false;
+  try{ await navigator.clipboard.writeText(ta.value); ok = true; }
+  catch(e){
+    try{ ta.focus(); ta.select(); ok = document.execCommand("copy"); ta.setSelectionRange(ta.value.length, ta.value.length); }catch(e2){}
+  }
+  btn.textContent = ok ? "✓ Copiado" : "No se pudo copiar";
+  setTimeout(()=>{ btn.textContent = original; }, 1600);
+}
+document.addEventListener("click", ev=>{
+  const b = ev.target.closest && ev.target.closest(".btn-copiar-campo");
+  if(b){ ev.preventDefault(); copiarTextoCampo(b); }
+});
+
 /* ---------- Examinar: elegir la imagen en el disco duro (ventana de Windows abierta por lector_cd.py) ---------- */
 function campoImagenMDX(id, label, valor){
   return `
@@ -4012,6 +4043,23 @@ function albumRevisado(a){
     return !!f && esRevisado(f["Revisado"]);
   });
   return esRevisado(a["Revisado"]);
+}
+// Contadores del sidebar: reflejan lo que se ve ahora (filtro del sidebar + buscador).
+// Álbumes = tarjetas visibles (un multi-disco cuenta 1); Discos = filas de la hoja (un disco por fila);
+// Canciones = las de esos discos.
+function actualizarContadores(lista){
+  const ids = new Set();
+  let discos = 0;
+  lista.forEach(a=>{
+    if(a._esGrupo){ discos += a._discos.length; a._discos.forEach(d=> ids.add(d.ALBUM_ID)); }
+    else { discos += 1; ids.add(a.ALBUM_ID); }
+  });
+  let canciones = 0;
+  for(const c of CANCIONES) if(ids.has(c.ALBUM_ID)) canciones++;
+  const f = n=> n.toLocaleString("es-ES");
+  $("#cont-albumes").textContent = f(lista.length);
+  $("#cont-discos").textContent = f(discos);
+  $("#cont-canciones").textContent = f(canciones);
 }
 function insigniaRevisado(a){
   return albumRevisado(a) ? '<span class="badge-revisado" title="Revisado">✓</span>' : "";
