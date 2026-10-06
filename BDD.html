@@ -359,6 +359,28 @@
   #modal-caratula img{max-width:92vw;max-height:84vh;object-fit:contain;border-radius:4px;box-shadow:0 8px 40px rgba(0,0,0,.6);background:var(--panel-hi);}
   #modal-caratula .cerrar-detalle{position:absolute;top:-6px;right:-6px;float:none;transform:translate(50%,-50%);width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--panel);border:1px solid var(--border);border-radius:50%;color:var(--text);z-index:2;font-size:calc(16px * var(--ft,1));}
   #caratula-medidas{color:#ddd;font-size:calc(12px * var(--ft,1));}
+  /* Buscar otra carátula en internet */
+  #modal-fondo-buscar-caratula{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:85;align-items:center;justify-content:center;}
+  #modal-fondo-buscar-caratula.abierto{display:flex;}
+  #modal-buscar-caratula{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:24px 28px;width:min(980px,95vw);max-height:90vh;overflow-y:auto;}
+  #modal-buscar-caratula > .cerrar-detalle{position:absolute;top:12px;right:16px;float:none;z-index:2;}
+  #modal-buscar-caratula h3{margin:0 0 14px;font-size:calc(19px * var(--ft,1));}
+  .bc-actual{display:flex;gap:12px;align-items:center;margin-bottom:14px;color:var(--muted);font-size:calc(12.5px * var(--ft,1));}
+  .bc-actual img{width:64px;height:64px;object-fit:contain;background:var(--panel-hi);border-radius:3px;}
+  .bc-actual #bc-actual-titulo{color:var(--text);font-weight:600;}
+  .bc-busqueda,.bc-url{display:flex;gap:8px;margin-bottom:8px;}
+  .bc-busqueda input,.bc-url input{flex:1;min-width:0;background:var(--panel-hi);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;font-family:inherit;font-size:calc(14px * var(--ft,1));}
+  #bc-estado{min-height:1.4em;margin:6px 0 10px;font-size:calc(12.5px * var(--ft,1));color:var(--muted);}
+  #bc-estado.error{color:#c96a5a;}
+  #bc-estado.ok{color:#5fa88a;}
+  #bc-resultados{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+  .bc-card{background:var(--panel-hi);border:1px solid var(--border);border-radius:5px;padding:8px;display:flex;flex-direction:column;gap:5px;}
+  .bc-card img{width:100%;aspect-ratio:1/1;object-fit:contain;background:var(--bg);border-radius:3px;cursor:zoom-in;display:block;}
+  .bc-card .bc-tit{font-size:calc(12px * var(--ft,1));font-weight:600;line-height:1.25;word-break:break-word;}
+  .bc-card .bc-sub{font-size:calc(11px * var(--ft,1));color:var(--muted);line-height:1.25;}
+  .bc-card button{margin-top:auto;}
+  .bc-otras{margin-top:18px;border-top:1px solid var(--border);padding-top:12px;display:flex;flex-direction:column;gap:8px;font-size:calc(12.5px * var(--ft,1));color:var(--muted);}
+  .bc-otras a{color:var(--accent);}
   .badge-id, .badge-rating{
     display:inline-flex;align-items:center;gap:5px;
     background:var(--panel-hi);
@@ -809,7 +831,7 @@
     display:none;
     position:fixed;inset:0;
     background:rgba(0,0,0,.6);
-    z-index:80;
+    z-index:95;
     align-items:center;
     justify-content:center;
   }
@@ -1247,7 +1269,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.12</div>
+  <div class="pc-version">Versión 2.13</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1472,6 +1494,33 @@
     <span class="cerrar-detalle" id="cerrar-modal-caratula" title="Cerrar">✕</span>
     <img id="caratula-grande" alt="">
     <div id="caratula-medidas"></div>
+    <button type="button" class="btn-modificar" id="btn-buscar-caratula" title="Buscar en internet otra carátula para este álbum y sustituir la actual">🔍 Buscar otra carátula</button>
+  </div>
+</div>
+
+<div id="modal-fondo-buscar-caratula">
+  <div id="modal-buscar-caratula">
+    <span class="cerrar-detalle" id="cerrar-buscar-caratula" title="Cerrar">✕</span>
+    <h3>Buscar otra carátula</h3>
+    <div class="bc-actual">
+      <img id="bc-actual-img" alt="">
+      <div><div id="bc-actual-titulo"></div><div id="bc-actual-medidas"></div></div>
+    </div>
+    <div class="bc-busqueda">
+      <input type="text" id="bc-texto" placeholder="Artista y título del álbum" autocomplete="off">
+      <button type="button" class="btn-modificar" id="bc-buscar">Buscar</button>
+    </div>
+    <div id="bc-estado"></div>
+    <div id="bc-resultados"></div>
+    <div class="bc-otras">
+      <div class="det-subtitulo">Otras formas de elegir la carátula</div>
+      <div class="bc-url">
+        <input type="text" id="bc-url" placeholder="Pega la dirección (URL) de una imagen de cualquier web" autocomplete="off">
+        <button type="button" class="btn-modificar" id="bc-usar-url">Usar URL</button>
+      </div>
+      <label>O elige un archivo de tu PC: <input type="file" id="bc-archivo" accept="image/*"></label>
+      <a id="bc-google" target="_blank" rel="noopener noreferrer">Abrir Google Imágenes con esta búsqueda ↗</a>
+    </div>
   </div>
 </div>
 
@@ -4542,6 +4591,296 @@ function cerrarCaratulaGrande(){
 }
 $("#det-cover").addEventListener("click", e=>{ if(e.target.tagName === "IMG") abrirCaratulaGrande(); });
 $("#cerrar-modal-caratula").addEventListener("click", cerrarCaratulaGrande);   // solo se cierra con la ✕
+
+/* ---------- Buscar otra carátula en internet (desde la carátula en grande) ---------- */
+// Fuentes con acceso desde el navegador: Apple Music (iTunes), MusicBrainz + Cover Art Archive y Discogs.
+// Además se puede pegar la URL de cualquier imagen o elegir un archivo del PC.
+// La carátula elegida se copia a Covers/ en GitHub (nombre único), se guarda en la hoja y se
+// borra la antigua de GitHub si ningún otro álbum la usa.
+let bcAlbum = null;          // entrada de la vista (álbum suelto o grupo multi-disco)
+let bcOcupado = false;
+let bcBusquedaId = 0;
+let bcVistos = new Set();
+let bcTerminada = false;
+let bcFallos = [];
+
+function bcEstado(texto, clase){
+  const e = $("#bc-estado");
+  e.textContent = texto || "";
+  e.className = clase || "";
+}
+function bcOcupar(si){
+  bcOcupado = si;
+  $$("#modal-buscar-caratula button, #modal-buscar-caratula input").forEach(el=>{ el.disabled = si; });
+}
+async function bcFetchJSON(url, ms){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=> ctrl.abort(), ms || 12000);
+  try{
+    const res = await fetch(url, { signal: ctrl.signal });
+    if(!res.ok) throw new Error("respondió " + res.status);
+    return await res.json();
+  }finally{ clearTimeout(t); }
+}
+// Quita los caracteres con significado especial en las búsquedas de MusicBrainz (Lucene)
+function bcPalabras(texto){
+  return String(texto||"").replace(/[+\-&|!(){}\[\]^"~*?:\\\/]/g, " ").split(/\s+/).filter(p=> p.length > 1 || /\d/.test(p)).slice(0, 6);
+}
+const BC_FUENTES = [
+  { nombre:"Apple Music", buscar: async (texto)=>{
+      const d = await bcFetchJSON(`https://itunes.apple.com/search?media=music&entity=album&limit=15&term=${encodeURIComponent(texto)}`);
+      return (d.results||[]).filter(r=> r.artworkUrl100).map(r=>({
+        fuente:"Apple Music",
+        titulo: r.collectionName || "",
+        sub: [r.artistName, String(r.releaseDate||"").slice(0,4)].filter(Boolean).join(" · "),
+        thumb: r.artworkUrl100.replace(/\/\d+x\d+bb\./, "/300x300bb."),
+        full:  r.artworkUrl100.replace(/\/\d+x\d+bb\./, "/1200x1200bb."),
+        nota:"hasta 1200 px"
+      }));
+  }},
+  { nombre:"MusicBrainz", buscar: async (texto)=>{
+      const palabras = bcPalabras(texto);
+      if(!palabras.length) return [];
+      const q = palabras.map(p=> `(releasegroup:${p} OR artist:${p})`).join(" AND ");
+      const d = await bcFetchJSON(`https://musicbrainz.org/ws/2/release-group/?fmt=json&limit=10&query=${encodeURIComponent(q)}`);
+      return (d["release-groups"]||[]).map(r=>({
+        fuente:"MusicBrainz",
+        titulo: r.title || "",
+        sub: [(r["artist-credit"]||[]).map(x=> x.name).join(", "), String(r["first-release-date"]||"").slice(0,4)].filter(Boolean).join(" · "),
+        thumb: `https://coverartarchive.org/release-group/${r.id}/front-250`,
+        full:  `https://coverartarchive.org/release-group/${r.id}/front-1200`,
+        nota:"hasta 1200 px"
+      }));   // los que no tienen imagen en Cover Art Archive se descartan al fallar su miniatura
+  }},
+  { nombre:"Discogs", buscar: async (texto)=>{
+      const d = await bcFetchJSON(`https://api.discogs.com/database/search?type=release&per_page=12&q=${encodeURIComponent(texto)}`);
+      return (d.results||[]).filter(r=>{
+        const u = String(r.cover_image || r.thumb || "");
+        return u && !/spacer\.gif/i.test(u);
+      }).map(r=>({
+        fuente:"Discogs",
+        titulo: r.title || "",
+        sub: [r.year, r.country, (r.format||[]).slice(0,2).join(", ")].filter(Boolean).join(" · "),
+        thumb: r.thumb || r.cover_image,
+        full:  r.cover_image || r.thumb,
+        nota:""
+      }));
+  }}
+];
+
+function bcActualizarConteo(){
+  if(!bcTerminada || bcOcupado) return;
+  const n = $$("#bc-resultados .bc-card").length;
+  const aviso = bcFallos.length ? " (no respondió: " + bcFallos.join(", ") + ")" : "";
+  if(n) bcEstado(n + " carátula(s) encontradas" + aviso + ". Pulsa «Usar esta» en la que prefieras (clic en la imagen para verla grande).", bcFallos.length ? "" : "");
+  else bcEstado("No se encontraron carátulas" + aviso + ". Prueba con otro texto, pega una URL o usa Google Imágenes.", "error");
+}
+function bcPintarTarjeta(r){
+  const div = document.createElement("div");
+  div.className = "bc-card";
+  div.innerHTML = `
+    <a href="${escapeAttr(r.full)}" target="_blank" rel="noopener noreferrer" title="Abrir la imagen a tamaño completo en otra pestaña"><img src="${escapeAttr(r.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer"></a>
+    <div class="bc-tit">${escapeHTML(r.titulo)}</div>
+    <div class="bc-sub">${escapeHTML(r.sub)}</div>
+    <div class="bc-sub">${escapeHTML(r.fuente)}${r.nota ? " · " + escapeHTML(r.nota) : ""}</div>
+    <button type="button" class="btn-modificar">Usar esta</button>`;
+  div.querySelector("img").addEventListener("error", ()=>{ div.remove(); bcActualizarConteo(); });
+  div.querySelector("button").addEventListener("click", ()=> bcAplicar(r.full, false));
+  $("#bc-resultados").appendChild(div);
+}
+async function bcBuscar(){
+  if(bcOcupado) return;
+  const texto = $("#bc-texto").value.trim();
+  if(!texto){ bcEstado("Escribe el artista y el título del álbum.", "error"); return; }
+  const id = ++bcBusquedaId;
+  $("#bc-resultados").innerHTML = "";
+  bcVistos = new Set();
+  bcTerminada = false;
+  bcFallos = [];
+  $("#bc-google").href = "https://www.google.com/search?tbm=isch&q=" + encodeURIComponent(texto + " cover");
+  bcEstado("Buscando en Apple Music, MusicBrainz y Discogs…");
+  let pendientes = BC_FUENTES.length;
+  BC_FUENTES.forEach(async f=>{
+    try{
+      const lista = await f.buscar(texto);
+      if(id === bcBusquedaId){
+        lista.forEach(r=>{
+          if(!r.full || bcVistos.has(r.full)) return;
+          bcVistos.add(r.full);
+          bcPintarTarjeta(r);
+        });
+      }
+    }catch(err){
+      console.warn("Búsqueda de carátulas en " + f.nombre + ":", err);
+      if(id === bcBusquedaId) bcFallos.push(f.nombre);
+    }
+    if(id !== bcBusquedaId) return;
+    pendientes--;
+    if(pendientes === 0){ bcTerminada = true; bcActualizarConteo(); }
+  });
+}
+
+function abrirBuscadorCaratula(){
+  if(!albumSeleccionado) return;
+  bcAlbum = albumSeleccionado;
+  const actual = String(bcAlbum["PORTADA"]||"").trim();
+  $("#bc-actual-img").src = actual;
+  $("#bc-actual-img").style.visibility = actual ? "" : "hidden";
+  $("#bc-actual-titulo").textContent = (bcAlbum["ARTISTA ALBUM"]||"") + (bcAlbum["ALBUM"] ? " — " + bcAlbum["ALBUM"] : "");
+  const dim = DIM_CARATULAS.get(actual);
+  $("#bc-actual-medidas").textContent = actual ? ("Carátula actual" + (dim && dim !== "—" ? ": " + dim + " px" : "")) : "Este álbum no tiene carátula todavía";
+  $("#bc-texto").value = [bcAlbum["ARTISTA ALBUM"], bcAlbum["ALBUM"]].filter(Boolean).join(" ");
+  $("#bc-url").value = "";
+  $("#bc-archivo").value = "";
+  $("#modal-fondo-buscar-caratula").classList.add("abierto");
+  bcBuscar();
+}
+function cerrarBuscadorCaratula(){
+  if(bcOcupado) return;
+  bcBusquedaId++;   // descarta las búsquedas que aún no hayan terminado
+  $("#modal-fondo-buscar-caratula").classList.remove("abierto");
+  $("#bc-resultados").innerHTML = "";
+}
+
+// Descarga la imagen desde el navegador y, si la web no lo permite (CORS), a través del Apps Script.
+async function descargarImagenGenerica(url){
+  let blob = null;
+  try{
+    const res = await fetch(url, { referrerPolicy: "no-referrer" });
+    if(!res.ok) throw new Error("el servidor respondió " + res.status);
+    blob = await res.blob();
+  }catch(e){ blob = null; }
+  if(!blob || !blob.size || (blob.type && !/^image\//i.test(blob.type))){
+    try{ blob = await descargarImagenPorScript(url); }
+    catch(errScript){ throw new Error("no se pudo descargar la imagen (" + errScript.message + ")"); }
+  }
+  if(!blob || !blob.size) throw new Error("la imagen llegó vacía");
+  if(blob.type && !/^image\//i.test(blob.type)) throw new Error("el enlace no devuelve una imagen");
+  if(blob.size > 15 * 1024 * 1024) throw new Error("la imagen es demasiado grande (" + Math.round(blob.size/1048576) + " MB)");
+  return blob;
+}
+function medirBlobImagen(blob){
+  return new Promise((resolve, reject)=>{
+    const u = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = ()=>{ URL.revokeObjectURL(u); resolve({ w: img.naturalWidth, h: img.naturalHeight }); };
+    img.onerror = ()=>{ URL.revokeObjectURL(u); reject(new Error("el archivo no es una imagen válida")); };
+    img.src = u;
+  });
+}
+// Sube la imagen a Covers/ con un nombre único (así el navegador no enseña la antigua por la caché)
+async function subirBlobACovers(blob, album, urlOrigen){
+  const ext = extensionDeImagen(blob, urlOrigen || blob.name || "");
+  const nombre = `${album.ALBUM_ID}-${slugTexto(album["ARTISTA ALBUM"])}-${slugTexto(album["ALBUM"])}-${Date.now().toString(36)}.${ext}`;
+  const ruta = `${GITHUB_CARPETA_PORTADAS}/${nombre}`;
+  const urlApi = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${ruta}`;
+  const base64 = await leerArchivoComoBase64(blob);
+  const resPut = await fetch(urlApi, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${tokenGithub}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ message: `Carátula: ${album["ALBUM"] || nombre}`, content: base64, branch: GITHUB_RAMA })
+  });
+  const datos = await resPut.json();
+  if(!resPut.ok){
+    if(resPut.status === 401){ tokenGithub = null; sessionStorage.removeItem("token_github"); }
+    throw new Error("GitHub: " + (datos.message || resPut.status));
+  }
+  return { url: datos.content.download_url, ruta };
+}
+
+// origen: URL (texto) o archivo (File). esUrlManual: si falla la copia, se ofrece guardar solo el enlace.
+async function bcAplicar(origen, esUrlManual){
+  if(bcOcupado || !bcAlbum) return;
+  if(!(await asegurarTokenGithub())){ bcEstado("Hace falta el token de GitHub para guardar la carátula.", "error"); return; }
+  bcOcupar(true);
+  let rutaSubida = null;
+  try{
+    const album = bcAlbum;
+    const esTexto = typeof origen === "string";
+    let blob = null;
+    let urlFinal = null;
+
+    if(esTexto){
+      bcEstado("Descargando la imagen…");
+      try{ blob = await descargarImagenGenerica(origen); }
+      catch(errDesc){
+        if(!esUrlManual) throw errDesc;
+        if(!confirm("No se pudo copiar la imagen a tu repositorio (" + errDesc.message + ").\n\n¿Quieres guardar directamente el enlace como carátula? Dependerá de que esa web mantenga la imagen.")){
+          bcEstado("Cancelado."); return;
+        }
+        urlFinal = origen;
+      }
+    }else{
+      blob = origen;
+    }
+
+    if(blob){
+      const dims = await medirBlobImagen(blob);
+      const actual = DIM_CARATULAS.get(String(album["PORTADA"]||"").trim());
+      const aviso = `La nueva carátula mide ${dims.h} × ${dims.w} px (${Math.max(1, Math.round(blob.size/1024))} KB)` +
+        (actual && actual !== "—" ? `; la actual mide ${actual} px` : "") +
+        `.\n\n¿Sustituir la carátula de «${album["ALBUM"] || "este álbum"}»?`;
+      if(!confirm(aviso)){ bcEstado("Cancelado."); return; }
+      bcEstado("Subiendo la carátula a tu repositorio de GitHub…");
+      const sub = await subirBlobACovers(blob, album, esTexto ? origen : "");
+      urlFinal = sub.url;
+      rutaSubida = sub.ruta;
+    }
+
+    bcEstado("Guardando en la hoja de cálculo…");
+    const ids = album._esGrupo ? album._discos.map(d=> d.ALBUM_ID) : [album.ALBUM_ID];
+    const anteriores = new Set(ids.map(id=>{
+      const f = ALBUMES.find(x=> x.ALBUM_ID === id);
+      return f ? rutaCaratulaRepo(f["PORTADA"]) : null;
+    }).filter(Boolean));
+    for(const id of ids){
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ sesion: sesionActual, album: { ALBUM_ID: id, PORTADA: urlFinal } })
+      });
+      const json = await res.json();
+      if(!json.ok){
+        if(manejarErrorSesion(json.error)){ if(rutaSubida) limpiarCaratulasHuerfanas([rutaSubida]); return; }
+        throw new Error(json.error || "no se pudo guardar");
+      }
+      const fila = ALBUMES.find(x=> x.ALBUM_ID === id);
+      if(fila) fila["PORTADA"] = urlFinal;   // si falla un disco posterior, la nueva imagen sigue en uso y no se borra
+    }
+    rutaSubida = null;   // ya está en uso: no se limpia
+
+    ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
+    abrirDetalle(encontrarEntradaVista(album.ALBUM_ID) || album);
+    $("#caratula-medidas").textContent = "";
+    $("#caratula-grande").src = urlFinal;      // la carátula en grande pasa a mostrar la nueva
+    anteriores.delete(rutaCaratulaRepo(urlFinal));
+    if(anteriores.size) limpiarCaratulasHuerfanas([...anteriores]);   // sin await: borra la antigua si nadie más la usa
+    bcOcupar(false);
+    cerrarBuscadorCaratula();
+    avisoSync("✓ Carátula cambiada.", 5000);
+  }catch(err){
+    console.error(err);
+    bcEstado("No se pudo cambiar la carátula: " + err.message + ". Prueba con otra, pega una URL o súbela desde tu PC.", "error");
+    if(rutaSubida) limpiarCaratulasHuerfanas([rutaSubida]);   // no deja huérfana la imagen ya subida
+  }finally{
+    if(bcOcupado) bcOcupar(false);
+  }
+}
+
+$("#btn-buscar-caratula").addEventListener("click", abrirBuscadorCaratula);
+$("#cerrar-buscar-caratula").addEventListener("click", cerrarBuscadorCaratula);
+$("#bc-buscar").addEventListener("click", bcBuscar);
+$("#bc-texto").addEventListener("keydown", e=>{ if(e.key === "Enter") bcBuscar(); });
+$("#bc-usar-url").addEventListener("click", ()=>{
+  const u = $("#bc-url").value.trim();
+  if(!/^https?:\/\//i.test(u)){ bcEstado("Pega una dirección que empiece por http:// o https://", "error"); return; }
+  bcAplicar(u, true);
+});
+$("#bc-url").addEventListener("keydown", e=>{ if(e.key === "Enter") $("#bc-usar-url").click(); });
+$("#bc-archivo").addEventListener("change", e=>{
+  const f = e.target.files[0];
+  e.target.value = "";
+  if(f) bcAplicar(f, false);
+});
 
 /* ---------- Tooltip con el tamaño de la carátula ---------- */
 // Cuando una imagen de carátula termina de cargar (rejilla, tarjetas o detalle),
