@@ -341,6 +341,31 @@
     color:var(--muted);font-family:Fraunces,Georgia,serif;font-size:calc(12px * var(--ft,1));text-align:center;padding:6px;
   }
   .cover-mediana img{width:100%;height:100%;object-fit:cover;}
+  /* Vinilo que asoma por detrás de la carátula del detalle (se oculta en móvil y pantallas estrechas) */
+  .det-cover-wrap{
+    --vinilo-asoma:44px;   /* cuánto sobresale el disco por la derecha de la carátula */
+    --vinilo-tam:94%;      /* diámetro del disco respecto al de la carátula */
+    position:relative;flex-shrink:0;align-self:flex-start;
+    margin-right:calc(var(--vinilo-asoma) - 16px);   /* 16px = separación (gap) de .det-cabecera */
+  }
+  .det-cover-wrap .cover-mediana{position:relative;z-index:1;box-shadow:4px 0 10px rgba(0,0,0,.35);}
+  .vinilo{
+    position:absolute;z-index:0;pointer-events:none;
+    top:50%;right:calc(-1 * var(--vinilo-asoma));
+    width:var(--vinilo-tam);aspect-ratio:1;transform:translateY(-50%);
+    border-radius:50%;
+    background:
+      conic-gradient(from 20deg, transparent 0deg, rgba(255,255,255,.13) 35deg, transparent 80deg, transparent 180deg, rgba(255,255,255,.13) 215deg, transparent 260deg),
+      repeating-radial-gradient(circle at center, #1a1a1a 0 2px, #262626 2px 3px),
+      #161616;
+    /* el borde claro fino separa el disco del fondo en el tema oscuro */
+    box-shadow:0 0 0 1px rgba(255,255,255,.16), 0 2px 8px rgba(0,0,0,.5), inset 0 0 0 3px rgba(255,255,255,.05);
+  }
+  .vinilo::before{   /* etiqueta central (queda tapada por la carátula salvo que se aumente --vinilo-asoma) */
+    content:"";position:absolute;inset:34%;border-radius:50%;
+    background:radial-gradient(circle, var(--bg) 0 5%, var(--accent) 5.5% 100%);
+    box-shadow:0 0 0 2px rgba(0,0,0,.35);
+  }
 
   .det-info-top{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;}
   .det-sello-anio{font-size:calc(15px * var(--ft,1));font-weight:600;color:var(--text);}
@@ -1047,6 +1072,8 @@
   body.modo-movil #detalle{top:0;bottom:0;right:0;width:100%;max-width:700px;position:fixed;z-index:70;}
   body.modo-movil .det-cabecera{flex-direction:column;}
   body.modo-movil .cover-mediana{width:160px;height:160px;margin:0 auto;}
+  body.modo-movil .det-cover-wrap{margin-right:0;align-self:auto;}
+  body.modo-movil .vinilo{display:none;}
   body.modo-movil .det-info-top{width:100%;}
   body.modo-movil .det-catalogo,
   body.modo-movil .det-codbarras,
@@ -1064,6 +1091,8 @@
   @media (max-width:480px){
     .det-cabecera{flex-direction:column;}
     .cover-mediana{width:140px;height:140px;margin:0 auto;}
+    .det-cover-wrap{margin-right:0;align-self:auto;}
+    .vinilo{display:none;}
     .det-info-top{width:100%;}
   }
 
@@ -1269,7 +1298,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.14</div>
+  <div class="pc-version">Versión 2.15</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1386,7 +1415,10 @@
 
     <div id="vista-album">
       <div class="det-cabecera">
-        <div class="cover-mediana" id="det-cover"></div>
+        <div class="det-cover-wrap">
+          <div class="cover-mediana" id="det-cover"></div>
+          <div class="vinilo" aria-hidden="true"></div>
+        </div>
         <div class="det-info-top">
           <div class="det-sello-anio" id="det-sello-anio"></div>
           <div class="det-genero" id="det-genero"></div>
