@@ -345,8 +345,9 @@
   .det-cover-wrap{
     --vinilo-asoma:44px;   /* cuánto sobresale el disco por la derecha de la carátula */
     --vinilo-tam:94%;      /* diámetro del disco respecto al de la carátula */
+    --vinilo-separacion:22px;   /* espacio libre entre el disco y los textos de la derecha */
     position:relative;flex-shrink:0;align-self:flex-start;
-    margin-right:calc(var(--vinilo-asoma) - 16px);   /* 16px = separación (gap) de .det-cabecera */
+    margin-right:calc(var(--vinilo-asoma) + var(--vinilo-separacion) - 16px);   /* 16px = separación (gap) de .det-cabecera */
   }
   .det-cover-wrap .cover-mediana{position:relative;z-index:1;box-shadow:4px 0 10px rgba(0,0,0,.35);}
   .vinilo{
@@ -1298,7 +1299,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.15</div>
+  <div class="pc-version">Versión 2.16</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
