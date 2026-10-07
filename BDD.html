@@ -346,7 +346,7 @@
     --vinilo-asoma:44px;   /* cuánto sobresale el disco por la derecha de la carátula */
     --vinilo-tam:94%;      /* diámetro del disco respecto al de la carátula */
     --vinilo-separacion:22px;   /* espacio libre entre el disco y los textos de la derecha */
-    --vinilo-giro:3s;      /* lo que tarda el disco en dar una vuelta al pasar el ratón por encima */
+    --vinilo-giro:3s;      /* lo que tarda el disco en dar una vuelta */
     position:relative;flex-shrink:0;align-self:flex-start;
     margin-right:calc(var(--vinilo-asoma) + var(--vinilo-separacion) - 16px);   /* 16px = separación (gap) de .det-cabecera */
   }
@@ -355,7 +355,7 @@
     position:absolute;z-index:0;pointer-events:none;
     top:50%;right:calc(-1 * var(--vinilo-asoma));
     width:var(--vinilo-tam);aspect-ratio:1;transform:translateY(-50%);
-    animation:vinilo-girar var(--vinilo-giro) linear infinite;animation-play-state:paused;
+    animation:vinilo-girar var(--vinilo-giro) linear infinite;
     border-radius:50%;
     background:
       conic-gradient(from 20deg, transparent 0deg, rgba(255,255,255,.17) 35deg, transparent 80deg, transparent 180deg, rgba(255,255,255,.17) 215deg, transparent 260deg),
@@ -364,13 +364,12 @@
     /* el borde claro fino separa el disco del fondo en el tema oscuro */
     box-shadow:0 0 0 1px rgba(255,255,255,.16), 0 2px 8px rgba(0,0,0,.5), inset 0 0 0 3px rgba(255,255,255,.05);
   }
-  /* Gira mientras el ratón está sobre la carátula. Como los surcos son simétricos, lo que se ve moverse son los reflejos de luz. */
-  .det-cover-wrap:hover .vinilo{animation-play-state:running;}
+  /* Gira siempre. Como los surcos son simétricos, lo que se ve moverse son los reflejos de luz. */
   @keyframes vinilo-girar{
     from{transform:translateY(-50%) rotate(0deg);}
     to{transform:translateY(-50%) rotate(360deg);}
   }
-  @media (prefers-reduced-motion:reduce){ .det-cover-wrap:hover .vinilo{animation-play-state:paused;} }
+  @media (prefers-reduced-motion:reduce){ .vinilo{animation:none;} }
   .vinilo::before{   /* etiqueta central (queda tapada por la carátula salvo que se aumente --vinilo-asoma) */
     content:"";position:absolute;inset:34%;border-radius:50%;
     background:radial-gradient(circle, var(--bg) 0 5%, var(--accent) 5.5% 100%);
@@ -490,7 +489,12 @@
   }
   .btn-letra:hover{border-color:var(--accent);color:var(--accent);}
 
-  .det-particulares{font-size:calc(13.5px * var(--ft,1));color:var(--muted);line-height:2;}
+  .det-particulares{
+    font-size:calc(13.5px * var(--ft,1));color:var(--muted);line-height:2;
+    background:var(--panel-hi);                   /* un tono más claro que el panel: se distingue sin chocar */
+    border:1px solid var(--border);border-left:3px solid var(--accent-dim);
+    border-radius:6px;padding:8px 16px;
+  }
   .det-particulares b{color:var(--text);font-weight:500;}
   .det-particulares .vacio{opacity:.5;}
 
@@ -1308,7 +1312,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.17</div>
+  <div class="pc-version">Versión 2.18</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
