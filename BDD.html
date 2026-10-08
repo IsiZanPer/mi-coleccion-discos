@@ -758,6 +758,9 @@
   .pop-resultado td:not(:first-child),.pop-resultado th:not(:first-child){text-align:right;white-space:nowrap;}
   .pop-resultado th{color:var(--muted);font-size:calc(11.5px * var(--ft,1));}
   .pop-resultado ul{margin:0;padding-left:18px;font-size:calc(12.5px * var(--ft,1));color:var(--text);line-height:1.5;}
+  .pop-unidades button.pr-aplicar{background:var(--accent-dim);border-color:var(--accent);color:#fff;font-weight:600;text-align:center;}
+  .pop-unidades button.pr-aplicar:hover{background:var(--accent);color:#0b1014;}
+  .pop-unidades button:disabled{opacity:.55;cursor:default;}
   .btn-desmontar-sec{background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 9px;border-radius:4px;cursor:pointer;font-size:calc(12px * var(--ft,1));font-family:inherit;margin-left:6px;}
   .btn-desmontar-sec:hover{border-color:var(--accent);color:var(--accent);}
   body.modo-movil #btn-ir-disco, body.modo-movil .btn-ir-disco-sec,
@@ -1312,7 +1315,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.18</div>
+  <div class="pc-version">Versión 2.19</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -3278,12 +3281,67 @@ function compararConTOC(canciones, pistasDisco){
   }
   return { nivel, titulo, nA, nD, totA, totD, comparables, dentro, difs, puntos: (nA === nD ? 1000 : 0) + (comparables ? dentro / comparables * 100 : 0) - Math.abs(nA - nD) };
 }
-function mostrarResultadoDisco(html){
+// accion (opcional): { texto, fn } añade un botón que ejecuta fn(); si devuelve true, se cierra la ventana.
+function mostrarResultadoDisco(html, accion){
   const f = document.createElement("div");
   f.className = "pop-unidades-fondo";
-  f.innerHTML = `<div class="pop-unidades pop-resultado">${html}<button type="button">Cerrar</button></div>`;
-  f.querySelector("button").addEventListener("click", ()=> f.remove());   // solo se cierra con el botón
+  f.innerHTML = `<div class="pop-unidades pop-resultado">${html}` +
+    (accion ? `<button type="button" class="pr-aplicar">${escapeHTML(accion.texto)}</button>` : "") +
+    `<button type="button" class="pr-cerrar">Cerrar</button></div>`;
+  f.querySelector(".pr-cerrar").addEventListener("click", ()=> f.remove());   // solo se cierra con el botón
+  if(accion){
+    const bA = f.querySelector(".pr-aplicar");
+    bA.addEventListener("click", async ()=>{
+      const botones = f.querySelectorAll("button");
+      botones.forEach(b=>{ b.disabled = true; });
+      try{
+        if(await accion.fn()){ f.remove(); return; }
+      }catch(err){
+        console.error(err);
+        alert("No se pudieron aplicar las duraciones: " + err.message);
+      }
+      botones.forEach(b=>{ b.disabled = false; });
+    });
+  }
   document.body.appendChild(f);
+}
+function formatoHMS(seg){
+  const s = Math.max(0, Math.round(seg || 0));
+  const p = n=> String(n).padStart(2, "0");
+  return p(Math.floor(s/3600)) + ":" + p(Math.floor((s%3600)/60)) + ":" + p(s%60);   // igual que devuelve la hoja (HH:mm:ss)
+}
+// Copia al álbum las duraciones del disco montado (se da por bueno el disco). Devuelve true si se aplicó.
+async function aplicarDuracionesDisco(cambios, nombreAlbum, nivel){
+  let aviso = "Se cambiará la duración de " + cambios.length + " canción(es) de «" + nombreAlbum + "» por la que tiene el disco montado.";
+  if(nivel === "mal") aviso += "\n\nOJO: las duraciones del disco son muy distintas a las del álbum; puede que no sea el mismo disco.";
+  aviso += "\n\n¿Continuar?";
+  if(!confirm(aviso)) return false;
+  const editar = cambios.map(x=>({ ALBUM_ID: x.cancion.ALBUM_ID, pista_original: x.cancion["PISTA Nº"], "Duración": formatoHMS(x.segundos) }));
+  // Mismo mecanismo que el editor: solo se manda el campo Duración de cada canción
+  const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ sesion: sesionActual, canciones_editar: editar }) });
+  const json = await res.json();
+  if(!json.ok){
+    if(manejarErrorSesion(json.error)) return false;
+    throw new Error(json.error || "no se pudo guardar");
+  }
+  // Se actualiza la copia en memoria (canciones y "Total duración" de cada disco afectado)
+  const ids = new Set();
+  editar.forEach(ed=>{
+    const c = CANCIONES.find(x=> x.ALBUM_ID === ed.ALBUM_ID && String(x["PISTA Nº"]) === String(ed.pista_original));
+    if(c) c["Duración"] = ed["Duración"];
+    ids.add(ed.ALBUM_ID);
+  });
+  ids.forEach(id=>{
+    const total = CANCIONES.filter(c=> c.ALBUM_ID === id).reduce((t, c)=> t + segundosDeDuracion(c["Duración"]), 0);
+    const fila = ALBUMES.find(a=> a.ALBUM_ID === id);
+    if(fila) fila["Total duración"] = formatoHMS(total);   // en la hoja es una fórmula que se recalcula sola
+  });
+  cacheDuracionSeg = new Map();
+  const idActual = albumSeleccionado && albumSeleccionado.ALBUM_ID;
+  ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
+  if(idActual) abrirDetalle(encontrarEntradaVista(idActual) || albumSeleccionado);   // repinta el detalle con las duraciones nuevas
+  avisoSync("✓ Duraciones del disco aplicadas a " + cambios.length + " canción(es).", 6000);
+  return true;
 }
 async function comprobarDiscoMontado(canciones, nombreAlbum){
   if(!canciones || !canciones.length){ avisoSync("Este álbum no tiene canciones guardadas con las que comparar.", 6000); return; }
@@ -3324,7 +3382,20 @@ async function comprobarDiscoMontado(canciones, nombreAlbum){
     html += `<p class="pr-sub">Había ${resultados.length} discos montados; se muestra el que más se parece. Los demás: ` +
       resultados.slice(1).map(x=> escapeHTML(x.unidad.letra) + " (" + x.cmp.nD + " pistas)").join(", ") + `.</p>`;
   }
-  mostrarResultadoDisco(html);
+  // Si el disco y el álbum tienen las mismas pistas, se ofrece copiar las duraciones del disco al álbum
+  let accion = null;
+  if(c.nA === c.nD){
+    const cambios = [];
+    canciones.forEach((cn, i)=>{
+      const segD = Math.round((m.toc.pistas[i] && m.toc.pistas[i].segundos) || 0);
+      if(segD > 0 && segundosDeDuracion(cn["Duración"]) !== segD) cambios.push({ cancion: cn, segundos: segD });
+    });
+    if(cambios.length){
+      html += `<p class="pr-sub">Si das por bueno el disco, puedes copiar sus duraciones al álbum (${cambios.length} de ${c.nA} canciones cambiarían).</p>`;
+      accion = { texto: "Aplicar las duraciones del disco al álbum (" + cambios.length + ")", fn: ()=> aplicarDuracionesDisco(cambios, nombreAlbum || "este álbum", c.nivel) };
+    }
+  }
+  mostrarResultadoDisco(html, accion);
 }
 $("#btn-comprobar-disco").addEventListener("click", ()=>{
   if(!albumSeleccionado) return;
