@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-<script>try{ if(localStorage.getItem("tema_visual")==="claro") document.documentElement.setAttribute("data-tema","claro"); var _ft=parseFloat(localStorage.getItem("tam_fuentes")); if(_ft>=1 && _ft<=2) document.documentElement.style.setProperty("--ft",String(_ft)); }catch(e){}</script>
+<script>try{ if(localStorage.getItem("tema_visual")==="claro") document.documentElement.setAttribute("data-tema","claro"); var _ft=parseFloat(localStorage.getItem("tam_fuentes")); if(_ft>=1 && _ft<=2) document.documentElement.style.setProperty("--ft",String(_ft)); var _as=parseFloat(localStorage.getItem("ancho_sidebar")); if(_as>=180 && _as<=520) document.documentElement.style.setProperty("--ancho-sidebar",_as+"px"); var _ad=parseFloat(localStorage.getItem("ancho_detalle")); if(_ad>=420 && _ad<=1200) document.documentElement.style.setProperty("--ancho-detalle",_ad+"px"); }catch(e){}</script>
 <style>
   :root{
     --bg:#14151a;
@@ -129,9 +129,27 @@
     min-height:0;
   }
 
+  /* --- Divisores arrastrables entre paneles (solo en pantallas anchas) --- */
+  .divisor-ancho{
+    flex:0 0 7px;width:7px;margin:0 -3px;position:relative;z-index:6;
+    cursor:col-resize;touch-action:none;outline:none;
+  }
+  .divisor-ancho::after{
+    content:"";position:absolute;top:0;bottom:0;left:3px;width:1px;
+    background:transparent;transition:background .15s, left .15s, width .15s;
+  }
+  .divisor-ancho:hover::after, .divisor-ancho:focus-visible::after, .divisor-ancho.activo::after{
+    background:var(--accent);left:2px;width:3px;
+  }
+  body.arrastrando-ancho{cursor:col-resize;user-select:none;}
+  #divisor-detalle{display:none;}
+  #cuerpo:has(> #detalle.abierto) > #divisor-detalle{display:block;}
+  body.modo-movil .divisor-ancho{display:none !important;}
+  @media (max-width:820px){ .divisor-ancho{display:none !important;} }
+
   /* --- Sidebar artistas --- */
   #sidebar{
-    width:250px;
+    width:var(--ancho-sidebar,250px);
     flex-shrink:0;
     border-right:1px solid var(--border);
     background:var(--panel);
@@ -309,7 +327,7 @@
 
   /* --- Panel detalle --- */
   #detalle{
-    width:700px;
+    width:var(--ancho-detalle,700px);
     flex-shrink:0;
     border-left:1px solid var(--border);
     background:var(--panel);
@@ -1101,7 +1119,7 @@
   body.modo-movil .lista-canciones .dur{font-size:calc(14px * var(--ft,1));}
 
   @media (max-width:820px){
-    #sidebar{position:fixed;left:0;top:53px;bottom:0;z-index:30;transform:translateX(-100%);transition:transform .2s;}
+    #sidebar{width:250px;position:fixed;left:0;top:53px;bottom:0;z-index:30;transform:translateX(-100%);transition:transform .2s;}
     #sidebar.abierto{transform:translateX(0);}
     #detalle{position:fixed;right:0;top:53px;bottom:0;width:100%;max-width:700px;z-index:30;}
   }
@@ -1315,7 +1333,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.19</div>
+  <div class="pc-version">Versión 2.20</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -5858,6 +5876,91 @@ if(consultaMovil){
 aplicarModoVisual(false);
 
 if(sesionActual) cargarDatos(); else ocultarPantallaCarga();
+
+/* ---------- Ancho de los paneles ajustable: se arrastran las líneas divisorias ---------- */
+// Menú de artistas | zona central | detalle. El ancho se guarda en el navegador (ancho_sidebar, ancho_detalle).
+// Doble clic en una línea: vuelve al tamaño original. Con la línea enfocada, las flechas ← → la mueven.
+(function(){
+  const cuerpo = $("#cuerpo"), sidebar = $("#sidebar"), detalle = $("#detalle");
+  if(!cuerpo || !sidebar || !detalle) return;
+  const CFG = {
+    sidebar: { clave:"ancho_sidebar", variable:"--ancho-sidebar", min:180, max:520 },
+    detalle: { clave:"ancho_detalle", variable:"--ancho-detalle", min:420, max:1200 }
+  };
+  const CENTRO_MIN = 320;   // la zona central nunca queda más estrecha que esto
+  const raiz = document.documentElement;
+  const elemento = k=> k === "sidebar" ? sidebar : detalle;
+
+  function limitar(k, px){
+    const c = CFG[k];
+    const otro = k === "sidebar" ? (detalle.classList.contains("abierto") ? detalle.offsetWidth : 0) : sidebar.offsetWidth;
+    const maxPantalla = cuerpo.clientWidth - otro - CENTRO_MIN;
+    return Math.round(Math.max(c.min, Math.min(px, c.max, maxPantalla)));
+  }
+  function fijar(k, px, guardar){
+    raiz.style.setProperty(CFG[k].variable, px + "px");
+    if(guardar){ try{ localStorage.setItem(CFG[k].clave, String(px)); }catch(e){} }
+  }
+  function crearDivisor(k, antesDe){
+    const d = document.createElement("div");
+    d.className = "divisor-ancho";
+    d.id = "divisor-" + k;
+    d.tabIndex = 0;
+    d.setAttribute("role", "separator");
+    d.setAttribute("aria-orientation", "vertical");
+    d.title = "Arrastra para cambiar el ancho · doble clic: tamaño original";
+    cuerpo.insertBefore(d, antesDe);
+    const el = elemento(k);
+    let x0 = 0, w0 = 0, movido = false;
+    d.addEventListener("pointerdown", e=>{
+      if(e.button !== 0) return;
+      x0 = e.clientX; w0 = el.getBoundingClientRect().width; movido = false;
+      d.setPointerCapture(e.pointerId);
+      d.classList.add("activo");
+      document.body.classList.add("arrastrando-ancho");
+      e.preventDefault();
+    });
+    d.addEventListener("pointermove", e=>{
+      if(!d.hasPointerCapture(e.pointerId)) return;
+      const delta = e.clientX - x0;
+      if(Math.abs(delta) > 2) movido = true;
+      fijar(k, limitar(k, k === "sidebar" ? w0 + delta : w0 - delta), false);
+    });
+    const fin = e=>{
+      if(!d.hasPointerCapture(e.pointerId)) return;
+      d.releasePointerCapture(e.pointerId);
+      d.classList.remove("activo");
+      document.body.classList.remove("arrastrando-ancho");
+      if(movido) fijar(k, Math.round(el.getBoundingClientRect().width), true);
+    };
+    d.addEventListener("pointerup", fin);
+    d.addEventListener("pointercancel", fin);
+    d.addEventListener("dblclick", ()=>{
+      raiz.style.removeProperty(CFG[k].variable);
+      try{ localStorage.removeItem(CFG[k].clave); }catch(e){}
+    });
+    d.addEventListener("keydown", e=>{
+      if(e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      const dir = (e.key === "ArrowRight" ? 1 : -1) * (k === "sidebar" ? 1 : -1);
+      fijar(k, limitar(k, el.getBoundingClientRect().width + 20 * dir), true);
+    });
+  }
+  crearDivisor("sidebar", sidebar.nextSibling);
+  crearDivisor("detalle", detalle);
+
+  // Si la ventana se hace más pequeña, se recortan los anchos guardados para que el centro no desaparezca
+  function reajustar(){
+    Object.keys(CFG).forEach(k=>{
+      const v = parseFloat(raiz.style.getPropertyValue(CFG[k].variable));
+      if(!v) return;
+      const nuevo = limitar(k, v);
+      if(nuevo !== Math.round(v)) fijar(k, nuevo, false);
+    });
+  }
+  window.addEventListener("resize", reajustar);
+  reajustar();
+})();
 </script>
 </body>
 </html>
