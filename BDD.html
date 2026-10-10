@@ -8,6 +8,35 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <script>try{ if(localStorage.getItem("tema_visual")==="claro") document.documentElement.setAttribute("data-tema","claro"); var _ft=parseFloat(localStorage.getItem("tam_fuentes")); if(_ft>=1 && _ft<=2) document.documentElement.style.setProperty("--ft",String(_ft)); var _as=parseFloat(localStorage.getItem("ancho_sidebar")); if(_as>=180 && _as<=520) document.documentElement.style.setProperty("--ancho-sidebar",_as+"px"); var _ad=parseFloat(localStorage.getItem("ancho_detalle")); if(_ad>=420 && _ad<=1200) document.documentElement.style.setProperty("--ancho-detalle",_ad+"px"); }catch(e){}</script>
+<script>
+/* Tipo de letra elegible (Herramientas). "original" = la de siempre. Las demás se descargan de Google Fonts solo si se eligen. */
+const FUENTES_LETRA = [
+  { id:"original",     nombre:"Original (la de siempre)", pila:null },
+  { id:"inter",        nombre:"Inter · moderna y neutra",  pila:"'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif", google:"Inter:wght@400;500;600;700" },
+  { id:"lato",         nombre:"Lato · clásica y limpia",   pila:"'Lato','Segoe UI',system-ui,sans-serif", google:"Lato:wght@400;700" },
+  { id:"nunito",       nombre:"Nunito · redondeada",       pila:"'Nunito','Segoe UI',system-ui,sans-serif", google:"Nunito:wght@400;600;700" },
+  { id:"atkinson",     nombre:"Atkinson · muy legible",    pila:"'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif", google:"Atkinson+Hyperlegible:wght@400;700" },
+  { id:"merriweather", nombre:"Merriweather · con serifa", pila:"'Merriweather',Georgia,serif", google:"Merriweather:wght@400;700" }
+];
+function aplicarFuenteLetra(id){
+  var f = FUENTES_LETRA.find(function(x){ return x.id === id; }) || FUENTES_LETRA[0];
+  var raiz = document.documentElement;
+  var link = document.getElementById("fuente-letra-link");
+  if(!f.pila){
+    raiz.style.removeProperty("--fuente-texto"); raiz.style.removeProperty("--fuente-titulos");
+    if(link) link.remove();
+    return f.id;
+  }
+  if(f.google){
+    if(!link){ link = document.createElement("link"); link.id = "fuente-letra-link"; link.rel = "stylesheet"; document.head.appendChild(link); }
+    link.href = "https://fonts.googleapis.com/css2?family=" + f.google + "&display=swap";
+  }
+  raiz.style.setProperty("--fuente-texto", f.pila);
+  raiz.style.setProperty("--fuente-titulos", f.pila);
+  return f.id;
+}
+try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catch(e){}
+</script>
 <style>
   :root{
     --bg:#14151a;
@@ -44,7 +73,7 @@
   body{
     background:var(--bg);
     color:var(--text);
-    font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    font-family:var(--fuente-texto,Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif);
     font-size:calc(14px * var(--ft,1));
     display:flex;
     flex-direction:column;
@@ -52,7 +81,7 @@
     overflow:hidden;
   }
   h1,h2,h3,.serif{
-    font-family:Fraunces,Georgia,serif;
+    font-family:var(--fuente-titulos,Fraunces,Georgia,serif);
     font-weight:600;
   }
 
@@ -352,7 +381,7 @@
   .cerrar-detalle:hover{color:var(--text);}
   #detalle .cerrar-detalle{position:relative;top:0;}
 
-  #detalle h2{font-size:calc(23px * var(--ft,1));margin:16px 0 2px;line-height:1.2;font-family:'Space Grotesk','Inter',system-ui,sans-serif;}
+  #detalle h2{font-size:calc(23px * var(--ft,1));margin:16px 0 2px;line-height:1.2;font-family:var(--fuente-titulos,'Space Grotesk','Inter',system-ui,sans-serif);}
   #detalle .artista-det{color:var(--accent);font-size:calc(14px * var(--ft,1));margin-bottom:16px;}
 
   .det-cabecera{display:flex;gap:16px;margin-bottom:8px;}
@@ -362,7 +391,7 @@
     border:1px solid var(--border);
     border-radius:4px;overflow:hidden;
     display:flex;align-items:center;justify-content:center;
-    color:var(--muted);font-family:Fraunces,Georgia,serif;font-size:calc(12px * var(--ft,1));text-align:center;padding:6px;
+    color:var(--muted);font-family:var(--fuente-titulos,Fraunces,Georgia,serif);font-size:calc(12px * var(--ft,1));text-align:center;padding:6px;
   }
   .cover-mediana img{width:100%;height:100%;object-fit:cover;}
   /* Vinilo que asoma por detrás de la carátula del detalle (se oculta en móvil y pantallas estrechas) */
@@ -461,7 +490,7 @@
     letter-spacing:.06em;
     color:var(--accent);
     margin:22px 0 8px;
-    font-family:Inter,system-ui,sans-serif;
+    font-family:var(--fuente-texto,Inter,system-ui,sans-serif);
     font-weight:600;
   }
 
@@ -821,7 +850,7 @@
     overflow-y:auto;
     padding:44px 52px;
     border-radius:6px;
-    font-family:'Space Grotesk','Inter',system-ui,sans-serif;
+    font-family:var(--fuente-titulos,'Space Grotesk','Inter',system-ui,sans-serif);
     font-size:calc(17px * var(--ft,1));
     line-height:1.75;
   }
@@ -830,7 +859,7 @@
   /* Botones − + para cambiar el tamaño de la ventana (se quedan visibles al hacer scroll) */
   .vent-ctrl{
     position:sticky;top:0;float:right;z-index:5;display:flex;align-items:center;gap:6px;
-    font-family:Inter,system-ui,sans-serif;
+    font-family:var(--fuente-texto,Inter,system-ui,sans-serif);
   }
   .vent-ctrl button{
     width:28px;height:28px;padding:0;line-height:1;border-radius:4px;cursor:pointer;
@@ -861,20 +890,20 @@
     overflow-y:auto;
     padding:44px 56px;
     border-radius:6px;
-    font-family:'Space Grotesk','Inter',system-ui,sans-serif;
+    font-family:var(--fuente-titulos,'Space Grotesk','Inter',system-ui,sans-serif);
     font-size:calc(19px * var(--ft,1));
     line-height:1.6;
     white-space:normal;   /* si fuera pre-wrap, los saltos de línea del HTML entre título, artista y letra se verían como líneas en blanco */
   }
   #letra-cuerpo{white-space:pre-wrap;}   /* la letra sí conserva sus saltos de línea */
   #modal-letra p{margin:0 0 10px;}
-  #modal-letra h3{margin:0;padding-bottom:6px;border-bottom:1px solid #b8aa88;line-height:1.2;font-size:calc(24px * var(--ft,1));color:#000;font-family:'Space Grotesk','Inter',system-ui,sans-serif;}
-  #modal-letra .subtitulo{color:#5b4f3a;font-family:Inter,system-ui,sans-serif;font-size:calc(13px * var(--ft,1));margin:2px 0 14px;}
+  #modal-letra h3{margin:0;padding-bottom:6px;border-bottom:1px solid #b8aa88;line-height:1.2;font-size:calc(24px * var(--ft,1));color:#000;font-family:var(--fuente-titulos,'Space Grotesk','Inter',system-ui,sans-serif);}
+  #modal-letra .subtitulo{color:#5b4f3a;font-family:var(--fuente-texto,Inter,system-ui,sans-serif);font-size:calc(13px * var(--ft,1));margin:2px 0 14px;}
   #modal-letra .cerrar-detalle{color:#6b5d45;}
   #modal-letra .cerrar-detalle:hover{color:#000;}
   #modal-letra .letra-nav button{border-color:#c9bd9f;color:#4a3f2b;}
   #modal-letra .letra-nav button:hover:not(:disabled){border-color:#000;color:#000;}
-  .letra-nav{display:flex;justify-content:space-between;margin-bottom:18px;font-family:Inter,system-ui,sans-serif;}
+  .letra-nav{display:flex;justify-content:space-between;margin-bottom:18px;font-family:var(--fuente-texto,Inter,system-ui,sans-serif);}
   .letra-nav button{
     background:transparent;
     border:1px solid var(--border);
@@ -1053,6 +1082,8 @@
   .herr-tam button{background:var(--panel-hi);border:1px solid var(--border);color:var(--text);min-width:28px;height:26px;border-radius:4px;cursor:pointer;font-family:inherit;line-height:1;}
   .herr-tam button:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
   .herr-tam button:disabled{opacity:.4;cursor:default;}
+  .herr-fuente select{flex:0 1 190px;min-width:0;background:var(--panel-hi);border:1px solid var(--border);color:var(--text);height:28px;border-radius:4px;padding:0 6px;font-family:inherit;font-size:calc(12.5px * var(--ft,1));cursor:pointer;}
+  .herr-fuente select:hover,.herr-fuente select:focus{border-color:var(--accent);outline:none;}
   #ft-valor{min-width:52px;}
   .herr-item:hover{background:var(--panel-hi);color:var(--accent);}
   .herr-item.activo{color:var(--accent);font-weight:600;}
@@ -1152,18 +1183,18 @@
     padding:6px 14px;border-radius:4px;font-size:calc(13px * var(--ft,1));font-family:inherit;cursor:pointer;white-space:nowrap;
   }
   .st-salir:hover{border-color:var(--accent);color:var(--accent);}
-  .st-cab h2{margin:0;font-family:'Space Grotesk','Inter',system-ui,sans-serif;font-size:calc(23px * var(--ft,1));}
+  .st-cab h2{margin:0;font-family:var(--fuente-titulos,'Space Grotesk','Inter',system-ui,sans-serif);font-size:calc(23px * var(--ft,1));}
   .st-filtro{color:var(--muted);font-size:calc(13px * var(--ft,1));}
   .st-filtro b{color:var(--accent);font-weight:600;}
   .st-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;}
   .st-kpi{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
-  .st-kpi .v{font-family:'Space Grotesk','Inter',system-ui,sans-serif;font-size:calc(24px * var(--ft,1));font-weight:700;color:var(--accent);line-height:1.15;}
+  .st-kpi .v{font-family:var(--fuente-titulos,'Space Grotesk','Inter',system-ui,sans-serif);font-size:calc(24px * var(--ft,1));font-weight:700;color:var(--accent);line-height:1.15;}
   .st-kpi .e{color:var(--muted);font-size:calc(12px * var(--ft,1));margin-top:3px;}
   .st-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;}
   @media (max-width:1100px){ .st-grid{grid-template-columns:minmax(0,1fr);} }
   .st-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px 16px 16px;min-width:0;}
   .st-card.st-ancho{grid-column:1/-1;}
-  .st-card h3{margin:0 0 12px;font-family:'Space Grotesk','Inter',system-ui,sans-serif;font-size:calc(15px * var(--ft,1));font-weight:700;}
+  .st-card h3{margin:0 0 12px;font-family:var(--fuente-titulos,'Space Grotesk','Inter',system-ui,sans-serif);font-size:calc(15px * var(--ft,1));font-weight:700;}
   .st-nota{color:var(--muted);font-size:calc(11.5px * var(--ft,1));margin-top:8px;}
   .st-vacio{color:var(--muted);font-size:calc(13px * var(--ft,1));padding:10px 0;}
   .st-bh{display:flex;flex-direction:column;gap:6px;}
@@ -1339,7 +1370,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.21</div>
+  <div class="pc-version">Versión 2.22</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1384,6 +1415,10 @@
         <button type="button" id="ft-menos" aria-label="Letra más pequeña">−</button>
         <button type="button" id="ft-valor" aria-label="Volver al 100 %">100%</button>
         <button type="button" id="ft-mas" aria-label="Letra más grande">+</button>
+      </div>
+      <div class="herr-tam herr-fuente" id="herr-fuente" title="Tipo de letra de toda la página (el título de la cabecera no cambia)">
+        <span class="ico">Ab</span><span class="herr-tam-txt">Tipo de letra</span>
+        <select id="sel-fuente" aria-label="Tipo de letra"></select>
       </div>
       <button class="herr-item" id="btn-pantalla-completa" type="button" role="menuitem" title="Poner la página a pantalla completa (Esc para salir)"><span class="ico">⛶</span> <span id="btn-pc-txt">Pantalla completa</span></button>
       <button class="herr-item" id="btn-tema" type="button" role="menuitem" title="Cambiar entre tema oscuro y claro"><span class="ico">☀</span> <span id="btn-tema-txt">Tema claro</span></button>
@@ -3491,7 +3526,7 @@ function mostrarLetraEnIndice(i){
   $("#letra-titulo").textContent = cancion["TITULO"] || "";
   $("#letra-subtitulo").textContent = albumSeleccionado ? (albumSeleccionado["ARTISTA ALBUM"] || "") : "";
   const letra = (cancion["Letras"]||"").trim();
-  $("#letra-cuerpo").innerHTML = letra ? markdownASimpleHTML(letra) : '<p style="color:#5b4f3a;font-family:Inter,system-ui,sans-serif;font-size:calc(14px * var(--ft,1));">Esta canción no tiene letra guardada.</p>';
+  $("#letra-cuerpo").innerHTML = letra ? markdownASimpleHTML(letra) : '<p style="color:#5b4f3a;font-family:var(--fuente-texto,Inter,system-ui,sans-serif);font-size:calc(14px * var(--ft,1));">Esta canción no tiene letra guardada.</p>';
   $("#btn-letra-anterior").disabled = (i<=0);
   $("#btn-letra-siguiente").disabled = (i>=letraListaActual.length-1);
 }
@@ -5820,6 +5855,28 @@ $("#btn-sincronizar").addEventListener("click", sincronizarConHoja);
   // el menú no se cierra al tocar estos botones, para poder pulsar varias veces
   $("#herr-tam").addEventListener("click", e=> e.stopPropagation());
   aplicar();
+})();
+
+/* ---------- Tipo de letra (Herramientas) ---------- */
+(function(){
+  const sel = $("#sel-fuente");
+  FUENTES_LETRA.forEach(f=>{
+    const o = document.createElement("option");
+    o.value = f.id;
+    o.textContent = f.nombre;
+    if(f.pila) o.style.fontFamily = f.pila;   // en algunos navegadores cada opción se ve con su propia letra
+    sel.appendChild(o);
+  });
+  let actual = "original";
+  try{ actual = localStorage.getItem("tipo_letra") || "original"; }catch(e){}
+  if(!FUENTES_LETRA.some(f=> f.id === actual)) actual = "original";
+  sel.value = actual;
+  sel.addEventListener("change", ()=>{
+    aplicarFuenteLetra(sel.value);
+    try{ localStorage.setItem("tipo_letra", sel.value); }catch(e){}
+  });
+  // el menú no se cierra al elegir, para poder probar varias
+  $("#herr-fuente").addEventListener("click", e=> e.stopPropagation());
 })();
 
 /* ---------- Menú Herramientas ---------- */
