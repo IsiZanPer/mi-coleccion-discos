@@ -50,6 +50,8 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     --estrella-vacia:#4a4d58;
     --cover-ini:#2a2d38;
     --cover-fin:#1a1c23;
+    --msg-ok:#3df08a;
+    --msg-mal:#ff5d5d;
     color-scheme:dark;
   }
   /* ---------- Tema claro (botón en Herramientas) ---------- */
@@ -65,6 +67,8 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     --estrella-vacia:#c3c8d3;
     --cover-ini:#dfe3ea;
     --cover-fin:#cbd0da;
+    --msg-ok:#0a9a48;
+    --msg-mal:#d62323;
     color-scheme:light;
   }
   *{box-sizing:border-box;}
@@ -150,6 +154,9 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   #sidebar-contadores{padding:4px 14px 10px;color:var(--muted);font-size:calc(13px * var(--ft,1));line-height:1.55;}
   #sidebar-contadores b{color:var(--text);font-weight:600;}
   #estado-carga{color:var(--muted);font-size:calc(13px * var(--ft,1));}
+  /* Mensajes de la barra superior: un punto más grandes, en negrita; verde = bien / en curso, rojo = no se ha podido */
+  #estado-carga.msg-ok{color:var(--msg-ok);font-size:calc(14px * var(--ft,1));font-weight:700;}
+  #estado-carga.msg-mal{color:var(--msg-mal);font-size:calc(14px * var(--ft,1));font-weight:700;}
 
   /* ---------- Cuerpo: 3 columnas ---------- */
   #cuerpo{
@@ -1379,7 +1386,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.23</div>
+  <div class="pc-version">Versión 2.24</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -6189,6 +6196,22 @@ if(sesionActual) cargarDatos(); else ocultarPantallaCarga();
   }
   window.addEventListener("resize", reajustar);
   reajustar();
+})();
+
+/* ---------- Mensajes de la barra superior: verde o rojo según el texto ---------- */
+// Cualquier parte del código escribe en #estado-carga; aquí se mira el texto y se pone el color.
+// Rojo: errores y avisos de que algo no se ha podido hacer ("No se pudo…", "Error: …", etc.).
+(function(){
+  const el = $("#estado-carga");
+  const MAL = /^(error|no\s|termina o cancela|sincronización descartada|este álbum no tiene)/i;
+  function clasificar(){
+    const t = el.textContent.trim();
+    const malo = !!t && MAL.test(t);
+    el.classList.toggle("msg-mal", malo);
+    el.classList.toggle("msg-ok", !!t && !malo);
+  }
+  new MutationObserver(clasificar).observe(el, { childList: true, characterData: true, subtree: true });
+  clasificar();
 })();
 </script>
 </body>
