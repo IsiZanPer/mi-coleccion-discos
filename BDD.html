@@ -142,6 +142,12 @@
     background:var(--accent);left:2px;width:3px;
   }
   body.arrastrando-ancho{cursor:col-resize;user-select:none;}
+  /* Pantallas táctiles (tablet): zona de toque más ancha y un "agarre" siempre visible, porque no hay ratón que pase por encima */
+  @media (pointer:coarse){
+    .divisor-ancho::before{content:"";position:absolute;top:0;bottom:0;left:-14px;right:-14px;}
+    .divisor-ancho::after{top:50%;bottom:auto;height:56px;transform:translateY(-50%);border-radius:3px;left:2px;width:3px;background:var(--muted);opacity:.6;}
+    .divisor-ancho.activo::after{background:var(--accent);opacity:1;}
+  }
   #divisor-detalle{display:none;}
   #cuerpo:has(> #detalle.abierto) > #divisor-detalle{display:block;}
   body.modo-movil .divisor-ancho{display:none !important;}
@@ -1333,7 +1339,7 @@
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.20</div>
+  <div class="pc-version">Versión 2.21</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
