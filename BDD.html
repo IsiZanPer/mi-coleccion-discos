@@ -438,6 +438,15 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   .chip-revisado:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
   .chip-revisado.si{border-color:#4cc38a;color:#4cc38a;background:rgba(76,195,138,.12);font-weight:600;}
   .chip-revisado:disabled{opacity:.6;cursor:wait;}
+  /* Escuchas: botón + texto con el contador */
+  .det-escuchas{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:4px 0 2px;}
+  .chip-escucha{display:inline-flex;align-items:center;gap:7px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:999px;cursor:pointer;font-size:calc(12.5px * var(--ft,1));font-family:inherit;}
+  .chip-escucha:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+  .chip-escucha:disabled{opacity:.6;cursor:wait;}
+  .chip-escucha-undo{background:transparent;border:1px solid var(--border);color:var(--muted);width:26px;height:26px;border-radius:50%;cursor:pointer;line-height:1;font-family:inherit;padding:0;}
+  .chip-escucha-undo:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+  .chip-escucha-undo:disabled{opacity:.5;cursor:wait;}
+  #det-escuchas-txt{color:var(--muted);font-size:calc(12.5px * var(--ft,1));}
   /* Carátula en grande */
   #det-cover img{cursor:zoom-in;}
   #modal-fondo-caratula{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:80;align-items:center;justify-content:center;}
@@ -1370,7 +1379,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.22</div>
+  <div class="pc-version">Versión 2.23</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1410,6 +1419,8 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
       <button class="herr-item" id="btn-verificar" type="button" role="menuitem" title="Comparar las canciones de tus álbumes con las de Discogs y marcar los que no coinciden"><span class="ico">🔎</span> Comprobar con Discogs</button>
       <button class="herr-item" id="btn-iniciar-lector" type="button" role="menuitem" title="Arrancar en este PC el programa lector de CD (equivale a ejecutar iniciar_lector.bat)"><span class="ico">▶</span> Iniciar lector de CD</button>
       <button class="herr-item" id="btn-desmontar-herr" type="button" role="menuitem" title="Desmontar la imagen que esté montada en Daemon Tools"><span class="ico">⏏</span> Desmontar disco</button>
+      <button class="herr-item" id="btn-copia" type="button" role="menuitem" title="Crear ahora una copia de seguridad de toda la hoja de Google en tu Drive"><span class="ico">💾</span> Copia de seguridad</button>
+      <button class="herr-item" id="btn-deshacer-masiva" type="button" role="menuitem" title="Devolver los valores que tenían los álbumes antes de la última edición en bloque"><span class="ico">↶</span> Deshacer última edición masiva</button>
       <div class="herr-tam" id="herr-tam" title="Tamaño de todas las letras de la página (clic en el porcentaje para volver al 100 %)">
         <span class="ico">Aa</span><span class="herr-tam-txt">Tamaño de letra</span>
         <button type="button" id="ft-menos" aria-label="Letra más pequeña">−</button>
@@ -1500,6 +1511,11 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
           <div class="det-genero" id="det-genero"></div>
           <div class="det-badges" id="det-badges"></div>
           <button type="button" class="chip-revisado" id="btn-revisado" title="Marca el álbum como revisado cuando hayas comprobado que todos sus datos son correctos">☐ Sin revisar</button>
+          <div class="det-escuchas">
+            <button type="button" class="chip-escucha" id="btn-escucha" title="Apunta que acabas de escuchar este álbum">🎧 Lo he escuchado</button>
+            <button type="button" class="chip-escucha-undo" id="btn-escucha-deshacer" title="Quitar la última escucha apuntada (por si te equivocaste)">↶</button>
+          </div>
+          <div id="det-escuchas-txt"></div>
           <div class="det-catalogo" id="det-catalogo"></div>
           <div class="det-codbarras" id="det-codbarras"></div>
           <div class="det-resumen" id="det-resumen"></div>
@@ -1838,6 +1854,7 @@ async function asegurarTokenGithub(){
 
 let ALBUMES = [];        // datos crudos, una fila por disco (tal cual la hoja)
 let ALBUMES_VISTA = [];  // para grid/sidebar: álbumes multi-disco fusionados en una sola entrada
+let ESCUCHAS = {};       // { ALBUM_ID: { n: veces, ultima: 'yyyy-MM-dd HH:mm:ss' } } (hoja ESCUCHAS)
 let CANCIONES = [];
 let tabActivo = "artista";       // 'artista' | 'genero' | 'etiqueta' | 'tienda' | 'anio' | 'decada' | 'disco' | 'revisado'
 let valorActivo = "__TODOS__";   // valor seleccionado dentro de la pestaña actual
@@ -1918,6 +1935,7 @@ async function cargarDatos(){
     }
     ALBUMES = json.albumes;
     CANCIONES = json.canciones;
+    ESCUCHAS = json.escuchas || {};
     normalizarTextos(ALBUMES, CAMPOS_TEXTO_ALBUM);
     normalizarTextos(CANCIONES, CAMPOS_TEXTO_CANCION);
     ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
@@ -2370,6 +2388,7 @@ function abrirDetalle(album){
   `;
 
   pintarBotonRevisado(album);
+  pintarEscuchas(album);
 
   $("#det-catalogo").innerHTML = album["Número de Catalogo"]
     ? `Nº de catálogo: ${escapeHTML(String(album["Número de Catalogo"]))}`
@@ -3793,8 +3812,8 @@ async function aplicarEdicionMasiva(){
     repintarConservandoScroll();
 
     const estado = $("#estado-carga");
-    estado.textContent = `${n} álbum${n===1?"":"es"} actualizado${n===1?"":"s"}`;
-    setTimeout(()=>{ if(estado.textContent.includes("actualizado")) estado.textContent = ""; }, 5000);
+    estado.textContent = `${n} álbum${n===1?"":"es"} actualizado${n===1?"":"s"} · se puede deshacer en Herramientas`;
+    setTimeout(()=>{ if(estado.textContent.includes("actualizado")) estado.textContent = ""; }, 7000);
   }catch(err){
     alert("No se pudo conectar para aplicar los cambios.");
     console.error(err);
@@ -5211,7 +5230,8 @@ function pintarEstadisticas(lista){
     precio: numeroDe(a["Precio"]),   // en multi-disco se usa el precio de la primera fila
     rating: parseInt(a["Rating"]) || 0,
     anio: anioValido(a["Fecha"]),
-    anioCompra: anioValido(a["Fecha de compra"])
+    anioCompra: anioValido(a["Fecha de compra"]),
+    esc: escuchasDe(a)
   }));
 
   // ---- KPIs
@@ -5221,6 +5241,8 @@ function pintarEstadisticas(lista){
   const gasto = conPrecio.reduce((t,i)=>t+i.precio, 0);
   const conRating = info.filter(i=>i.rating > 0);
   const ratingMedio = conRating.length ? conRating.reduce((t,i)=>t+i.rating,0) / conRating.length : 0;
+  const totalEsc = info.reduce((t,i)=>t+i.esc.n, 0);
+  const sinEscuchar = info.filter(i=>i.esc.n === 0).length;
   const artistas = new Set(lista.map(a=>valorSegunTab(a,"artista"))).size;
   const sellos = new Set(lista.map(a=>valorSegunTab(a,"etiqueta")).filter(k=>!k.startsWith("(Sin"))).size;
   const kpi = (v,e)=>`<div class="st-kpi"><div class="v">${v}</div><div class="e">${e}</div></div>`;
@@ -5232,7 +5254,9 @@ function pintarEstadisticas(lista){
     kpi(gasto ? fmtEuro(gasto) : "—", "gastado"),
     kpi(conPrecio.length ? fmtEuro(gasto/conPrecio.length) : "—", "precio medio"),
     kpi(conRating.length ? ratingMedio.toFixed(2).replace(".",",") : "—", "rating medio"),
-    kpi(fmtNum(sellos), sellos===1 ? "sello" : "sellos")
+    kpi(fmtNum(sellos), sellos===1 ? "sello" : "sellos"),
+    kpi(fmtNum(totalEsc), totalEsc===1 ? "escucha" : "escuchas"),
+    kpi(fmtNum(sinEscuchar), "sin escuchar")
   ].join("") + '</div>';
 
   // ---- Por década de publicación
@@ -5283,6 +5307,9 @@ function pintarEstadisticas(lista){
   const mejores = info.filter(i=>i.rating>0).sort((x,y)=> y.rating-x.rating || porAlbum(x,y)).slice(0,20);
   const caros = info.filter(i=>i.precio>0).sort((x,y)=> y.precio-x.precio || porAlbum(x,y)).slice(0,20);
   const largos = info.filter(i=>i.seg>0).sort((x,y)=> y.seg-x.seg || porAlbum(x,y)).slice(0,20);
+  const masEsc = info.filter(i=>i.esc.n>0).sort((x,y)=> y.esc.n-x.esc.n || y.esc.ultima.localeCompare(x.esc.ultima) || porAlbum(x,y)).slice(0,20);
+  const sinSonar = info.filter(i=>i.esc.n>0).sort((x,y)=> x.esc.ultima.localeCompare(y.esc.ultima) || porAlbum(x,y)).slice(0,20);
+  const notaEsc = sinEscuchar ? `${fmtNum(sinEscuchar)} álbum${sinEscuchar===1?"":"es"} sin escuchar nunca` : "";
   const mapaInfo = new Map(info.map(i=>[i.a, i]));
   const tabla = (arr, fn)=> htmlTablaTop(arr.map(i=>i.a), a=> fn(mapaInfo.get(a)));
   const notaTop = arr => arr.length > 8 ? `Top ${arr.length} · desplaza para ver más` : "";
@@ -5299,6 +5326,8 @@ function pintarEstadisticas(lista){
     card("Mejor valorados", tabla(mejores, i=> `${i.rating}/10`), notaTop(mejores)) +
     card("Los más caros", tabla(caros, i=> fmtEuro(i.precio)), notaTop(caros)) +
     card("Los más largos", tabla(largos, i=> fmtHorasMin(i.seg)), notaTop(largos)) +
+    card("Los más escuchados", tabla(masEsc, i=> `${i.esc.n} ${i.esc.n===1?"vez":"veces"}`), [notaTop(masEsc), notaEsc].filter(Boolean).join(" · ")) +
+    card("Más tiempo sin escuchar", tabla(sinSonar, i=> textoHace(i.esc.ultima)), notaTop(sinSonar)) +
     '</div>';
 
   // Clic en un álbum de las tablas: sale de estadísticas y abre su ficha
@@ -5314,6 +5343,142 @@ function pintarEstadisticas(lista){
 $("#btn-stats").addEventListener("click", ()=> alternarEstadisticas());
 $("#stats-wrap").addEventListener("click", e=>{ if(e.target.closest("#btn-st-salir")) alternarEstadisticas(false); });
 
+/* ---------- Llamadas sueltas al servidor (copia, deshacer, escuchas) ---------- */
+const AVISO_CODE_ANTIGUO = "El servidor no conoce esta acción. Comprueba que has desplegado la NUEVA versión de Code.gs en Apps Script.";
+async function llamarAccion(cuerpo){
+  const res = await fetch(API_URL, { method: "POST", body: JSON.stringify(Object.assign({ sesion: sesionActual }, cuerpo)) });
+  const json = await res.json();
+  if(!json.ok){
+    if(manejarErrorSesion(json.error)) return null;
+    throw new Error(json.error || "error desconocido");
+  }
+  return json;
+}
+function dosDig(n){ return String(n).padStart(2, "0"); }
+function fechaDeTexto(iso){
+  const d = new Date(String(iso || "").replace(" ", "T"));
+  return isNaN(d.getTime()) ? null : d;
+}
+function fechaCorta(iso){
+  const d = fechaDeTexto(iso);
+  return d ? `${dosDig(d.getDate())}/${dosDig(d.getMonth()+1)}/${d.getFullYear()}` : "";
+}
+function fechaHoraCorta(iso){
+  const d = fechaDeTexto(iso);
+  return d ? `${fechaCorta(iso)} ${dosDig(d.getHours())}:${dosDig(d.getMinutes())}` : "";
+}
+
+/* ---------- Escuchas: cuántas veces se ha escuchado cada álbum ---------- */
+function escuchasDe(album){
+  let n = 0, ultima = "";
+  idsDeEntrada(album).forEach(id=>{
+    const e = ESCUCHAS[String(id)];
+    if(!e) return;
+    n += e.n;
+    if(e.ultima > ultima) ultima = e.ultima;
+  });
+  return { n, ultima };
+}
+function textoHace(iso){
+  const d = fechaDeTexto(iso);
+  if(!d) return "";
+  const dia = x=> new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const dias = Math.round((dia(new Date()) - dia(d)) / 86400000);
+  if(dias <= 0) return "hoy";
+  if(dias === 1) return "ayer";
+  if(dias < 30) return "hace " + dias + " días";
+  const meses = Math.floor(dias / 30.44);
+  if(meses < 12) return "hace " + meses + (meses === 1 ? " mes" : " meses");
+  const anios = Math.floor(dias / 365.25);
+  return "hace " + anios + (anios === 1 ? " año" : " años");
+}
+function pintarEscuchas(album){
+  const e = escuchasDe(album);
+  $("#det-escuchas-txt").textContent = e.n
+    ? `Escuchado ${e.n} ${e.n === 1 ? "vez" : "veces"} · última: ${fechaCorta(e.ultima)} (${textoHace(e.ultima)})`
+    : "Todavía no lo has escuchado";
+  $("#btn-escucha-deshacer").style.display = e.n ? "" : "none";
+}
+async function cambiarEscucha(accion){
+  if(!albumSeleccionado) return;
+  const album = albumSeleccionado;
+  const id = String(album.ALBUM_ID);
+  const b1 = $("#btn-escucha"), b2 = $("#btn-escucha-deshacer");
+  b1.disabled = b2.disabled = true;
+  try{
+    const json = await llamarAccion({ accion, album_id: id });
+    if(!json) return;
+    if(!json.resumen){ alert(AVISO_CODE_ANTIGUO); return; }
+    if(json.resumen.n > 0) ESCUCHAS[id] = json.resumen; else delete ESCUCHAS[id];
+    if(accion === "escucha_registrar") avisoSync("🎧 Escucha apuntada.", 3000);
+  }catch(err){
+    alert("No se pudo guardar la escucha: " + (err && err.message ? err.message : err));
+  }finally{
+    b1.disabled = b2.disabled = false;
+    if(albumSeleccionado === album) pintarEscuchas(album);
+  }
+}
+$("#btn-escucha").addEventListener("click", ()=> cambiarEscucha("escucha_registrar"));
+$("#btn-escucha-deshacer").addEventListener("click", ()=>{
+  const e = albumSeleccionado ? escuchasDe(albumSeleccionado) : { n: 0 };
+  if(!e.n) return;
+  if(confirm("¿Quitar la última escucha apuntada de este álbum?")) cambiarEscucha("escucha_deshacer");
+});
+
+/* ---------- Copia de seguridad (Herramientas) ---------- */
+let copiaEnCurso = false;
+async function copiaDeSeguridad(){
+  if(copiaEnCurso) return;
+  copiaEnCurso = true;
+  try{
+    avisoSync("Consultando las copias de seguridad…");
+    const est = await llamarAccion({ accion: "copias_estado" });
+    if(!est) return;
+    avisoSync("");
+    if(!("total" in est)){ alert(AVISO_CODE_ANTIGUO); return; }
+    const ultima = est.ultima ? `Última copia: ${est.ultima.nombre}\n(${fechaHoraCorta(est.ultima.fecha)}, ${textoHace(est.ultima.fecha)})` : "Todavía no hay ninguna copia.";
+    if(!confirm(`${ultima}\n\nCopias guardadas: ${est.total} (se conservan las últimas ${est.max} en la carpeta «${est.carpeta}» de tu Drive).\n\n¿Crear una copia ahora?`)) return;
+    avisoSync("Creando la copia de seguridad (puede tardar unos segundos)…");
+    const r = await llamarAccion({ accion: "copia_seguridad" });
+    if(!r) return;
+    avisoSync("✓ Copia creada: " + r.nombre, 9000);
+  }catch(err){
+    avisoSync("");
+    const msg = String(err && err.message ? err.message : err);
+    const permiso = /drive|permis|authori|autoriz/i.test(msg)
+      ? "\n\nParece que falta dar permiso para usar Drive: en Apps Script ejecuta una vez la función «instalarCopiaSemanal» (te pedirá el permiso) y vuelve a implementar la aplicación web como nueva versión."
+      : "";
+    alert("No se pudo crear la copia de seguridad: " + msg + permiso);
+  }finally{ copiaEnCurso = false; }
+}
+$("#btn-copia").addEventListener("click", copiaDeSeguridad);
+
+/* ---------- Deshacer la última edición masiva (Herramientas) ---------- */
+let deshaciendoMasiva = false;
+async function deshacerEdicionMasiva(){
+  if(deshaciendoMasiva) return;
+  deshaciendoMasiva = true;
+  try{
+    avisoSync("Buscando la última edición masiva…");
+    const info = await llamarAccion({ accion: "masiva_ultima" });
+    if(!info) return;
+    avisoSync("");
+    if(!("ultima" in info)){ alert(AVISO_CODE_ANTIGUO); return; }
+    const u = info.ultima;
+    if(!u){ alert("No hay ninguna edición masiva que deshacer."); return; }
+    if(!confirm(`Última edición masiva: ${fechaHoraCorta(u.fecha)} (${textoHace(u.fecha)}).\n\nSe cambiaron: ${u.columnas.join(", ")} en ${u.albumes} álbum${u.albumes===1?"":"es"} (${u.celdas} cambio${u.celdas===1?"":"s"}).\n\nSe devolverán los valores que tenían antes. Si algún álbum se ha vuelto a modificar después, se respeta tal como está.\n\n¿Deshacerla?`)) return;
+    avisoSync("Deshaciendo la edición masiva…");
+    const r = await llamarAccion({ accion: "masiva_deshacer", lote: u.lote });
+    if(!r) return;
+    const x = r.resultado;
+    avisoSync(`✓ Edición masiva deshecha: ${x.restaurados} cambio${x.restaurados===1?"":"s"} restaurado${x.restaurados===1?"":"s"}` + (x.omitidos ? ` · ${x.omitidos} no se tocaron porque se habían modificado después` : "") + ". Actualizando…", 9000);
+    await sincronizarConHoja();
+  }catch(err){
+    avisoSync("");
+    alert("No se pudo deshacer: " + (err && err.message ? err.message : err));
+  }finally{ deshaciendoMasiva = false; }
+}
+$("#btn-deshacer-masiva").addEventListener("click", deshacerEdicionMasiva);
 /* ---------- Comprobar álbumes con Discogs ---------- */
 // Compara, para los álbumes que se ven ahora, las canciones de tu hoja con las de Discogs
 // (por código de barras; si no hay, por artista + título) y lista solo los que no coinciden.
@@ -5795,6 +5960,7 @@ async function sincronizarConHoja(){
     const antesAlb = ALBUMES.length, antesCan = CANCIONES.length;
     ALBUMES = json.albumes;
     CANCIONES = json.canciones;
+    ESCUCHAS = json.escuchas || {};
     normalizarTextos(ALBUMES, CAMPOS_TEXTO_ALBUM);
     normalizarTextos(CANCIONES, CAMPOS_TEXTO_CANCION);
     ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
