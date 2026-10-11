@@ -917,7 +917,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   #modal-ficha img{max-width:100%;border-radius:4px;margin:12px 0;}
   /* Botones − + para cambiar el tamaño de la ventana (se quedan visibles al hacer scroll) */
   .vent-ctrl{
-    position:sticky;top:0;float:right;z-index:5;display:flex;align-items:center;gap:6px;
+    margin-left:12px;position:sticky;top:0;float:right;z-index:5;display:flex;align-items:center;gap:6px;
     font-family:var(--fuente-texto,Inter,system-ui,sans-serif);
   }
   .vent-ctrl button{
@@ -930,6 +930,21 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   .vent-ctrl .vf-mas{font-size:calc(20px * var(--ft,1));font-weight:600;}
   .vent-sep{width:1px;height:20px;background:#9c8f6e;margin:0 2px;}
   .vent-ctrl .vs-tono{font-size:calc(16px * var(--ft,1));}
+  .vent-ctrl .vz-max svg{width:16px;height:16px;display:block;margin:auto;pointer-events:none;}
+  /* Ventana maximizada: ocupa toda la pantalla */
+  #modal-ficha.maximizada,#modal-letra.maximizada{
+    width:100vw;max-width:none;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;
+    border-radius:0;padding:32px 40px;box-sizing:border-box;
+  }
+  /* Móvil: controles más cómodos, menos relleno y flechas < > solo con icono */
+  body.modo-movil #modal-ficha,body.modo-movil #modal-letra{padding:18px 18px 22px;}
+  body.modo-movil #modal-ficha.maximizada,body.modo-movil #modal-letra.maximizada{padding:14px 14px 22px;}
+  body.modo-movil .vent-ctrl{gap:4px;}
+  body.modo-movil .vent-ctrl button{width:36px;height:36px;}
+  body.modo-movil .vent-ctrl .cerrar-detalle{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:calc(22px * var(--ft,1));}
+  body.modo-movil .letra-nav{clear:both;margin-top:4px;}
+  body.modo-movil .letra-nav .txt{display:none;}
+  body.modo-movil .letra-nav button{width:48px;height:40px;padding:0;font-size:calc(24px * var(--ft,1));line-height:1;}
   /* Negrita, cursiva y subrayado dentro de ficha y letras */
   #modal-ficha strong,#modal-letra strong{font-weight:700;color:#000;}
   #modal-ficha em,#modal-letra em{font-style:italic;}
@@ -962,7 +977,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   #modal-letra .cerrar-detalle:hover{color:#000;}
   #modal-letra .letra-nav button{border-color:#c9bd9f;color:#4a3f2b;}
   #modal-letra .letra-nav button:hover:not(:disabled){border-color:#000;color:#000;}
-  .letra-nav{display:flex;justify-content:space-between;margin-bottom:18px;font-family:var(--fuente-texto,Inter,system-ui,sans-serif);}
+  .letra-nav{display:flex;justify-content:space-between;gap:12px;margin-bottom:18px;font-family:var(--fuente-texto,Inter,system-ui,sans-serif);}
   .letra-nav button{
     background:transparent;
     border:1px solid var(--border);
@@ -1428,7 +1443,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.28</div>
+  <div class="pc-version">Versión 2.29</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1608,8 +1623,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
       <button type="button" class="vf-menos" title="Letra más pequeña">A</button>
       <button type="button" class="vf-mas" title="Letra más grande">A</button>
       <span class="vent-sep"></span>
-      <button type="button" class="vz-menos" title="Ventana más pequeña">−</button>
-      <button type="button" class="vz-mas" title="Ventana más grande">+</button>
+      <button type="button" class="vz-max" title="Maximizar la ventana" aria-label="Maximizar la ventana"></button>
       <span class="cerrar-detalle" id="cerrar-modal">✕</span>
     </div>
     <h3 id="modal-titulo"></h3>
@@ -1625,13 +1639,12 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
       <button type="button" class="vf-menos" title="Letra más pequeña">A</button>
       <button type="button" class="vf-mas" title="Letra más grande">A</button>
       <span class="vent-sep"></span>
-      <button type="button" class="vz-menos" title="Ventana más pequeña">−</button>
-      <button type="button" class="vz-mas" title="Ventana más grande">+</button>
+      <button type="button" class="vz-max" title="Maximizar la ventana" aria-label="Maximizar la ventana"></button>
       <span class="cerrar-detalle" id="cerrar-modal-letra">✕</span>
     </div>
     <div class="letra-nav">
-      <button type="button" id="btn-letra-anterior" title="Canción anterior">‹ Anterior</button>
-      <button type="button" id="btn-letra-siguiente" title="Canción siguiente">Siguiente ›</button>
+      <button type="button" id="btn-letra-anterior" title="Canción anterior" aria-label="Canción anterior">‹<span class="txt"> Anterior</span></button>
+      <button type="button" id="btn-letra-siguiente" title="Canción siguiente" aria-label="Canción siguiente"><span class="txt">Siguiente </span>›</button>
     </div>
     <h3 id="letra-titulo"></h3>
     <div class="subtitulo" id="letra-subtitulo"></div>
@@ -6083,21 +6096,21 @@ function alternarTema(){
 $("#btn-tema").addEventListener("click", alternarTema);
 $("#btn-tema-movil").addEventListener("click", alternarTema);
 
-/* ---------- Tamaño de las ventanas de ficha y letras (− / +) ---------- */
-const VZ_PASOS = [0.8, 0.9, 1, 1.12, 1.25, 1.4];   // multiplicador de ancho y alto; 1 = tamaño original
-function configurarZoomVentana(selector, clave){
-  const el = $(selector);
-  let i = 2;
-  try{ const g = parseInt(localStorage.getItem(clave), 10); if(g >= 0 && g < VZ_PASOS.length) i = g; }catch(e){}
-  const menos = el.querySelector(".vz-menos"), mas = el.querySelector(".vz-mas");
+/* ---------- Maximizar las ventanas de ficha y letras (un solo botón) ---------- */
+const ICO_MAXIMIZAR = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M6 14H2v-4M14 2l-4.5 4.5M2 14l4.5-4.5"/></svg>';
+const ICO_RESTAURAR = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6h-4V2M2 10h4v4M10 6l4.5-4.5M6 10l-4.5 4.5"/></svg>';
+function configurarMaximizarVentana(selector, clave){
+  const el = $(selector), b = el.querySelector(".vz-max");
+  let max = false;
+  try{ max = localStorage.getItem(clave) === "1"; }catch(e){}
   function aplicar(){
-    el.style.setProperty("--vz", VZ_PASOS[i]);
-    menos.disabled = i <= 0;
-    mas.disabled = i >= VZ_PASOS.length - 1;
-    try{ localStorage.setItem(clave, String(i)); }catch(e){}
+    el.classList.toggle("maximizada", max);
+    b.innerHTML = max ? ICO_RESTAURAR : ICO_MAXIMIZAR;
+    b.title = max ? "Volver al tamaño normal" : "Maximizar la ventana";
+    b.setAttribute("aria-label", b.title);
+    try{ localStorage.setItem(clave, max ? "1" : "0"); }catch(e){}
   }
-  menos.addEventListener("click", ()=>{ if(i > 0){ i--; aplicar(); } });
-  mas.addEventListener("click", ()=>{ if(i < VZ_PASOS.length - 1){ i++; aplicar(); } });
+  b.addEventListener("click", ()=>{ max = !max; aplicar(); });
   aplicar();
 }
 const FZ_PASOS = [0.8, 0.9, 1, 1.15, 1.3, 1.5, 1.75];   // multiplicador del texto; 1 = tamaño original
@@ -6135,8 +6148,8 @@ configurarTonoSepia("#modal-ficha", "sepia_ficha");
 configurarTonoSepia("#modal-letra", "sepia_letras");
 configurarZoomLetra("#modal-ficha", "zoom_letra_ficha");
 configurarZoomLetra("#modal-letra", "zoom_letra_letras");
-configurarZoomVentana("#modal-ficha", "zoom_ventana_ficha");
-configurarZoomVentana("#modal-letra", "zoom_ventana_letra");
+configurarMaximizarVentana("#modal-ficha", "max_ventana_ficha");
+configurarMaximizarVentana("#modal-letra", "max_ventana_letra");
 
 /* ---------- Navegar entre álbumes desde el detalle (anterior / siguiente) ---------- */
 // Recorre los álbumes que se ven ahora en la lista (con el filtro, buscador y orden actuales).
