@@ -783,6 +783,29 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     white-space:nowrap;
   }
   .grupo-busqueda-nuevo button:hover{background:#5ad3f8;}
+  /* --- Escáner de código de barras (cámara) --- */
+  #btn-escanear{background:transparent !important;color:var(--accent) !important;}
+  #btn-escanear:hover{background:var(--panel-hi) !important;}
+  #modal-fondo-scanner{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:90;align-items:center;justify-content:center;}
+  #modal-fondo-scanner.abierto{display:flex;}
+  #modal-scanner{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:20px 22px;width:min(520px,96vw);max-height:96vh;overflow-y:auto;}
+  #modal-scanner h3{margin:0 0 14px;font-size:calc(18px * var(--ft,1));}
+  #scanner-visor{position:relative;width:100%;aspect-ratio:4/3;background:#000;border-radius:6px;overflow:hidden;}
+  #scanner-video{width:100%;height:100%;object-fit:cover;display:block;}
+  #scanner-marco{position:absolute;left:8%;right:8%;top:30%;bottom:30%;border:2px solid var(--accent);border-radius:6px;box-shadow:0 0 0 9999px rgba(0,0,0,.35);pointer-events:none;}
+  #scanner-estado{margin-top:12px;color:var(--muted);font-size:calc(14px * var(--ft,1));min-height:2.6em;line-height:1.35;}
+  #scanner-estado.mal{color:var(--msg-mal,#ff5d5d);font-weight:600;}
+  #scanner-acciones{display:flex;gap:8px;margin-top:6px;}
+  #scanner-acciones button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px 14px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:calc(14px * var(--ft,1));}
+  #scanner-acciones button:hover,#scanner-acciones button.activo{border-color:var(--accent);color:var(--accent);}
+  body.modo-movil #modal-scanner{padding:16px 14px;}
+  /* Móvil: en "Añadir álbum" el campo ocupa toda la fila y los botones van debajo (antes se salían de la pantalla) */
+  body.modo-movil #modal-nuevo-album{padding:20px 16px;}
+  body.modo-movil .grupo-busqueda-nuevo{flex-wrap:wrap;}
+  body.modo-movil .grupo-busqueda-nuevo input{flex:1 1 100%;min-width:0;}
+  body.modo-movil .grupo-busqueda-nuevo button:not(#btn-escanear){flex:1 1 0;min-width:0;white-space:normal;}
+  body.modo-movil #btn-escanear{padding:9px 12px;font-size:calc(18px * var(--ft,1));line-height:1;}
+  body.modo-movil #btn-escanear .txt{display:none;}
   .separador-o{text-align:center;color:var(--muted);font-size:calc(12px * var(--ft,1));margin:14px 0;}
   .btn-manual{
     display:block;
@@ -1403,7 +1426,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.26</div>
+  <div class="pc-version">Versión 2.27</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1672,6 +1695,21 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   </div>
 </div>
 
+<div id="modal-fondo-scanner">
+  <div id="modal-scanner">
+    <span class="cerrar-detalle" id="cerrar-scanner" title="Cerrar" aria-label="Cerrar">✕</span>
+    <h3>Escanear código de barras</h3>
+    <div id="scanner-visor">
+      <video id="scanner-video" playsinline muted autoplay></video>
+      <div id="scanner-marco"></div>
+    </div>
+    <div id="scanner-estado">Iniciando la cámara…</div>
+    <div id="scanner-acciones">
+      <button type="button" id="scanner-linterna" style="display:none;">🔦 Linterna</button>
+    </div>
+  </div>
+</div>
+
 <div id="modal-fondo-nuevo">
   <div id="modal-nuevo-album">
     <span class="cerrar-detalle" id="cerrar-modal-nuevo">✕</span>
@@ -1679,7 +1717,8 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
 
     <div id="paso-busqueda">
       <div class="grupo-busqueda-nuevo">
-        <input type="text" id="buscar-barcode" placeholder="Código de barras (EAN/UPC)">
+        <input type="text" id="buscar-barcode" placeholder="Código de barras (EAN/UPC)" inputmode="numeric">
+        <button type="button" id="btn-escanear" title="Escanear el código de barras del CD con la cámara" aria-label="Escanear código de barras con la cámara">📷<span class="txt"> Escanear</span></button>
         <button type="button" id="btn-buscar-barcode">Buscar por código</button>
       </div>
       <div class="grupo-busqueda-nuevo">
@@ -3896,6 +3935,7 @@ function abrirModalNuevoAlbum(){
   $("#modal-fondo-nuevo").classList.add("abierto");
 }
 function cerrarModalNuevoAlbum(){
+  if(typeof cerrarScanner === "function") cerrarScanner();
   $("#modal-fondo-nuevo").classList.remove("abierto");
   $("#confirmar-campos").innerHTML = "";
   const btn = $("#btn-crear-album");
@@ -4447,6 +4487,191 @@ async function seleccionarCandidatoCD(c, datos){
   });
 }
 $("#btn-leer-cd").addEventListener("click", leerCD);
+
+
+/* ---------- Escanear el código de barras con la cámara (móvil, tablet y PC) ---------- */
+// Motor: BarcodeDetector nativo (Chrome/Edge/Android) y, si el navegador no lo tiene (p. ej. iPhone/Safari o Firefox),
+// la biblioteca ZXing, que se descarga solo la primera vez que se necesita.
+const ZXING_URL = "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
+const SCAN = { stream:null, activo:false, timer:null, detector:null, zxReader:null, canvas:null, ultimo:"", rep:0, linterna:false };
+
+// Comprueba el dígito de control (EAN-8, UPC-A de 12 y EAN-13): descarta lecturas erróneas
+function codigoBarrasValido(c){
+  if(!/^\d+$/.test(c) || ![8, 12, 13].includes(c.length)) return false;
+  const d = c.split("").map(Number), control = d.pop();
+  let suma = 0;
+  for(let i = d.length - 1, peso = 3; i >= 0; i--, peso = 4 - peso) suma += d[i] * peso;
+  return (10 - (suma % 10)) % 10 === control;
+}
+function scannerMensaje(txt, malo){
+  const el = $("#scanner-estado");
+  el.textContent = txt;
+  el.classList.toggle("mal", !!malo);
+}
+function cargarZXing(){
+  if(window.ZXing) return Promise.resolve(window.ZXing);
+  return new Promise((ok, fallo)=>{
+    const sc = document.createElement("script");
+    sc.src = ZXING_URL;
+    sc.onload = ()=> window.ZXing ? ok(window.ZXing) : fallo(new Error("ZXing no disponible"));
+    sc.onerror = ()=> fallo(new Error("No se pudo descargar ZXing"));
+    document.head.appendChild(sc);
+    setTimeout(()=> fallo(new Error("Tiempo agotado cargando ZXing")), 15000);
+  });
+}
+function leerConZXing(video){
+  const Z = window.ZXing;
+  if(!SCAN.zxReader){
+    const hints = new Map();
+    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A]);
+    hints.set(Z.DecodeHintType.TRY_HARDER, true);
+    SCAN.zxReader = new Z.MultiFormatReader();
+    SCAN.zxReader.setHints(hints);
+  }
+  if(!SCAN.canvas) SCAN.canvas = document.createElement("canvas");
+  const esc = Math.min(1, 1000 / (video.videoWidth || 1000));
+  SCAN.canvas.width = Math.round(video.videoWidth * esc);
+  SCAN.canvas.height = Math.round(video.videoHeight * esc);
+  const ctx = SCAN.canvas.getContext("2d", { willReadFrequently:true });
+  ctx.drawImage(video, 0, 0, SCAN.canvas.width, SCAN.canvas.height);
+  try{
+    const fuente = new Z.HTMLCanvasElementLuminanceSource(SCAN.canvas);
+    const bitmap = new Z.BinaryBitmap(new Z.HybridBinarizer(fuente));
+    return SCAN.zxReader.decode(bitmap).getText();
+  }catch(e){ return ""; }   // NotFoundException: no hay código en este fotograma
+}
+async function pasoScanner(){
+  if(!SCAN.activo) return;
+  const video = $("#scanner-video");
+  let leido = "";
+  try{
+    if(video.readyState >= 2 && video.videoWidth){
+      if(SCAN.detector){
+        const r = await SCAN.detector.detect(video);
+        if(r.length) leido = String(r[0].rawValue || "");
+      }else if(window.ZXing){
+        leido = leerConZXing(video);
+      }
+    }
+  }catch(e){ /* un fotograma fallido no importa */ }
+  if(!SCAN.activo) return;
+  if(leido){
+    if(codigoBarrasValido(leido)){
+      if(leido === SCAN.ultimo) SCAN.rep++; else { SCAN.ultimo = leido; SCAN.rep = 1; }
+      if(SCAN.rep >= (SCAN.detector ? 1 : 2)){ scannerExito(leido); return; }
+    }else{
+      scannerMensaje("Lectura dudosa, sigue apuntando al código…");
+    }
+  }
+  SCAN.timer = setTimeout(pasoScanner, 200);
+}
+function detenerScanner(){
+  SCAN.activo = false;
+  clearTimeout(SCAN.timer);
+  if(SCAN.stream){ SCAN.stream.getTracks().forEach(t=> { try{ t.stop(); }catch(e){} }); SCAN.stream = null; }
+  const v = $("#scanner-video");
+  if(v){ try{ v.pause(); }catch(e){} v.srcObject = null; }
+  SCAN.linterna = false;
+  $("#scanner-linterna").style.display = "none";
+  $("#scanner-linterna").classList.remove("activo");
+}
+function cerrarScanner(){
+  detenerScanner();
+  $("#modal-fondo-scanner").classList.remove("abierto");
+}
+async function abrirScanner(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    alert("Este navegador no permite usar la cámara desde aquí (hace falta una conexión segura https). Escribe el código a mano.");
+    return;
+  }
+  $("#modal-fondo-scanner").classList.add("abierto");
+  scannerMensaje("Iniciando la cámara…");
+  SCAN.ultimo = ""; SCAN.rep = 0;
+  let stream;
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode:{ ideal:"environment" }, width:{ ideal:1280 }, height:{ ideal:720 } }, audio:false
+    });
+  }catch(e){
+    const msg = (e && e.name === "NotAllowedError") ? "No se ha permitido el acceso a la cámara. Actívalo en los permisos del navegador y vuelve a intentarlo."
+      : (e && e.name === "NotFoundError") ? "No se ha encontrado ninguna cámara en este dispositivo."
+      : "No se pudo abrir la cámara" + (e && e.message ? ": " + e.message : ".");
+    scannerMensaje(msg, true);
+    return;
+  }
+  if(!$("#modal-fondo-scanner").classList.contains("abierto")){   // se cerró mientras se pedía el permiso
+    stream.getTracks().forEach(t=> t.stop());
+    return;
+  }
+  SCAN.stream = stream;
+  const video = $("#scanner-video");
+  video.srcObject = stream;
+  try{ await video.play(); }catch(e){}
+
+  // Linterna, si la cámara la permite
+  try{
+    const pista = stream.getVideoTracks()[0];
+    const caps = pista.getCapabilities ? pista.getCapabilities() : {};
+    if(caps.torch) $("#scanner-linterna").style.display = "";
+  }catch(e){}
+
+  // Motor de lectura
+  SCAN.detector = null;
+  if("BarcodeDetector" in window){
+    try{
+      const formatos = await BarcodeDetector.getSupportedFormats();
+      const usar = ["ean_13", "ean_8", "upc_a"].filter(f=> formatos.includes(f));
+      if(usar.length) SCAN.detector = new BarcodeDetector({ formats: usar });
+    }catch(e){ SCAN.detector = null; }
+  }
+  if(!SCAN.detector){
+    scannerMensaje("Preparando el lector (solo la primera vez)…");
+    try{ await cargarZXing(); }
+    catch(e){
+      scannerMensaje("No se pudo cargar el lector de códigos (¿sin conexión?). Escribe el código a mano.", true);
+      detenerScanner();
+      return;
+    }
+    if(!$("#modal-fondo-scanner").classList.contains("abierto")) return;
+  }
+  scannerMensaje("Apunta al código de barras de la parte trasera del CD y mantenlo quieto dentro del recuadro.");
+  SCAN.activo = true;
+  pasoScanner();
+}
+async function alternarLinterna(){
+  try{
+    const pista = SCAN.stream && SCAN.stream.getVideoTracks()[0];
+    if(!pista) return;
+    SCAN.linterna = !SCAN.linterna;
+    await pista.applyConstraints({ advanced:[{ torch: SCAN.linterna }] });
+    $("#scanner-linterna").classList.toggle("activo", SCAN.linterna);
+  }catch(e){
+    SCAN.linterna = false;
+    scannerMensaje("Esta cámara no permite encender la linterna.", true);
+  }
+}
+async function scannerExito(codigo){
+  cerrarScanner();
+  if(navigator.vibrate){ try{ navigator.vibrate(120); }catch(e){} }
+  // Un UPC-A (12 cifras) lo da el lector nativo como EAN-13 con un 0 delante: se busca como está impreso
+  const impreso = (codigo.length === 13 && codigo[0] === "0") ? codigo.slice(1) : codigo;
+  $("#buscar-barcode").value = impreso;
+  await buscarPorBarcode();
+  // Si Discogs no lo encuentra con esa forma, se prueba con la otra (con o sin el 0 inicial)
+  const hayResultados = $("#resultados-busqueda").children.length > 0;
+  if(!hayResultados && $("#estado-busqueda").textContent.startsWith("Sin resultados")){
+    const alterno = impreso.length === 12 ? "0" + impreso : (impreso.length === 13 && impreso[0] === "0" ? impreso.slice(1) : "");
+    if(alterno){
+      $("#buscar-barcode").value = alterno;
+      await buscarPorBarcode();
+      if(!$("#resultados-busqueda").children.length) $("#buscar-barcode").value = impreso;
+    }
+  }
+}
+$("#btn-escanear").addEventListener("click", abrirScanner);
+$("#cerrar-scanner").addEventListener("click", cerrarScanner);
+$("#scanner-linterna").addEventListener("click", alternarLinterna);
+document.addEventListener("visibilitychange", ()=>{ if(document.hidden && SCAN.stream) cerrarScanner(); });
 
 $("#btn-nuevo-album").addEventListener("click", abrirModalNuevoAlbum);
 $("#cerrar-modal-nuevo").addEventListener("click", cerrarModalNuevoAlbum);
