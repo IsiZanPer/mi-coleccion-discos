@@ -942,9 +942,9 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   body.modo-movil .vent-ctrl{gap:4px;}
   body.modo-movil .vent-ctrl button{width:36px;height:36px;}
   body.modo-movil .vent-ctrl .cerrar-detalle{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:calc(22px * var(--ft,1));}
-  body.modo-movil .letra-nav{clear:both;margin-top:4px;}
-  body.modo-movil .letra-nav .txt{display:none;}
-  body.modo-movil .letra-nav button{width:48px;height:40px;padding:0;font-size:calc(24px * var(--ft,1));line-height:1;}
+  /* Móvil: sin botones < >; se cambia de canción deslizando el dedo por la ventana (izquierda = siguiente, derecha = anterior) */
+  body.modo-movil .letra-nav{display:none;}
+  body.modo-movil #modal-letra{touch-action:pan-y;}
   /* Negrita, cursiva y subrayado dentro de ficha y letras */
   #modal-ficha strong,#modal-letra strong{font-weight:700;color:#000;}
   #modal-ficha em,#modal-letra em{font-style:italic;}
@@ -1443,7 +1443,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.29</div>
+  <div class="pc-version">Versión 2.30</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -3935,6 +3935,54 @@ $("#cerrar-modal").addEventListener("click", cerrarFicha);
 $("#cerrar-modal-letra").addEventListener("click", cerrarLetra);
 $("#btn-letra-anterior").addEventListener("click", ()=> mostrarLetraEnIndice(letraIndiceActual-1));
 $("#btn-letra-siguiente").addEventListener("click", ()=> mostrarLetraEnIndice(letraIndiceActual+1));
+
+/* ---------- Móvil: deslizar la ventana de letras para pasar a la canción anterior / siguiente ---------- */
+(function(){
+  const ventana = $("#modal-letra");
+  const UMBRAL = 70;                                   // algo más que en la carátula: aquí se desliza sobre texto
+  let x0 = 0, y0 = 0, dx = 0, activo = false, decidido = false;
+  const partes = ()=> [$("#letra-titulo"), $("#letra-subtitulo"), $("#letra-cuerpo")];
+  function poner(tr, op, trans){ partes().forEach(el=>{ el.style.transition = trans || "none"; el.style.transform = tr; el.style.opacity = op; }); }
+
+  ventana.addEventListener("touchstart", e=>{
+    activo = false;
+    if(e.touches.length !== 1 || !document.body.classList.contains("modo-movil")) return;
+    if(e.target.closest(".vent-ctrl")) return;          // no al pulsar los iconos de arriba
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0;
+    activo = true; decidido = false;
+  }, { passive:true });
+  ventana.addEventListener("touchmove", e=>{
+    if(!activo) return;
+    const t = e.touches[0];
+    dx = t.clientX - x0;
+    const dy = t.clientY - y0;
+    if(!decidido){
+      if(Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      if(Math.abs(dy) >= Math.abs(dx)){ activo = false; return; }   // desplazamiento vertical normal de la letra
+      decidido = true;
+    }
+    const ancho = Math.max(0.45, 1 - Math.abs(dx) / 500);
+    poner("translateX(" + Math.round(dx * 0.4) + "px)", String(ancho));
+  }, { passive:true });
+  function soltar(){
+    if(!activo) return;
+    activo = false;
+    if(!decidido){ return; }
+    const delta = dx <= -UMBRAL ? 1 : (dx >= UMBRAL ? -1 : 0);
+    poner("", "", "transform .15s ease, opacity .15s ease");
+    if(!delta) return;
+    const destino = letraIndiceActual + delta;
+    if(destino < 0 || destino >= letraListaActual.length) return;   // primera / última canción
+    mostrarLetraEnIndice(destino);
+    ventana.scrollTop = 0;
+    partes().forEach(el=>{ if(el.animate) el.animate(
+      [{ transform:"translateX(" + (delta * 40) + "px)", opacity:0 }, { transform:"none", opacity:1 }],
+      { duration:180, easing:"ease-out" }); });
+    if(navigator.vibrate){ try{ navigator.vibrate(15); }catch(e){} }
+  }
+  ventana.addEventListener("touchend", soltar);
+  ventana.addEventListener("touchcancel", ()=>{ activo = false; poner("", "", ""); });
+})();
 // (Las ventanas ficha, letras, edición masiva, carátulas y comprobación solo se cierran con su ✕.)
 
 /* ---------- Añadir álbum nuevo (búsqueda en Discogs) ---------- */
