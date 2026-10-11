@@ -393,7 +393,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
 
   .det-cabecera{display:flex;gap:16px;margin-bottom:8px;}
   .cover-mediana{
-    width:200px;height:200px;flex-shrink:0;
+    width:220px;height:220px;flex-shrink:0;
     background:var(--panel-hi) linear-gradient(135deg,var(--cover-ini),var(--cover-fin));
     border:1px solid var(--border);
     border-radius:4px;overflow:hidden;
@@ -446,7 +446,8 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   .chip-revisado.si{border-color:#4cc38a;color:#4cc38a;background:rgba(76,195,138,.12);font-weight:600;}
   .chip-revisado:disabled{opacity:.6;cursor:wait;}
   /* Escuchas: botón + texto con el contador */
-  .det-escuchas{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:4px 0 2px;}
+  .det-chips{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:4px 0 2px;}   /* Sin revisar + Lo he escuchado en la misma fila */
+  .det-chips .chip-revisado{margin:0;align-self:auto;}
   .chip-escucha{display:inline-flex;align-items:center;gap:7px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:999px;cursor:pointer;font-size:calc(12.5px * var(--ft,1));font-family:inherit;}
   .chip-escucha:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
   .chip-escucha:disabled{opacity:.6;cursor:wait;}
@@ -1386,7 +1387,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.24</div>
+  <div class="pc-version">Versión 2.25</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1517,8 +1518,8 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
           <div class="det-sello-anio" id="det-sello-anio"></div>
           <div class="det-genero" id="det-genero"></div>
           <div class="det-badges" id="det-badges"></div>
-          <button type="button" class="chip-revisado" id="btn-revisado" title="Marca el álbum como revisado cuando hayas comprobado que todos sus datos son correctos">☐ Sin revisar</button>
-          <div class="det-escuchas">
+          <div class="det-chips">
+            <button type="button" class="chip-revisado" id="btn-revisado" title="Marca el álbum como revisado cuando hayas comprobado que todos sus datos son correctos">☐ Sin revisar</button>
             <button type="button" class="chip-escucha" id="btn-escucha" title="Apunta que acabas de escuchar este álbum">🎧 Lo he escuchado</button>
             <button type="button" class="chip-escucha-undo" id="btn-escucha-deshacer" title="Quitar la última escucha apuntada (por si te equivocaste)">↶</button>
           </div>
