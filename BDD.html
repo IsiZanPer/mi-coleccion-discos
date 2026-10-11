@@ -503,6 +503,22 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   .det-codbarras,.det-resumen{display:flex;align-items:center;gap:6px;}
   .det-codbarras{font-size:calc(12.5px * var(--ft,1));color:var(--muted);margin-top:4px;}
   .det-codbarras svg,.det-resumen svg{width:14px;height:14px;flex-shrink:0;color:var(--accent);}
+  .btn-verificar-cb{margin-left:6px;background:transparent;border:1px solid var(--border);color:var(--accent);border-radius:4px;padding:3px 9px;cursor:pointer;font-family:inherit;font-size:calc(12.5px * var(--ft,1));line-height:1.2;}
+  .btn-verificar-cb:hover{border-color:var(--accent);background:var(--panel-hi);}
+  .det-cb-resultado{margin-top:6px;padding:10px 12px;border:1px solid var(--border);border-left-width:4px;border-radius:4px;font-size:calc(13.5px * var(--ft,1));line-height:1.45;}
+  .det-cb-resultado.ok{border-left-color:var(--msg-ok);}
+  .det-cb-resultado.mal{border-left-color:var(--msg-mal);}
+  .det-cb-resultado.aviso{border-left-color:var(--accent);}
+  .det-cb-resultado .cb-titulo{font-weight:700;margin-bottom:4px;}
+  .det-cb-resultado.ok .cb-titulo{color:var(--msg-ok);}
+  .det-cb-resultado.mal .cb-titulo{color:var(--msg-mal);}
+  .det-cb-resultado .cb-cod{font-family:ui-monospace,Consolas,monospace;font-weight:600;color:var(--text);}
+  .det-cb-resultado .cb-acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .det-cb-resultado .cb-acciones button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 12px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:inherit;}
+  .det-cb-resultado .cb-acciones button.principal{border-color:var(--accent);color:var(--accent);font-weight:700;}
+  .det-cb-resultado .cb-acciones button:disabled{opacity:.6;cursor:default;}
+  body.modo-movil .btn-verificar-cb{padding:6px 10px;margin-left:auto;font-size:calc(15px * var(--ft,1));}
+  body.modo-movil .btn-verificar-cb .txt{display:none;}
 
   .det-subtitulo{
     font-size:calc(13px * var(--ft,1));
@@ -1458,7 +1474,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.33</div>
+  <div class="pc-version">Versión 2.34</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1599,6 +1615,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
           <div id="det-escuchas-txt"></div>
           <div class="det-catalogo" id="det-catalogo"></div>
           <div class="det-codbarras" id="det-codbarras"></div>
+          <div class="det-cb-resultado" id="det-cb-resultado" style="display:none;"></div>
           <div class="det-resumen" id="det-resumen"></div>
         </div>
       </div>
@@ -1730,7 +1747,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
 <div id="modal-fondo-scanner">
   <div id="modal-scanner">
     <span class="cerrar-detalle" id="cerrar-scanner" title="Cerrar" aria-label="Cerrar">✕</span>
-    <h3>Escanear código de barras</h3>
+    <h3 id="scanner-titulo">Escanear código de barras</h3>
     <div id="scanner-visor">
       <video id="scanner-video" playsinline muted autoplay></video>
       <div id="scanner-marco"></div>
@@ -2490,8 +2507,7 @@ function abrirDetalle(album){
     ? `Nº de catálogo: ${escapeHTML(String(album["Número de Catalogo"]))}`
     : "";
 
-  $("#det-codbarras").innerHTML = album["Código de barras"]
-    ? `<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  const iconoCB = `<svg viewBox="0 0 24 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
          <rect x="0" y="0" width="2" height="16" fill="currentColor"/>
          <rect x="4" y="0" width="1" height="16" fill="currentColor"/>
          <rect x="7" y="0" width="3" height="16" fill="currentColor"/>
@@ -2499,8 +2515,11 @@ function abrirDetalle(album){
          <rect x="15" y="0" width="2" height="16" fill="currentColor"/>
          <rect x="19" y="0" width="1" height="16" fill="currentColor"/>
          <rect x="22" y="0" width="2" height="16" fill="currentColor"/>
-       </svg><span>${escapeHTML(String(album["Código de barras"]))}</span>`
-    : "";
+       </svg>`;
+  $("#det-codbarras").innerHTML = iconoCB
+    + (album["Código de barras"] ? `<span>${escapeHTML(String(album["Código de barras"]))}</span>` : `<span class="vacio">Sin código de barras</span>`)
+    + `<button type="button" class="btn-verificar-cb" id="btn-verificar-cb" title="Escanear el código de barras del CD para comprobar el que tienes guardado" aria-label="Comprobar el código de barras con la cámara">📷<span class="txt"> Comprobar</span></button>`;
+  const rcb = $("#det-cb-resultado"); rcb.style.display = "none"; rcb.innerHTML = "";
 
   const particulares = [
     `<b>Fecha de compra:</b> ${campoOVacio(album["Fecha de compra"])}`,
@@ -4574,7 +4593,7 @@ $("#btn-leer-cd").addEventListener("click", leerCD);
 // Motor: BarcodeDetector nativo (Chrome/Edge/Android) y, si el navegador no lo tiene (p. ej. iPhone/Safari o Firefox),
 // la biblioteca ZXing, que se descarga solo la primera vez que se necesita.
 const ZXING_URL = "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
-const SCAN = { stream:null, activo:false, timer:null, detector:null, zxReader:null, canvas:null, ultimo:"", rep:0, linterna:false };
+const SCAN = { modo:"alta", stream:null, activo:false, timer:null, detector:null, zxReader:null, canvas:null, ultimo:"", rep:0, linterna:false };
 
 // Comprueba el dígito de control (EAN-8, UPC-A de 12 y EAN-13): descarta lecturas erróneas
 function codigoBarrasValido(c){
@@ -4660,7 +4679,9 @@ function cerrarScanner(){
   detenerScanner();
   $("#modal-fondo-scanner").classList.remove("abierto");
 }
-async function abrirScanner(){
+async function abrirScanner(modo){
+  SCAN.modo = (modo === "verificar") ? "verificar" : "alta";
+  $("#scanner-titulo").textContent = SCAN.modo === "verificar" ? "Comprobar el código de barras del álbum" : "Escanear código de barras";
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
     alert("Este navegador no permite usar la cámara desde aquí (hace falta una conexión segura https). Escribe el código a mano.");
     return;
@@ -4732,8 +4753,10 @@ async function alternarLinterna(){
   }
 }
 async function scannerExito(codigo){
+  const modo = SCAN.modo;
   cerrarScanner();
   if(navigator.vibrate){ try{ navigator.vibrate(120); }catch(e){} }
+  if(modo === "verificar"){ verificarCodigoBarrasAlbum(codigo); return; }
   // Un UPC-A (12 cifras) lo da el lector nativo como EAN-13 con un 0 delante: se busca como está impreso
   const impreso = (codigo.length === 13 && codigo[0] === "0") ? codigo.slice(1) : codigo;
   $("#buscar-barcode").value = impreso;
@@ -4749,10 +4772,98 @@ async function scannerExito(codigo){
     }
   }
 }
-$("#btn-escanear").addEventListener("click", abrirScanner);
+$("#btn-escanear").addEventListener("click", ()=> abrirScanner("alta"));
 $("#cerrar-scanner").addEventListener("click", cerrarScanner);
 $("#scanner-linterna").addEventListener("click", alternarLinterna);
 document.addEventListener("visibilitychange", ()=>{ if(document.hidden && SCAN.stream) cerrarScanner(); });
+
+
+/* ---------- Comprobar con la cámara el código de barras guardado de un álbum ---------- */
+// Se compara solo con las cifras y sin ceros a la izquierda: así "075678212329" (UPC-A), "0075678212329" (EAN-13)
+// y un código al que Google Sheets le haya quitado el 0 inicial cuentan como el mismo.
+function normalizarCodigoBarras(c){ return String(c || "").replace(/\D+/g, "").replace(/^0+/, ""); }
+function codigoBarrasImpreso(c){ return (c.length === 13 && c[0] === "0") ? c.slice(1) : c; }
+function mostrarResultadoCB(clase, titulo, cuerpoHTML, acciones){
+  const r = $("#det-cb-resultado");
+  r.className = "det-cb-resultado " + clase;
+  r.innerHTML = `<div class="cb-titulo">${titulo}</div><div>${cuerpoHTML}</div>`
+    + `<div class="cb-acciones">${(acciones || []).map((a,i)=> `<button type="button" data-i="${i}" class="${a.principal ? "principal" : ""}">${a.texto}</button>`).join("")}</div>`;
+  r.style.display = "";
+  r.querySelectorAll(".cb-acciones button").forEach(b=> b.addEventListener("click", ()=> acciones[Number(b.dataset.i)].alPulsar(b)));
+  r.scrollIntoView({ block:"nearest", behavior:"smooth" });
+}
+function cerrarResultadoCB(){ const r = $("#det-cb-resultado"); r.style.display = "none"; r.innerHTML = ""; }
+
+function verificarCodigoBarrasAlbum(leido){
+  if(!albumSeleccionado) return;
+  const album = albumSeleccionado;
+  const escaneado = codigoBarrasImpreso(leido);
+  const guardado = String(album["Código de barras"] || "").trim();
+  const nEsc = normalizarCodigoBarras(escaneado), nGuard = normalizarCodigoBarras(guardado);
+  const cod = t => `<span class="cb-cod">${escapeHTML(t)}</span>`;
+  const cerrar = { texto:"Cerrar", alPulsar: cerrarResultadoCB };
+  const guardar = { texto:"Guardar el escaneado", principal:true, alPulsar: b=> guardarCodigoBarrasAlbum(escaneado, b) };
+  const otraVez = { texto:"📷 Escanear otra vez", alPulsar: ()=> { cerrarResultadoCB(); abrirScanner("verificar"); } };
+
+  if(nGuard && nEsc === nGuard){
+    mostrarResultadoCB("ok", "✓ El código es correcto", `Coincide con el que tienes guardado: ${cod(guardado)}.`, [cerrar]);
+    return;
+  }
+  // ¿Otro álbum de la colección ya tiene ese código?
+  const idsPropios = new Set(album._esGrupo ? album._discos.map(d=> String(d.ALBUM_ID)) : [String(album.ALBUM_ID)]);
+  const otro = ALBUMES.find(a=> !idsPropios.has(String(a.ALBUM_ID)) && normalizarCodigoBarras(a["Código de barras"]) === nEsc);
+  const avisoOtro = otro ? `<br><br>⚠️ Ese código escaneado ya lo tiene otro álbum de tu colección: <b>${escapeHTML(otro["ARTISTA ALBUM"] || "")} – ${escapeHTML(otro["ALBUM"] || "")}</b>. Puede que estés escaneando otro disco o que uno de los dos esté mal.` : "";
+  if(!nGuard){
+    mostrarResultadoCB("aviso", "Este álbum no tiene código de barras guardado",
+      `Código escaneado: ${cod(escaneado)}.${avisoOtro}`, [guardar, otraVez, cerrar]);
+    return;
+  }
+  mostrarResultadoCB("mal", "✗ El código NO coincide",
+    `Escaneado: ${cod(escaneado)}<br>Guardado: ${cod(guardado)}${avisoOtro}`, [guardar, otraVez, cerrar]);
+}
+
+async function guardarCodigoBarrasAlbum(nuevo, boton){
+  if(!albumSeleccionado) return;
+  const album = albumSeleccionado;
+  const anterior = String(album["Código de barras"] || "").trim();
+  const txt = anterior
+    ? `¿Cambiar el código de barras de «${album["ALBUM"]}»?\n\nAntes: ${anterior}\nAhora: ${nuevo}`
+    : `¿Guardar el código de barras ${nuevo} en «${album["ALBUM"]}»?`;
+  if(!confirm(txt)) return;
+  // Un álbum de varios discos comparte código: se actualiza el de todos sus discos
+  const ids = album._esGrupo ? album._discos.map(d=> d.ALBUM_ID) : [album.ALBUM_ID];
+  const textoBoton = boton ? boton.textContent : "";
+  if(boton){ boton.disabled = true; boton.textContent = "Guardando…"; }
+  try{
+    for(const id of ids){
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ sesion: sesionActual, album: { ALBUM_ID: id, "Código de barras": nuevo } })
+      });
+      const json = await res.json();
+      if(!json.ok){
+        if(manejarErrorSesion(json.error)) return;
+        alert("Error al guardar el código: " + json.error);
+        if(boton){ boton.disabled = false; boton.textContent = textoBoton; }
+        return;
+      }
+      const fila = ALBUMES.find(x=> x.ALBUM_ID === id);
+      if(fila) fila["Código de barras"] = nuevo;
+    }
+    const idActual = album.ALBUM_ID;
+    ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
+    abrirDetalle(encontrarEntradaVista(idActual) || album);
+    mostrarResultadoCB("ok", "✓ Código guardado", `El código de barras de este álbum es ahora ${`<span class="cb-cod">${escapeHTML(nuevo)}</span>`}.`, [{ texto:"Cerrar", alPulsar: cerrarResultadoCB }]);
+  }catch(err){
+    console.error(err);
+    alert("No se pudo conectar para guardar el código de barras.");
+    if(boton){ boton.disabled = false; boton.textContent = textoBoton; }
+  }
+}
+document.addEventListener("click", e=>{
+  const b = e.target.closest && e.target.closest("#btn-verificar-cb");
+  if(b) abrirScanner("verificar");
+});
 
 $("#btn-nuevo-album").addEventListener("click", abrirModalNuevoAlbum);
 $("#cerrar-modal-nuevo").addEventListener("click", cerrarModalNuevoAlbum);
