@@ -1458,7 +1458,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.32</div>
+  <div class="pc-version">Versión 2.33</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -2421,13 +2421,10 @@ function procesarColaDimensiones(){
 function construirOlCanciones(canciones){
   const ol = document.createElement("ol");
   ol.className = "lista-canciones";
-  const albumDeLista = canciones.length ? ALBUMES.find(a=> String(a.ALBUM_ID) === String(canciones[0].ALBUM_ID)) : null;
-  const artistaAlbumLista = albumDeLista ? (albumDeLista["ARTISTA ALBUM"] || "") : "";
   canciones.forEach(c=>{
     const li = document.createElement("li");
     const tieneLetra = c["Letras"] && String(c["Letras"]).trim() !== "";
-    // Si el artista de la canción es el mismo del álbum no se repite en la lista
-    const artistaCancion = (c["ARTISTA"] && !mismoNombre(c["ARTISTA"], artistaAlbumLista)) ? ` <em>(${escapeHTML(c["ARTISTA"])})</em>` : "";
+    const artistaCancion = c["ARTISTA"] ? ` <em>(${escapeHTML(c["ARTISTA"])})</em>` : "";
     li.innerHTML = `
       <span class="num">${escapeHTML(String(c["PISTA Nº"]||""))}</span>
       <span class="tit">${escapeHTML(c["TITULO"]||"")}${artistaCancion}</span>
