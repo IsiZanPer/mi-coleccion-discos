@@ -1458,7 +1458,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.31</div>
+  <div class="pc-version">Versión 2.32</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -2421,10 +2421,13 @@ function procesarColaDimensiones(){
 function construirOlCanciones(canciones){
   const ol = document.createElement("ol");
   ol.className = "lista-canciones";
+  const albumDeLista = canciones.length ? ALBUMES.find(a=> String(a.ALBUM_ID) === String(canciones[0].ALBUM_ID)) : null;
+  const artistaAlbumLista = albumDeLista ? (albumDeLista["ARTISTA ALBUM"] || "") : "";
   canciones.forEach(c=>{
     const li = document.createElement("li");
     const tieneLetra = c["Letras"] && String(c["Letras"]).trim() !== "";
-    const artistaCancion = c["ARTISTA"] ? ` <em>(${escapeHTML(c["ARTISTA"])})</em>` : "";
+    // Si el artista de la canción es el mismo del álbum no se repite en la lista
+    const artistaCancion = (c["ARTISTA"] && !mismoNombre(c["ARTISTA"], artistaAlbumLista)) ? ` <em>(${escapeHTML(c["ARTISTA"])})</em>` : "";
     li.innerHTML = `
       <span class="num">${escapeHTML(String(c["PISTA Nº"]||""))}</span>
       <span class="tit">${escapeHTML(c["TITULO"]||"")}${artistaCancion}</span>
@@ -4137,7 +4140,7 @@ function mapearReleaseDiscogs(r){
       .map((p,i)=>({
         "PISTA Nº": p.pista != null ? p.pista : (i+1),
         "TITULO": p["TITULO"],
-        "ARTISTA": p["ARTISTA"],
+        "ARTISTA": p["ARTISTA"] || artistas,   // sin artista propio en Discogs = el del álbum
         "Duración": p["Duración"],
         "Original Release Year": ""
       }))
@@ -4376,7 +4379,7 @@ async function crearAlbumNuevo(){
       const cancionesDisco = $$("#"+d.id+" .cancion-edicion").map(div=>({
         "PISTA Nº": div.querySelector(".ed-c-pista").value.trim(),
         "TITULO": div.querySelector(".ed-c-titulo").value.trim(),
-        "ARTISTA": div.querySelector(".ed-c-artista").value.trim(),
+        "ARTISTA": div.querySelector(".ed-c-artista").value.trim() || albumBase["ARTISTA ALBUM"],   // en blanco = artista del álbum
         "Duración": div.querySelector(".ed-c-duracion").value.trim(),
         "Original Release Year": div.querySelector(".ed-c-anio").value.trim(),
         "Letras": div.querySelector(".ed-c-letras").value
@@ -4546,7 +4549,7 @@ async function seleccionarCandidatoCD(c, datos){
   const canciones = (medio ? medio.pistas : []).map((p,i)=>({
     "PISTA Nº": p.n != null ? p.n : (i + 1),
     "TITULO": p.titulo || "",
-    "ARTISTA": mismoNombre(p.artista, c.artista) ? "" : (p.artista || ""),
+    "ARTISTA": (p.artista && !mismoNombre(p.artista, c.artista)) ? p.artista : (c.artista || ""),   // sin artista propio = el del álbum
     "Duración": segundosAMmss(p.segundos != null ? p.segundos : (datos.pistas[i] ? datos.pistas[i].segundos : 0)),
     "Original Release Year": ""
   }));
