@@ -601,12 +601,14 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   }
   body.modo-movil .det-botones .txt{display:none;}
   body.modo-movil .det-acciones .cerrar-detalle{
-    order:1;margin-left:auto;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+    order:2;margin-left:0;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
     font-size:calc(24px * var(--ft,1));
   }
-  body.modo-movil .det-nav{order:2;flex-basis:100%;margin:0;justify-content:center;gap:14px;}
-  body.modo-movil .det-nav button{width:44px;height:44px;font-size:calc(24px * var(--ft,1));}
-  body.modo-movil #det-nav-pos{font-size:calc(15px * var(--ft,1));min-width:72px;}
+  /* Móvil: sin botones ‹ ›; solo queda "n / total" en la fila de iconos, entre eliminar y ✕. Se cambia de álbum deslizando la carátula */
+  body.modo-movil .det-nav{display:contents;}
+  body.modo-movil .det-nav button{display:none;}
+  body.modo-movil #det-nav-pos{order:1;margin-left:auto;font-size:calc(15px * var(--ft,1));min-width:0;padding:0 4px;}
+  body.modo-movil .det-cover-wrap{touch-action:pan-y;}
   /* Móvil: el "+" de la cabecera es solo un icono */
   body.modo-movil .btn-nuevo-album{flex-shrink:0;padding:10px 12px;font-size:calc(18px * var(--ft,1));line-height:1;}
   body.modo-movil .btn-nuevo-album .txt{display:none;}
@@ -1426,7 +1428,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.27</div>
+  <div class="pc-version">Versión 2.28</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -6160,6 +6162,57 @@ function irAlAlbumVecino(delta){
 }
 $("#btn-det-ant").addEventListener("click", ()=> irAlAlbumVecino(-1));
 $("#btn-det-sig").addEventListener("click", ()=> irAlAlbumVecino(1));
+
+/* ---------- Móvil: deslizar la carátula del detalle para ir al álbum anterior / siguiente ---------- */
+(function(){
+  const wrap = document.querySelector(".det-cover-wrap");
+  if(!wrap) return;
+  const UMBRAL = 55;                       // píxeles mínimos de arrastre
+  let x0 = 0, y0 = 0, dx = 0, activo = false, bloqueado = false, huboDeslizamiento = false;
+
+  function puedeDeslizar(){
+    return document.body.classList.contains("modo-movil")
+      && $("#detalle").classList.contains("abierto")
+      && $("#det-nav").style.display !== "none"          // no al editar
+      && !document.querySelector('[id^="modal-"][id*="fondo"].abierto');
+  }
+  wrap.addEventListener("touchstart", e=>{
+    if(e.touches.length !== 1 || !puedeDeslizar()){ activo = false; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0;
+    activo = true; bloqueado = false;
+    wrap.style.transition = "none";
+  }, { passive:true });
+  wrap.addEventListener("touchmove", e=>{
+    if(!activo) return;
+    const t = e.touches[0];
+    dx = t.clientX - x0;
+    const dy = t.clientY - y0;
+    if(!bloqueado && Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10){ activo = false; wrap.style.transform = ""; return; }   // era un desplazamiento vertical
+    bloqueado = true;
+    wrap.style.transform = "translateX(" + Math.round(dx * 0.5) + "px)";
+    wrap.style.opacity = String(Math.max(0.45, 1 - Math.abs(dx) / 400));
+  }, { passive:true });
+  function soltar(){
+    if(!activo) return;
+    activo = false;
+    const delta = dx <= -UMBRAL ? 1 : (dx >= UMBRAL ? -1 : 0);   // dedo a la izquierda = siguiente; a la derecha = anterior
+    wrap.style.transition = "transform .15s ease, opacity .15s ease";
+    wrap.style.transform = ""; wrap.style.opacity = "";
+    if(Math.abs(dx) > 10) { huboDeslizamiento = true; setTimeout(()=> huboDeslizamiento = false, 400); }
+    if(!delta) return;
+    const i = indiceEnLista();
+    if(i < 0 || !ultimaLista[i + delta]) return;                  // ya es el primero / el último
+    irAlAlbumVecino(delta);
+    if(wrap.animate) wrap.animate(
+      [{ transform:"translateX(" + (delta * 50) + "px)", opacity:0 }, { transform:"none", opacity:1 }],
+      { duration:180, easing:"ease-out" });
+    if(navigator.vibrate){ try{ navigator.vibrate(15); }catch(e){} }
+  }
+  wrap.addEventListener("touchend", soltar);
+  wrap.addEventListener("touchcancel", ()=>{ activo = false; wrap.style.transition = ""; wrap.style.transform = ""; wrap.style.opacity = ""; });
+  // Un deslizamiento no debe abrir la carátula en grande
+  wrap.addEventListener("click", e=>{ if(huboDeslizamiento){ e.stopPropagation(); e.preventDefault(); } }, true);
+})();
 
 // Flechas ← → del teclado: álbum anterior / siguiente cuando el detalle está abierto
 document.addEventListener("keydown", e=>{
