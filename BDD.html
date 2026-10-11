@@ -439,6 +439,9 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   .det-info-top{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;}
   .det-sello-anio{font-size:calc(15px * var(--ft,1));font-weight:600;color:var(--text);}
   .det-genero{font-size:calc(13px * var(--ft,1));color:var(--muted);}
+  .det-datos{display:flex;flex-direction:column;gap:6px;min-width:0;}
+  .det-sello-anio .sa-sello + .sa-anio::before{content:" (";}
+  .det-sello-anio .sa-sello + .sa-anio::after{content:")";}
   .det-badges{display:flex;gap:8px;margin:4px 0 2px;}
   /* Revisado: botón-interruptor en el detalle */
   .chip-revisado{align-self:flex-start;display:inline-flex;align-items:center;gap:7px;margin:4px 0 2px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:999px;cursor:pointer;font-size:calc(12.5px * var(--ft,1));font-family:inherit;}
@@ -1215,11 +1218,23 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   body.modo-movil .fc-meta{font-size:calc(14px * var(--ft,1));}
   /* z-index del detalle en móvil = 70: todas las ventanas modales (fondos) deben tener más (80) para verse por delante */
   body.modo-movil #detalle{top:0;bottom:0;right:0;width:100%;max-width:700px;position:fixed;z-index:70;}
-  body.modo-movil .det-cabecera{flex-direction:column;}
-  body.modo-movil .cover-mediana{width:160px;height:160px;margin:0 auto;}
-  body.modo-movil .det-cover-wrap{margin-right:0;align-self:auto;}
+  /* Móvil: carátula a la izquierda y, a su derecha, 5 filas: etiqueta, año, género, id y calificación; el resto va debajo, a todo el ancho */
+  body.modo-movil .det-cabecera{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:14px;row-gap:8px;align-items:stretch;}
+  body.modo-movil .cover-mediana{width:140px;height:140px;margin:0;}
+  body.modo-movil .det-cover-wrap{margin:0;align-self:auto;grid-column:1;grid-row:1;}
   body.modo-movil .vinilo{display:none;}
-  body.modo-movil .det-info-top{width:100%;}
+  body.modo-movil .det-info-top{display:contents;}
+  body.modo-movil .det-info-top > :not(.det-datos){grid-column:1 / -1;}
+  body.modo-movil .det-datos{grid-column:2;grid-row:1;justify-content:space-between;gap:4px;overflow-wrap:anywhere;}
+  body.modo-movil .det-sello-anio,
+  body.modo-movil .det-badges{display:contents;}
+  body.modo-movil .det-sello-anio .sa-sello{font-size:calc(16px * var(--ft,1));font-weight:600;color:var(--text);}
+  body.modo-movil .det-sello-anio .sa-anio{font-size:calc(15px * var(--ft,1));font-weight:600;color:var(--text);}
+  body.modo-movil .det-sello-anio .sa-sello + .sa-anio::before,
+  body.modo-movil .det-sello-anio .sa-sello + .sa-anio::after{content:none;}
+  body.modo-movil .det-sello-anio .vacio{font-size:calc(15px * var(--ft,1));}
+  body.modo-movil .det-genero{font-size:calc(14px * var(--ft,1));}
+  body.modo-movil .det-datos .badge-id,body.modo-movil .det-datos .badge-rating{align-self:flex-start;}
   body.modo-movil .det-catalogo,
   body.modo-movil .det-codbarras,
   body.modo-movil .det-resumen{font-size:calc(15px * var(--ft,1));}
@@ -1443,7 +1458,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.30</div>
+  <div class="pc-version">Versión 2.31</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1571,9 +1586,11 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
           <div class="vinilo" aria-hidden="true"></div>
         </div>
         <div class="det-info-top">
-          <div class="det-sello-anio" id="det-sello-anio"></div>
-          <div class="det-genero" id="det-genero"></div>
-          <div class="det-badges" id="det-badges"></div>
+          <div class="det-datos">
+            <div class="det-sello-anio" id="det-sello-anio"></div>
+            <div class="det-genero" id="det-genero"></div>
+            <div class="det-badges" id="det-badges"></div>
+          </div>
           <div class="det-chips">
             <button type="button" class="chip-revisado" id="btn-revisado" title="Marca el álbum como revisado cuando hayas comprobado que todos sus datos son correctos">☐ Sin revisar</button>
             <button type="button" class="chip-escucha" id="btn-escucha" title="Apunta que acabas de escuchar este álbum">🎧 Lo he escuchado</button>
@@ -2448,9 +2465,10 @@ function abrirDetalle(album){
   const fechaPub = album["Fecha"] ? String(album["Fecha"]) : "";
   const anio = fechaPub.includes("/") ? fechaPub.split("/").pop() : fechaPub;
 
-  $("#det-sello-anio").innerHTML = album["Etiqueta"]
-    ? `${escapeHTML(album["Etiqueta"])}${anio ? ` (${escapeHTML(anio)})` : ""}`
-    : (anio ? escapeHTML(anio) : '<span class="vacio">—</span>');
+  $("#det-sello-anio").innerHTML = (album["Etiqueta"] || anio)
+    ? (album["Etiqueta"] ? `<span class="sa-sello">${escapeHTML(album["Etiqueta"])}</span>` : "")
+      + (anio ? `<span class="sa-anio">${escapeHTML(anio)}</span>` : "")
+    : '<span class="vacio">—</span>';
 
   $("#det-genero").innerHTML = campoOVacio(album["GENERO"]);
 
