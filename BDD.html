@@ -1474,7 +1474,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.36</div>
+  <div class="pc-version">Versión 2.37</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1492,7 +1492,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <h1><span class="l-mi">Mi</span>colección</h1>
   </div>
   <div class="buscador-caja" id="buscador-caja">
-    <input id="buscador" type="text" placeholder="Buscar por álbum o artista…">
+    <input id="buscador" name="buscar-en-coleccion" type="text" placeholder="Buscar por álbum o artista…" autocomplete="off" autocapitalize="off" spellcheck="false">
     <button type="button" id="buscador-borrar" title="Borrar la búsqueda (Esc)" aria-label="Borrar la búsqueda">✕</button>
   </div>
   <button type="button" id="btn-tema-movil" title="Cambiar entre tema oscuro y claro">☀</button>
@@ -1873,7 +1873,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   <div id="modal-login">
     <h3>Token de GitHub</h3>
     <p>Para subir carátulas a tu repositorio. Solo se guarda en esta pestaña.</p>
-    <input type="password" id="login-password" placeholder="Token">
+    <input type="password" id="login-password" placeholder="Token" autocomplete="new-password">
     <div class="fila-botones">
       <button type="button" id="btn-login-enviar">Entrar</button>
       <button type="button" id="btn-login-cancelar">Cancelar</button>
