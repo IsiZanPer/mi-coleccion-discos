@@ -1474,7 +1474,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.35</div>
+  <div class="pc-version">Versión 2.36</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1514,6 +1514,8 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
       <button class="herr-item" id="btn-verificar" type="button" role="menuitem" title="Comparar las canciones de tus álbumes con las de Discogs y marcar los que no coinciden"><span class="ico">🔎</span> Comprobar con Discogs</button>
       <button class="herr-item" id="btn-iniciar-lector" type="button" role="menuitem" title="Arrancar en este PC el programa lector de CD (equivale a ejecutar iniciar_lector.bat)"><span class="ico">▶</span> Iniciar lector de CD</button>
       <button class="herr-item" id="btn-desmontar-herr" type="button" role="menuitem" title="Desmontar la imagen que esté montada en Daemon Tools"><span class="ico">⏏</span> Desmontar disco</button>
+      <button class="herr-item" id="btn-copia-ahora" type="button" role="menuitem" title="Guarda una copia de toda la colección (álbumes y canciones) en un archivo"><span class="ico">💾</span> Copia de seguridad ahora</button>
+      <button class="herr-item" id="btn-abrir-copias" type="button" role="menuitem" title="Abrir la carpeta donde el programa guarda las copias" style="display:none;"><span class="ico">📂</span> Abrir carpeta de copias</button>
       <button class="herr-item" id="btn-copia" type="button" role="menuitem" title="Crear ahora una copia de seguridad de toda la hoja de Google en tu Drive"><span class="ico">💾</span> Copia de seguridad</button>
       <button class="herr-item" id="btn-deshacer-masiva" type="button" role="menuitem" title="Devolver los valores que tenían los álbumes antes de la última edición en bloque"><span class="ico">↶</span> Deshacer última edición masiva</button>
       <div class="herr-tam" id="herr-tam" title="Tamaño de todas las letras de la página (clic en el porcentaje para volver al 100 %)">
@@ -2038,26 +2040,128 @@ function ocultarPantallaCarga(){
   setTimeout(()=>{ pc.style.display = "none"; }, 450);
 }
 
-async function cargarDatos(){
+/* ---------- Arranque rápido: copia de la colección guardada en este dispositivo ---------- */
+// Al abrir, se pinta al instante lo último que se vio (IndexedDB) y la hoja se consulta en segundo plano:
+// si hay cambios, se actualiza la pantalla sin perder el sitio. Solo se usa si es el mismo usuario.
+const CACHE_DB = "mi_coleccion_cache", CACHE_ALMACEN = "datos", CACHE_CLAVE = "coleccion";
+function abrirCacheDB(){
+  return new Promise((ok, fallo)=>{
+    const r = indexedDB.open(CACHE_DB, 1);
+    r.onupgradeneeded = ()=> r.result.createObjectStore(CACHE_ALMACEN);
+    r.onsuccess = ()=> ok(r.result);
+    r.onerror = ()=> fallo(r.error);
+  });
+}
+async function leerCacheLocal(){
   try{
-    const res = await fetch(API_URL + "?sesion=" + encodeURIComponent(sesionActual));
-    const json = await res.json();
+    const db = await abrirCacheDB();
+    return await new Promise(ok=>{
+      const rq = db.transaction(CACHE_ALMACEN).objectStore(CACHE_ALMACEN).get(CACHE_CLAVE);
+      rq.onsuccess = ()=> ok(rq.result || null);
+      rq.onerror = ()=> ok(null);
+    });
+  }catch(e){ return null; }
+}
+async function guardarCacheLocal(json, firma){
+  try{
+    const db = await abrirCacheDB();
+    await new Promise(ok=>{
+      const tx = db.transaction(CACHE_ALMACEN, "readwrite");
+      tx.objectStore(CACHE_ALMACEN).put({ usuario: usuarioActual, fecha: Date.now(), firma,
+        albumes: json.albumes, canciones: json.canciones, escuchas: json.escuchas || {} }, CACHE_CLAVE);
+      tx.oncomplete = ()=> ok(); tx.onerror = ()=> ok(); tx.onabort = ()=> ok();
+    });
+  }catch(e){ /* sin caché no pasa nada: se carga siempre de la hoja */ }
+}
+async function borrarCacheLocal(){
+  try{
+    const db = await abrirCacheDB();
+    await new Promise(ok=>{
+      const tx = db.transaction(CACHE_ALMACEN, "readwrite");
+      tx.objectStore(CACHE_ALMACEN).delete(CACHE_CLAVE);
+      tx.oncomplete = ()=> ok(); tx.onerror = ()=> ok(); tx.onabort = ()=> ok();
+    });
+  }catch(e){}
+}
+// Huella rápida del texto recibido, para saber si la hoja ha cambiado desde la última vez
+function firmaTexto(t){
+  let h = 5381;
+  for(let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0;
+  return t.length + ":" + (h >>> 0).toString(16);
+}
+async function pedirDatosHoja(forzar){
+  const res = await fetch(API_URL + "?sesion=" + encodeURIComponent(sesionActual) + (forzar ? "&forzar=1" : ""));
+  const texto = await res.text();
+  return { json: JSON.parse(texto), firma: firmaTexto(texto) };
+}
+
+// Pone en pantalla los datos recibidos de la hoja conservando filtro, selección y detalle abierto
+function aplicarDatosRecibidos(json){
+  ALBUMES = json.albumes;
+  CANCIONES = json.canciones;
+  ESCUCHAS = json.escuchas || {};
+  normalizarTextos(ALBUMES, CAMPOS_TEXTO_ALBUM);
+  normalizarTextos(CANCIONES, CAMPOS_TEXTO_CANCION);
+  ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
+
+  // Si el filtro activo ya no existe (p. ej. se borró ese artista), se vuelve a "Todos".
+  if(valorActivo !== "__TODOS__" && !ALBUMES_VISTA.some(a=> valorSegunTab(a, tabActivo) === valorActivo)) valorActivo = "__TODOS__";
+  construirSidebar();
+  const itemActivo = valorActivo === "__TODOS__"
+    ? $('.artista-item[data-valor="__TODOS__"]')
+    : $$("#lista-artistas .artista-item").find(el=> el.dataset.valor === valorActivo);
+  $$(".artista-item").forEach(el=> el.classList.remove("activo"));
+  if(itemActivo) itemActivo.classList.add("activo");
+
+  // La selección múltiple solo conserva álbumes que siguen existiendo.
+  [...seleccionados].forEach(k=>{ if(!ALBUMES_VISTA.some(a=> claveEntrada(a) === k)) seleccionados.delete(k); });
+  pintarGrid();
+
+  // Detalle abierto: se refresca con los datos nuevos (o se cierra si el álbum ya no existe).
+  if(albumSeleccionado){
+    const y = $("#detalle").scrollTop;
+    const nueva = encontrarEntradaVista(albumSeleccionado.ALBUM_ID);
+    if(nueva){ abrirDetalle(nueva); $("#detalle").scrollTop = y; }
+    else cerrarDetalle();
+  }
+}
+
+async function cargarDatos(){
+  const cache = await leerCacheLocal();
+  let desdeCache = false;
+  if(cache && cache.usuario === usuarioActual && Array.isArray(cache.albumes) && Array.isArray(cache.canciones)){
+    ALBUMES = cache.albumes;
+    CANCIONES = cache.canciones;
+    ESCUCHAS = cache.escuchas || {};
+    ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
+    construirSidebar();
+    pintarGrid();
+    ocultarPantallaCarga();
+    desdeCache = true;
+    avisoSync("Mostrando los datos guardados en este equipo · actualizando…");
+  }
+  try{
+    const { json, firma } = await pedirDatosHoja(false);
     if(!json.ok){
       if(manejarErrorSesion(json.error)) return;
       $("#estado-carga").textContent = "Error: " + json.error;
       return;
     }
-    ALBUMES = json.albumes;
-    CANCIONES = json.canciones;
-    ESCUCHAS = json.escuchas || {};
-    normalizarTextos(ALBUMES, CAMPOS_TEXTO_ALBUM);
-    normalizarTextos(CANCIONES, CAMPOS_TEXTO_CANCION);
-    ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
-    $("#estado-carga").textContent = "";
-    construirSidebar();
-    pintarGrid();
+    if(desdeCache && firma === cache.firma){
+      avisoSync("✓ Colección al día.", 2500);
+    }else if(desdeCache && editandoAlbum()){
+      avisoSync("Hay datos más nuevos en la hoja: pulsa ⟳ cuando termines de editar.", 9000);
+      return;
+    }else{
+      aplicarDatosRecibidos(json);
+      avisoSync(desdeCache ? "✓ Colección actualizada." : "", desdeCache ? 3000 : 0);
+      guardarCacheLocal(json, firma);
+    }
+    programarCopiaAutomatica();
   }catch(err){
-    $("#estado-carga").textContent = "No se pudo conectar con la hoja de datos.";
+    $("#estado-carga").textContent = desdeCache
+      ? "Sin conexión con la hoja: se muestran los datos guardados en este equipo."
+      : "No se pudo conectar con la hoja de datos.";
     console.error(err);
   }finally{
     ocultarPantallaCarga();
@@ -3964,7 +4068,7 @@ $("#modal-masivo").addEventListener("input", (e)=>{
 $("#modal-masivo").addEventListener("change", (e)=>{ if(e.target.type === "checkbox") actualizarResumenMasivo(); });
 
 $("#btn-modificar").addEventListener("click", entrarModoEdicion);
-$("#btn-cerrar-sesion").addEventListener("click", ()=> irALogin());
+$("#btn-cerrar-sesion").addEventListener("click", async ()=>{ await borrarCacheLocal(); irALogin(); });   // al salir a propósito no queda nada guardado en este equipo
 if(usuarioActual) $("#usuario-conectado").textContent = usuarioActual;
 $("#btn-eliminar-album").addEventListener("click", eliminarAlbumActual);
 $$(".btn-guardar-ed").forEach(b=> b.addEventListener("click", guardarCambios));
@@ -6443,8 +6547,7 @@ async function sincronizarConHoja(){
   btn.disabled = true; btn.classList.add("sync-girando");
   avisoSync("Sincronizando con Google Sheets…");
   try{
-    const res = await fetch(API_URL + "?sesion=" + encodeURIComponent(sesionActual) + "&forzar=1");
-    const json = await res.json();
+    const { json, firma } = await pedirDatosHoja(true);
     if(!json.ok){
       if(manejarErrorSesion(json.error)) return;
       throw new Error(json.error);
@@ -6453,33 +6556,8 @@ async function sincronizarConHoja(){
     if(editandoAlbum()){ avisoSync("Sincronización descartada: estabas editando un álbum. Vuelve a intentarlo al guardar.", 6000); return; }
 
     const antesAlb = ALBUMES.length, antesCan = CANCIONES.length;
-    ALBUMES = json.albumes;
-    CANCIONES = json.canciones;
-    ESCUCHAS = json.escuchas || {};
-    normalizarTextos(ALBUMES, CAMPOS_TEXTO_ALBUM);
-    normalizarTextos(CANCIONES, CAMPOS_TEXTO_CANCION);
-    ALBUMES_VISTA = agruparAlbumesMultiDisco(ALBUMES);
-
-    // Si el filtro activo ya no existe (p. ej. se borró ese artista), se vuelve a "Todos".
-    if(valorActivo !== "__TODOS__" && !ALBUMES_VISTA.some(a=> valorSegunTab(a, tabActivo) === valorActivo)) valorActivo = "__TODOS__";
-    construirSidebar();
-    const itemActivo = valorActivo === "__TODOS__"
-      ? $('.artista-item[data-valor="__TODOS__"]')
-      : $$("#lista-artistas .artista-item").find(el=> el.dataset.valor === valorActivo);
-    $$(".artista-item").forEach(el=> el.classList.remove("activo"));
-    if(itemActivo) itemActivo.classList.add("activo");
-
-    // La selección múltiple solo conserva álbumes que siguen existiendo.
-    [...seleccionados].forEach(k=>{ if(!ALBUMES_VISTA.some(a=> claveEntrada(a) === k)) seleccionados.delete(k); });
-    pintarGrid();
-
-    // Detalle abierto: se refresca con los datos nuevos (o se cierra si el álbum ya no existe).
-    if(albumSeleccionado){
-      const y = $("#detalle").scrollTop;
-      const nueva = encontrarEntradaVista(albumSeleccionado.ALBUM_ID);
-      if(nueva){ abrirDetalle(nueva); $("#detalle").scrollTop = y; }
-      else cerrarDetalle();
-    }
+    aplicarDatosRecibidos(json);
+    guardarCacheLocal(json, firma);
 
     const dAlb = ALBUMES.length - antesAlb, dCan = CANCIONES.length - antesCan;
     const signo = n => n > 0 ? "+" + n : String(n);
@@ -6598,6 +6676,54 @@ if(consultaMovil){
   else if(consultaMovil.addListener) consultaMovil.addListener(alCambiar);
 }
 aplicarModoVisual(false);
+
+
+/* ---------- Copias de seguridad de la colección ---------- */
+// En el programa de Windows se guardan solas en una carpeta del PC (cada cierto tiempo) o a mano desde Herramientas.
+// En el navegador, "Copia de seguridad ahora" descarga un archivo .json.
+const HAY_PUENTE_APP = EN_APP && window.chrome && window.chrome.webview;
+function datosDeLaCopia(){
+  return { aplicacion:"Mi colección de CDs", formato:1, fecha:new Date().toISOString(), usuario:usuarioActual,
+           albumes:ALBUMES, canciones:CANCIONES, escuchas:ESCUCHAS };
+}
+let copiaAutomaticaEnCurso = false;
+function copiaSeguridadAhora(automatica){
+  if(!ALBUMES.length){ avisoSync("Aún no hay datos cargados para copiar.", 4000); return; }
+  if(HAY_PUENTE_APP){
+    copiaAutomaticaEnCurso = !!automatica;
+    avisoSync(automatica ? "Guardando la copia de seguridad automática…" : "Guardando la copia de seguridad…");
+    window.chrome.webview.postMessage(JSON.stringify({ tipo:"copia", datos: datosDeLaCopia() }));
+    return;
+  }
+  const f = new Date(), dos = n=> String(n).padStart(2, "0");
+  const nombre = "copia_" + f.getFullYear() + "-" + dos(f.getMonth()+1) + "-" + dos(f.getDate()) + "_" + dos(f.getHours()) + dos(f.getMinutes()) + ".json";
+  const blob = new Blob([JSON.stringify(datosDeLaCopia())], { type:"application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = nombre; a.style.display = "none";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(a.href), 10000);
+  avisoSync("Copia descargada: " + nombre, 6000);
+}
+// Pasados unos segundos tras cargar, se pregunta al programa si ya toca la copia automática
+function programarCopiaAutomatica(){
+  if(!HAY_PUENTE_APP) return;
+  setTimeout(()=> window.chrome.webview.postMessage("copia-estado"), 5000);
+}
+if(HAY_PUENTE_APP){
+  window.chrome.webview.addEventListener("message", ev=>{
+    const m = String(ev.data || "");
+    if(m === "copia-toca"){ copiaSeguridadAhora(true); return; }
+    if(m.startsWith("copia-hecha|")){
+      const [, ruta, nAlb, nCan] = m.split("|");
+      avisoSync((copiaAutomaticaEnCurso ? "✓ Copia automática guardada" : "✓ Copia guardada") + " (" + nAlb + " álbumes, " + nCan + " canciones): " + ruta, 9000);
+    }else if(m.startsWith("copia-error|")){
+      avisoSync("No se pudo guardar la copia: " + m.slice("copia-error|".length), 10000);
+    }
+  });
+  $("#btn-abrir-copias").style.display = "";
+  $("#btn-abrir-copias").addEventListener("click", ()=> window.chrome.webview.postMessage("abrir-carpeta-copias"));
+}
+$("#btn-copia-ahora").addEventListener("click", ()=> copiaSeguridadAhora(false));
 
 if(sesionActual) cargarDatos(); else ocultarPantallaCarga();
 
