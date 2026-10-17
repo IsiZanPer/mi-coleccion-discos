@@ -1511,7 +1511,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.38</div>
+  <div class="pc-version">Versión 2.39</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -3703,7 +3703,36 @@ async function aplicarDuracionesDisco(cambios, nombreAlbum, nivel){
   avisoSync("✓ Duraciones del disco aplicadas a " + cambios.length + " canción(es).", 6000);
   return true;
 }
-async function comprobarDiscoMontado(canciones, nombreAlbum){
+// Compara el código de barras guardado con lo que dice el disco montado:
+//  - MCN: el código de catálogo grabado en el propio CD (no todos los discos lo llevan ni todas las unidades lo entregan)
+//  - MusicBrainz: ediciones que esa base de datos asocia a este mismo disco (por su DiscID exacto)
+function htmlCodigoBarrasDisco(codigoAlbum, mcn, candidatosMB){
+  const cod = t=> `<b style="font-family:ui-monospace,Consolas,monospace;">${escapeHTML(t)}</b>`;
+  const db = String(codigoAlbum || "").trim(), nDb = normalizarCodigoBarras(db);
+  const nMcn = normalizarCodigoBarras(mcn);
+  let html = "";
+  if(nMcn){
+    if(!nDb) html += `<p class="pr-sub">El disco lleva grabado el código ${cod(mcn)} y el álbum no tiene código de barras guardado.</p>`;
+    else if(nMcn === nDb) html += `<p class="pr-sub">✓ El código de barras guardado coincide con el que lleva grabado el disco (${cod(mcn)}).</p>`;
+    else html += `<p class="pr-sub">✗ El código de barras NO coincide: el disco lleva ${cod(mcn)} y el álbum tiene ${cod(db)}.</p>`;
+  }
+  if(Array.isArray(candidatosMB)){
+    const exactos = candidatosMB.filter(c=> c.exacto && normalizarCodigoBarras(c.barcode));
+    const codigos = [...new Map(exactos.map(c=> [normalizarCodigoBarras(c.barcode), c.barcode])).values()];
+    if(codigos.length){
+      if(nDb && codigos.some(c=> normalizarCodigoBarras(c) === nDb))
+        html += `<p class="pr-sub">✓ El código guardado (${cod(db)}) coincide con una edición de MusicBrainz que contiene exactamente este disco.</p>`;
+      else if(nDb)
+        html += `<p class="pr-sub">⚠ MusicBrainz asocia este disco a ${codigos.length === 1 ? "este código" : "estos códigos"}: ${codigos.map(cod).join(", ")}; ${codigos.length === 1 ? "no coincide" : "ninguno coincide"} con el guardado (${cod(db)}). Puede ser otra edición con el mismo contenido: compruébalo con 📷 en la caja.</p>`;
+      else
+        html += `<p class="pr-sub">El álbum no tiene código guardado. MusicBrainz asocia este disco a: ${codigos.map(cod).join(", ")}.</p>`;
+    }
+  }
+  if(!html && nDb) html = `<p class="pr-sub">Código de barras guardado: ${cod(db)}. El disco no trae su código grabado y MusicBrainz no lo ha podido confirmar; para estar seguro, usa 📷 con la caja del CD.</p>`;
+  return html;
+}
+
+async function comprobarDiscoMontado(canciones, nombreAlbum, codigoAlbum){
   if(!canciones || !canciones.length){ avisoSync("Este álbum no tiene canciones guardadas con las que comparar.", 6000); return; }
   let est;
   try{ est = await pedirAlLector("/estado", 10000); }
@@ -3723,6 +3752,16 @@ async function comprobarDiscoMontado(canciones, nombreAlbum){
   if(!resultados.length){ avisoSync("No se pudo leer ningún disco montado (¿es un CD de audio?).", 7000); return; }
   resultados.sort((x,y)=> y.cmp.puntos - x.cmp.puntos);
   const m = resultados[0], c = m.cmp;
+  // Código de barras: además del MCN del disco, se consulta MusicBrainz (necesita internet; si falla, se ignora)
+  let candidatosMB = null;
+  if(codigoAlbum !== undefined){
+    avisoSync("Comprobando también el código de barras…", 0);
+    try{
+      const lec = await pedirAlLector("/leer?unidad=" + encodeURIComponent(m.unidad.letra), 25000);
+      if(lec && lec.ok) candidatosMB = lec.candidatos || [];
+    }catch(e){ /* sin internet o sin respuesta: solo se comprueban las pistas */ }
+    avisoSync("");
+  }
   const mmss = t=> segundosAMmss(t);
   const etiqueta = m.toc.etiqueta ? " (" + escapeHTML(m.toc.etiqueta) + ")" : "";
   const dTot = c.totD - c.totA;
@@ -3734,6 +3773,7 @@ async function comprobarDiscoMontado(canciones, nombreAlbum){
       <tr><td>Duración total</td><td>${c.totA ? mmss(c.totA) : "—"}</td><td>${mmss(c.totD)}${c.totA ? " (" + (dTot >= 0 ? "+" : "−") + Math.abs(dTot) + " s)" : ""}</td></tr>
       ${c.comparables ? `<tr><td>Pistas con la misma duración (±${TOLERANCIA_SEG} s)</td><td colspan="2">${c.dentro} de ${c.comparables}</td></tr>` : ""}
     </table>`;
+  if(codigoAlbum !== undefined) html += htmlCodigoBarrasDisco(codigoAlbum, m.toc.mcn || "", candidatosMB);
   if(c.difs.length && c.nA === c.nD){
     html += `<ul>` + c.difs.slice(0, 8).map(x=> `<li>Pista ${x.n}${x.titulo ? " «" + escapeHTML(x.titulo) + "»" : ""}: álbum ${mmss(x.a)} · disco ${mmss(x.d)}</li>`).join("") +
       (c.difs.length > 8 ? `<li>… y ${c.difs.length - 8} más</li>` : "") + `</ul>`;
@@ -3761,7 +3801,7 @@ $("#btn-comprobar-disco").addEventListener("click", ()=>{
   if(!albumSeleccionado) return;
   const cs = CANCIONES.filter(c=> c.ALBUM_ID === albumSeleccionado.ALBUM_ID)
     .sort((a,b)=> (parseInt(a["PISTA Nº"])||0) - (parseInt(b["PISTA Nº"])||0));
-  comprobarDiscoMontado(cs, (albumSeleccionado["ARTISTA ALBUM"] || "") + " — " + (albumSeleccionado["ALBUM"] || ""));
+  comprobarDiscoMontado(cs, (albumSeleccionado["ARTISTA ALBUM"] || "") + " — " + (albumSeleccionado["ALBUM"] || ""), albumSeleccionado["Código de barras"] || "");
 });
 $("#btn-desmontar").addEventListener("click", desmontarDisco);
 $("#btn-desmontar-herr").addEventListener("click", desmontarDisco);
