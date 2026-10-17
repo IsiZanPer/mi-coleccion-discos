@@ -1474,7 +1474,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.34</div>
+  <div class="pc-version">Versión 2.35</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1885,6 +1885,8 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
 /* =========================================================
    CONFIGURACIÓN — pega aquí la URL /exec de tu Apps Script
    ========================================================= */
+// El programa de Windows "Mi colección" añade MiColeccionApp al identificador del navegador: lleva el lector de CD integrado
+const EN_APP = /MiColeccionApp/.test(navigator.userAgent);
 const API_URL = "https://script.google.com/macros/s/AKfycbwjBPSQzS1HUC4fAl21wSonBf2qe5iNHLi8n-JVyQCt6VISRDpV-_VcUZM-se_Zabg2/exec";
 
 // Repositorio de GitHub donde se suben las carátulas
@@ -3092,7 +3094,7 @@ async function irADisco(ruta){
     if(r && r.ok){ avisoSync("Abriendo el disco con Daemon Tools…", 4000); return; }
     motivo = (r && r.error === "No existe.") ? "El lector es una versión antigua: ciérralo y vuelve a abrirlo con iniciar_lector.bat." : ((r && r.error) || "");
   }catch(e){
-    motivo = "El lector no está en marcha (abre iniciar_lector.bat).";
+    motivo = EN_APP ? "No se pudo comunicar con el lector de CD del programa (¿hay otro lector abierto que use el mismo puerto?)." : "El lector no está en marcha (abre iniciar_lector.bat).";
   }
   // Alternativa: copiar la ruta para pegarla en el Explorador.
   let copiada = false;
@@ -3388,7 +3390,7 @@ function campoImagenMDX(id, label, valor){
 }
 // Mensaje común cuando el lector local no responde o es una versión sin la función pedida
 function motivoLector(r, e){
-  if(e) return "El lector no está en marcha (usa Herramientas > Iniciar lector de CD, o abre iniciar_lector.bat).";
+  if(e) return EN_APP ? "No se pudo comunicar con el lector de CD del programa (¿hay otro lector abierto que use el mismo puerto?)." : "El lector no está en marcha (usa Herramientas > Iniciar lector de CD, o abre iniciar_lector.bat).";
   if(r && r.error === "No existe.") return "El lector es una versión antigua: ciérralo y vuelve a abrirlo con iniciar_lector.bat.";
   return (r && r.error) || "Error desconocido.";
 }
@@ -3629,6 +3631,7 @@ async function iniciarLectorLocal(){
   }finally{ iniciandoLector = false; }
 }
 $("#btn-iniciar-lector").addEventListener("click", iniciarLectorLocal);
+if(EN_APP) $("#btn-iniciar-lector").style.display = "none";   // dentro del programa el lector ya está integrado
 
 $("#btn-ir-disco").addEventListener("click", ()=>{ if(albumSeleccionado) irADisco(albumSeleccionado["Imagen MDX"]); });
 
@@ -4476,7 +4479,7 @@ async function leerCD(){
       let est;
       try{ est = await pedirAlLector("/estado", 8000); }
       catch(e){
-        estado.textContent = "No encuentro el programa lector de CD. Ejecuta iniciar_lector.bat en este PC, deja su ventana abierta y vuelve a intentarlo. (Si el navegador pregunta por el acceso a la red local, permítelo.)";
+        estado.textContent = EN_APP ? "No se pudo comunicar con el lector de CD del programa. Si tienes abierto lector_cd.exe o iniciar_lector.bat, ciérralo y reinicia el programa." : "No encuentro el programa lector de CD. Ejecuta iniciar_lector.bat en este PC, deja su ventana abierta y vuelve a intentarlo. (Si el navegador pregunta por el acceso a la red local, permítelo.)";
         return;
       }
       const conDisco = (est.unidades || []).filter(u=> u.conDisco);
