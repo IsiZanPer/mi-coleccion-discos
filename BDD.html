@@ -804,6 +804,43 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     white-space:nowrap;
   }
   .grupo-busqueda-nuevo button:hover{background:#5ad3f8;}
+  /* --- Importar letras de MP3 --- */
+  #modal-fondo-importar-letras{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:82;align-items:center;justify-content:center;}
+  #modal-fondo-importar-letras.abierto{display:flex;}
+  #modal-importar-letras{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:22px 26px;width:min(900px,96vw);height:min(86vh,900px);display:flex;flex-direction:column;overflow:hidden;}
+  #modal-importar-letras{position:relative;}
+  #cerrar-importar-letras{position:absolute;top:14px;right:18px;float:none;}
+  #modal-importar-letras h3{margin:0 0 8px;font-size:calc(19px * var(--ft,1));}
+  .il-ayuda{margin:0 0 12px;color:var(--muted);font-size:calc(13.5px * var(--ft,1));line-height:1.45;}
+  .il-acciones{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
+  #modal-importar-letras button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:9px 14px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:calc(13.5px * var(--ft,1));}
+  #modal-importar-letras button:hover{border-color:var(--accent);color:var(--accent);}
+  #modal-importar-letras button.principal{background:var(--accent);border-color:var(--accent);color:#06222c;font-weight:700;}
+  #modal-importar-letras button:disabled{opacity:.55;cursor:default;}
+  #il-estado{color:var(--muted);font-size:calc(13.5px * var(--ft,1));min-height:1.4em;margin-bottom:6px;}
+  #il-estado.mal{color:var(--msg-mal,#ff5d5d);font-weight:600;}
+  #il-resumen{padding:9px 12px;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:4px;font-size:calc(13.5px * var(--ft,1));line-height:1.5;margin-bottom:8px;}
+  #il-lista{flex:1;min-height:0;overflow-y:auto;border:1px solid var(--border);border-radius:4px;}
+  #il-lista:empty{display:none;}
+  .il-grupo{border-bottom:1px solid var(--border);}
+  .il-grupo > summary{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;list-style:none;font-size:calc(14px * var(--ft,1));}
+  .il-grupo > summary::-webkit-details-marker{display:none;}
+  .il-grupo > summary:hover{background:var(--panel-hi);}
+  .il-grupo .il-g-titulo{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .il-grupo .il-g-cuenta{color:var(--muted);font-size:calc(12.5px * var(--ft,1));white-space:nowrap;}
+  .il-item{display:flex;gap:10px;padding:8px 12px 8px 34px;border-top:1px solid var(--border);align-items:flex-start;}
+  .il-item .il-i-cuerpo{flex:1;min-width:0;}
+  .il-item .il-i-titulo{font-size:calc(13.5px * var(--ft,1));font-weight:600;}
+  .il-item .il-etiqueta{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:9px;font-size:calc(11.5px * var(--ft,1));font-weight:600;border:1px solid var(--border);}
+  .il-item .il-etiqueta.seguro{color:var(--msg-ok);border-color:var(--msg-ok);}
+  .il-item .il-etiqueta.dudosa{color:#e0a43a;border-color:#e0a43a;}
+  .il-item .il-i-mp3{color:var(--muted);font-size:calc(12px * var(--ft,1));margin-top:1px;}
+  .il-item .il-i-letra{margin:5px 0 0;color:var(--muted);font-family:inherit;font-size:calc(12.5px * var(--ft,1));white-space:pre-wrap;line-height:1.4;max-height:2.9em;overflow:hidden;cursor:pointer;}
+  .il-item .il-i-letra.abierta{max-height:none;}
+  #il-pie{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;}
+  .il-pie-botones{display:flex;gap:8px;flex-wrap:wrap;}
+  body.modo-movil #modal-importar-letras{padding:16px 14px;height:94vh;}
+
   /* --- Escáner de código de barras (cámara) --- */
   #btn-escanear{background:transparent !important;color:var(--accent) !important;}
   #btn-escanear:hover{background:var(--panel-hi) !important;}
@@ -1474,7 +1511,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.37</div>
+  <div class="pc-version">Versión 2.38</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1516,6 +1553,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
       <button class="herr-item" id="btn-desmontar-herr" type="button" role="menuitem" title="Desmontar la imagen que esté montada en Daemon Tools"><span class="ico">⏏</span> Desmontar disco</button>
       <button class="herr-item" id="btn-copia-ahora" type="button" role="menuitem" title="Guarda una copia de toda la colección (álbumes y canciones) en un archivo"><span class="ico">💾</span> Copia de seguridad ahora</button>
       <button class="herr-item" id="btn-abrir-copias" type="button" role="menuitem" title="Abrir la carpeta donde el programa guarda las copias" style="display:none;"><span class="ico">📂</span> Abrir carpeta de copias</button>
+      <button class="herr-item" id="btn-importar-letras" type="button" role="menuitem" title="Lee las letras incrustadas en tus MP3 y rellena las canciones que no tienen letra (sin marcas de tiempo)" style="display:none;"><span class="ico">🎤</span> Importar letras de MP3…</button>
       <button class="herr-item" id="btn-copia" type="button" role="menuitem" title="Crear ahora una copia de seguridad de toda la hoja de Google en tu Drive"><span class="ico">💾</span> Copia de seguridad</button>
       <button class="herr-item" id="btn-deshacer-masiva" type="button" role="menuitem" title="Devolver los valores que tenían los álbumes antes de la última edición en bloque"><span class="ico">↶</span> Deshacer última edición masiva</button>
       <div class="herr-tam" id="herr-tam" title="Tamaño de todas las letras de la página (clic en el porcentaje para volver al 100 %)">
@@ -1742,6 +1780,29 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
       </div>
       <label>O elige un archivo de tu PC: <input type="file" id="bc-archivo" accept="image/*"></label>
       <a id="bc-google" target="_blank" rel="noopener noreferrer">Abrir Google Imágenes con esta búsqueda ↗</a>
+    </div>
+  </div>
+</div>
+
+<div id="modal-fondo-importar-letras">
+  <div id="modal-importar-letras">
+    <span class="cerrar-detalle" id="cerrar-importar-letras" title="Cerrar" aria-label="Cerrar">✕</span>
+    <h3>Importar letras de los MP3</h3>
+    <p class="il-ayuda">Se leen las letras incrustadas en tus MP3 (o en archivos .lrc con el mismo nombre), se quitan las marcas de tiempo y se rellenan <b>solo las canciones que no tienen letra</b>. Antes de guardar podrás revisarlas.</p>
+    <div class="il-acciones">
+      <button type="button" id="il-leer" class="principal">📁 Elegir carpeta y leer…</button>
+      <button type="button" id="il-releer" style="display:none;"></button>
+      <button type="button" id="il-cancelar-lectura" style="display:none;">Cancelar lectura</button>
+    </div>
+    <div id="il-estado"></div>
+    <div id="il-resumen" style="display:none;"></div>
+    <div id="il-lista"></div>
+    <div id="il-pie" style="display:none;">
+      <div class="il-pie-botones">
+        <button type="button" id="il-marcar-seguras">Marcar las seguras</button>
+        <button type="button" id="il-quitar-todas">Quitar todas</button>
+      </div>
+      <button type="button" id="il-guardar" class="principal">Guardar</button>
     </div>
   </div>
 </div>
@@ -6678,10 +6739,339 @@ if(consultaMovil){
 aplicarModoVisual(false);
 
 
+/* ---------- Importar letras de los MP3 (solo en el programa de Windows) ---------- */
+const HAY_PUENTE_APP = EN_APP && window.chrome && window.chrome.webview;   // solo dentro del programa de Windows
+// El programa lee los MP3 y manda a la página, por lotes, artista/álbum/título/pista/duración/letra.
+// Aquí se limpian las marcas de tiempo, se emparejan con las canciones que no tienen letra y se revisan antes de guardar.
+const MARCA_TIEMPO = /\[\s*\d{1,3}:\d{1,2}(?:[.:,]\d{1,3})?\s*\]/g;      // [0:01.740]  [00:12.34]
+const MARCA_PALABRA = /<\s*\d{1,3}:\d{1,2}(?:[.:,]\d{1,3})?\s*>/g;       // <0:01.740> (karaoke por palabras)
+const ETIQUETA_INFO_LRC = /^\s*\[(?:ar|ti|al|au|by|offset|re|ve|length|la|tool|id)\s*:[^\]]*\]\s*$/i;   // [ar:Artista] [ti:Título]...
+
+// Quita las marcas de tiempo y deja el texto tal cual (incluido el " --- " entre original y traducción)
+function limpiarLetraSincronizada(bruto){
+  const lineas = String(bruto || "").replace(/\r\n?/g, "\n").replace(/\u0000/g, "").split("\n");
+  const limpias = [];
+  for(const l of lineas){
+    if(ETIQUETA_INFO_LRC.test(l)) continue;
+    let t = l.replace(MARCA_TIEMPO, "").replace(MARCA_PALABRA, "").replace(/[ \t]+/g, " ").trim();
+    if(/^-{3,}$/.test(t)) t = "";                       // línea sin original ni traducción
+    limpias.push(t);
+  }
+  const salida = [];
+  for(const t of limpias){                               // como mucho una línea vacía seguida
+    if(t === ""){ if(salida.length && salida[salida.length - 1] !== "") salida.push(""); }
+    else salida.push(t);
+  }
+  while(salida.length && salida[salida.length - 1] === "") salida.pop();
+  return salida.join("\n");
+}
+
+function normClave(s){
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, " and ").replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/^(?:the|el|la|los|las|a|an) /, "");
+}
+// Igual que normClave pero sin lo que va entre paréntesis o corchetes ("(Remastered 2011)", "[Live]"...)
+function normBase(s){ return normClave(String(s || "").replace(/[(\[][^)\]]*[)\]]/g, " ")); }
+
+function artistaCoincide(artistaColeccion, e){
+  const ac = normClave(artistaColeccion);
+  if(!ac || /^(?:various|varios|va)\b/.test(ac)) return true;               // recopilatorios: no se exige artista
+  const cands = [e.aa, e.a].map(normClave).filter(Boolean);
+  if(!cands.length) return true;
+  return cands.some(c=> c === ac || c.includes(ac) || ac.includes(c));
+}
+function parecidoTitulos(a, b){
+  const ta = new Set(normBase(a).split(" ").filter(Boolean)), tb = new Set(normBase(b).split(" ").filter(Boolean));
+  if(!ta.size || !tb.size) return 0;
+  let comunes = 0; ta.forEach(x=>{ if(tb.has(x)) comunes++; });
+  return comunes / (ta.size + tb.size - comunes);
+}
+const textoNoVacio = t=> t != null && String(t).trim() !== "";
+
+function prepararIndiceMp3(entradas){
+  const indice = new Map();
+  for(const e of entradas){
+    for(const k of new Set([normClave(e.al), normBase(e.al)])){
+      if(!k) continue;
+      if(!indice.has(k)) indice.set(k, []);
+      indice.get(k).push(e);
+    }
+  }
+  return indice;
+}
+
+// Devuelve [{ album, items:[{ cancion, mp3, estado:'seguro'|'dudosa', motivo, letra, marcada }] }]
+function emparejarLetras(indice, albumes, canciones){
+  const sinLetra = new Map();
+  for(const c of canciones){
+    if(textoNoVacio(c["Letras"])) continue;
+    if(!sinLetra.has(c.ALBUM_ID)) sinLetra.set(c.ALBUM_ID, []);
+    sinLetra.get(c.ALBUM_ID).push(c);
+  }
+  const grupos = [];
+  for(const alb of albumes){
+    const lista = sinLetra.get(alb.ALBUM_ID);
+    if(!lista) continue;
+    const cand = new Set();
+    for(const k of [normClave(alb["ALBUM"]), normBase(alb["ALBUM"])]) (indice.get(k) || []).forEach(e=> cand.add(e));
+    const entradas = [...cand].filter(e=> artistaCoincide(alb["ARTISTA ALBUM"], e));
+    if(!entradas.length) continue;
+    entradas.forEach(e=>{ if(e._limpia === undefined) e._limpia = limpiarLetraSincronizada(e.l); });
+    const conLetra = entradas.filter(e=> e._limpia);
+    const usadas = new Set(), items = [], pendientes = [];
+
+    // 1ª pasada: mismo título
+    for(const c of lista){
+      const tc = normClave(c["TITULO"]), tb = normBase(c["TITULO"]);
+      const coinciden = conLetra.filter(e=> !usadas.has(e) && (normClave(e.t) === tc || normBase(e.t) === tb));
+      if(!coinciden.length){ pendientes.push(c); continue; }
+      const e = coinciden.find(x=> Number(x.n) === Number(c["PISTA Nº"])) || coinciden[0];
+      usadas.add(e);
+      let estado = "seguro", motivo = "Coincide el título";
+      const sc = typeof segundosDeDuracion === "function" ? segundosDeDuracion(c["Duración"]) : 0;
+      if(sc > 0 && e.s > 0 && Math.abs(sc - e.s) > 20){ estado = "dudosa"; motivo = "Mismo título, pero la duración difiere (" + Math.abs(sc - e.s) + " s): ¿otra versión?"; }
+      items.push({ cancion:c, mp3:e, estado, motivo, letra:e._limpia, marcada: estado === "seguro" });
+    }
+    // 2ª pasada: mismo número de pista con título distinto
+    for(const c of pendientes){
+      const n = Number(c["PISTA Nº"]);
+      const posibles = conLetra.filter(e=> !usadas.has(e) && Number(e.n) === n && n > 0);
+      if(posibles.length !== 1) continue;
+      const e = posibles[0];
+      usadas.add(e);
+      const p = Math.round(parecidoTitulos(c["TITULO"], e.t) * 100);
+      items.push({ cancion:c, mp3:e, estado:"dudosa", motivo:"Mismo nº de pista, título distinto (parecido " + p + " %)", letra:e._limpia, marcada:false });
+    }
+    if(items.length){
+      items.sort((a, b)=> Number(a.cancion["PISTA Nº"]) - Number(b.cancion["PISTA Nº"]));
+      grupos.push({ album:alb, totalSinLetra:lista.length, items });
+    }
+  }
+  grupos.sort((a, b)=> (a.album["ARTISTA ALBUM"] || "").localeCompare(b.album["ARTISTA ALBUM"] || "", "es") || (a.album["ALBUM"] || "").localeCompare(b.album["ALBUM"] || "", "es"));
+  return grupos;
+}
+
+const IL = { entradas:[], grupos:[], leyendo:false, guardando:false, carpeta:"" };
+let esperaCopia = null;
+
+function ilEstado(txt, malo){ const el = $("#il-estado"); el.textContent = txt; el.classList.toggle("mal", !!malo); }
+function ilContarMarcadas(){
+  let letras = 0; const albumes = new Set();
+  IL.grupos.forEach(g=> g.items.forEach(it=>{ if(it.marcada){ letras++; albumes.add(g.album.ALBUM_ID); } }));
+  return { letras, albumes: albumes.size };
+}
+function ilActualizarPie(){
+  const { letras, albumes } = ilContarMarcadas();
+  const b = $("#il-guardar");
+  b.textContent = letras ? "Guardar " + letras + " letra" + (letras === 1 ? "" : "s") + " (" + albumes + " álbum" + (albumes === 1 ? "" : "es") + ")" : "Nada marcado";
+  b.disabled = IL.guardando || letras === 0;
+  IL.grupos.forEach(g=>{
+    if(!g._cab) return;
+    const n = g.items.filter(it=> it.marcada).length;
+    g._cab.checked = n === g.items.length;
+    g._cab.indeterminate = n > 0 && n < g.items.length;
+    g._cuenta.textContent = n + " de " + g.items.length + " marcadas";
+  });
+}
+function ilRenderItems(g, cont){
+  cont.innerHTML = "";
+  g.items.forEach(it=>{
+    const fila = document.createElement("div");
+    fila.className = "il-item";
+    const chk = document.createElement("input");
+    chk.type = "checkbox"; chk.checked = it.marcada;
+    chk.addEventListener("change", ()=>{ it.marcada = chk.checked; ilActualizarPie(); });
+    const cuerpo = document.createElement("div");
+    cuerpo.className = "il-i-cuerpo";
+    const titulo = document.createElement("div");
+    titulo.className = "il-i-titulo";
+    titulo.innerHTML = escapeHTML((it.cancion["PISTA Nº"] || "") + ". " + (it.cancion["TITULO"] || "")) +
+      ' <span class="il-etiqueta ' + it.estado + '">' + (it.estado === "seguro" ? "coincide" : "dudosa") + "</span>";
+    const mp3 = document.createElement("div");
+    mp3.className = "il-i-mp3";
+    mp3.textContent = it.motivo + (it.estado === "dudosa" ? " · MP3: «" + it.mp3.t + "»" : "");
+    const letra = document.createElement("div");
+    letra.className = "il-i-letra";
+    letra.title = "Clic para ver la letra completa";
+    letra.textContent = it.letra;
+    letra.addEventListener("click", ()=> letra.classList.toggle("abierta"));
+    cuerpo.append(titulo, mp3, letra);
+    fila.append(chk, cuerpo);
+    cont.appendChild(fila);
+  });
+}
+function ilRenderLista(){
+  const lista = $("#il-lista");
+  lista.innerHTML = "";
+  IL.grupos.forEach(g=>{
+    const det = document.createElement("details");
+    det.className = "il-grupo";
+    const sum = document.createElement("summary");
+    const chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.addEventListener("click", e=> e.stopPropagation());
+    chk.addEventListener("change", ()=>{
+      g.items.forEach(it=> it.marcada = chk.checked);
+      const cont = det.querySelector(".il-items");
+      if(cont && det.open) ilRenderItems(g, cont);
+      ilActualizarPie();
+    });
+    const tit = document.createElement("span");
+    tit.className = "il-g-titulo";
+    tit.textContent = (g.album["ARTISTA ALBUM"] || "") + " — " + (g.album["ALBUM"] || "");
+    const cuenta = document.createElement("span");
+    cuenta.className = "il-g-cuenta";
+    sum.append(chk, tit, cuenta);
+    det.appendChild(sum);
+    det.addEventListener("toggle", ()=>{
+      if(!det.open || det.querySelector(".il-items")) return;
+      const cont = document.createElement("div");
+      cont.className = "il-items";
+      det.appendChild(cont);
+      ilRenderItems(g, cont);
+    });
+    g._cab = chk; g._cuenta = cuenta;
+    lista.appendChild(det);
+  });
+  $("#il-pie").style.display = IL.grupos.length ? "" : "none";
+  ilActualizarPie();
+}
+function ilCalcular(){
+  const indice = prepararIndiceMp3(IL.entradas);
+  IL.grupos = emparejarLetras(indice, ALBUMES, CANCIONES);
+  const sinLetra = CANCIONES.filter(c=> !textoNoVacio(c["Letras"])).length;
+  const encontradas = IL.grupos.reduce((t, g)=> t + g.items.length, 0);
+  const seguras = IL.grupos.reduce((t, g)=> t + g.items.filter(i=> i.estado === "seguro").length, 0);
+  const r = $("#il-resumen");
+  r.style.display = "";
+  r.innerHTML = "Hay <b>" + sinLetra + "</b> canciones sin letra en la colección. En los MP3 se han encontrado letras para <b>" + encontradas +
+    "</b> de ellas (<b>" + seguras + "</b> seguras, " + (encontradas - seguras) + " dudosas) en " + IL.grupos.length + " álbumes." +
+    (encontradas ? " Las seguras vienen marcadas; las dudosas, no: revísalas antes de marcarlas." : "");
+  ilRenderLista();
+}
+
+function importarLetrasMensaje(m){
+  const i = m.indexOf("|");
+  const tipo = i < 0 ? m : m.slice(0, i);
+  const carga = i < 0 ? "" : m.slice(i + 1);
+  if(tipo === "mp3-carpeta"){
+    IL.carpeta = carga;
+    try{ localStorage.setItem("il_carpeta", carga); }catch(e){}
+    ilEstado("Leyendo los MP3 de " + carga + "…");
+  }else if(tipo === "mp3-progreso"){
+    const [tot, con] = carga.split("|");
+    ilEstado("Leyendo… " + tot + " archivos revisados, " + con + " con letra.");
+  }else if(tipo === "mp3-lote"){
+    try{ JSON.parse(carga).forEach(e=> IL.entradas.push(e)); }catch(e){ console.error(e); }
+  }else if(tipo === "mp3-fin"){
+    const [tot, con, err] = carga.split("|");
+    IL.leyendo = false;
+    ilBotonesLectura();
+    ilEstado("Lectura terminada: " + tot + " MP3, " + con + " con letra" + (Number(err) ? ", " + err + " no se pudieron leer" : "") + ".");
+    ilCalcular();
+  }else if(tipo === "mp3-cancelado"){
+    IL.leyendo = false; ilBotonesLectura(); ilEstado("Lectura cancelada.");
+  }else if(tipo === "mp3-sin-carpeta"){
+    IL.leyendo = false; ilBotonesLectura(); ilEstado("");
+  }else if(tipo === "mp3-error"){
+    IL.leyendo = false; ilBotonesLectura(); ilEstado("Error al leer los MP3: " + carga, true);
+  }
+}
+function ilBotonesLectura(){
+  $("#il-leer").disabled = IL.leyendo || IL.guardando;
+  $("#il-releer").disabled = IL.leyendo || IL.guardando;
+  $("#il-cancelar-lectura").style.display = IL.leyendo ? "" : "none";
+  let guardada = IL.carpeta;
+  if(!guardada){ try{ guardada = localStorage.getItem("il_carpeta") || ""; }catch(e){} }
+  const re = $("#il-releer");
+  re.style.display = guardada && !IL.leyendo ? "" : "none";
+  re.textContent = "↻ Volver a leer " + (guardada.length > 38 ? "…" + guardada.slice(-36) : guardada);
+  re.title = guardada;
+  re.dataset.carpeta = guardada;
+}
+function ilIniciarLectura(carpeta){
+  if(IL.leyendo || IL.guardando) return;
+  IL.leyendo = true; IL.entradas = []; IL.grupos = [];
+  $("#il-resumen").style.display = "none"; $("#il-lista").innerHTML = ""; $("#il-pie").style.display = "none";
+  ilBotonesLectura();
+  ilEstado("Esperando a que elijas la carpeta…");
+  window.chrome.webview.postMessage(JSON.stringify({ tipo:"mp3-escanear", carpeta: carpeta || "" }));
+}
+
+// Copia de seguridad antes de guardar: se espera a que el programa confirme (o falle)
+function copiaYEsperar(){
+  return new Promise(ok=>{
+    const t = setTimeout(()=>{ esperaCopia = null; ok(false); }, 120000);
+    esperaCopia = r=>{ clearTimeout(t); ok(r); };
+    copiaSeguridadAhora(false);
+  });
+}
+async function ilGuardar(){
+  if(IL.guardando) return;
+  const marcadas = [];
+  IL.grupos.forEach(g=> g.items.forEach(it=>{ if(it.marcada && !textoNoVacio(it.cancion["Letras"])) marcadas.push(it); }));
+  if(!marcadas.length) return;
+  const albumes = new Set(marcadas.map(it=> it.cancion.ALBUM_ID)).size;
+  if(!confirm("Se guardarán " + marcadas.length + " letras en " + albumes + " álbumes (solo canciones que ahora no tienen letra).\n\nAntes se hará una copia de seguridad de la colección.\n\n¿Continuar?")) return;
+  IL.guardando = true; ilBotonesLectura(); ilActualizarPie();
+  try{
+    ilEstado("Haciendo la copia de seguridad…");
+    const copiaOk = await copiaYEsperar();
+    if(!copiaOk && !confirm("No se pudo confirmar la copia de seguridad. ¿Guardar las letras de todos modos?")) return;
+
+    const LOTE = 25;
+    let hechas = 0;
+    for(let i = 0; i < marcadas.length; i += LOTE){
+      const trozo = marcadas.slice(i, i + LOTE);
+      ilEstado("Guardando letras… " + hechas + " de " + marcadas.length + " (puede tardar: la hoja las escribe una a una).");
+      const editar = trozo.map(it=>({ ALBUM_ID: it.cancion.ALBUM_ID, pista_original: it.cancion["PISTA Nº"], "Letras": it.letra }));
+      const res = await fetch(API_URL, { method:"POST", body: JSON.stringify({ sesion: sesionActual, canciones_editar: editar }) });
+      const json = await res.json();
+      if(!json.ok){
+        if(manejarErrorSesion(json.error)) return;
+        throw new Error(json.error || "no se pudo guardar");
+      }
+      trozo.forEach(it=>{ it.cancion["Letras"] = it.letra; });      // la canción es el mismo objeto que está en CANCIONES
+      hechas += trozo.length;
+    }
+    guardarCacheLocal({ albumes: ALBUMES, canciones: CANCIONES, escuchas: ESCUCHAS }, "");
+    const idActual = albumSeleccionado && albumSeleccionado.ALBUM_ID;
+    if(idActual){ const e = encontrarEntradaVista(idActual); if(e) abrirDetalle(e); }
+    ilEstado("✓ " + hechas + " letras guardadas.");
+    avisoSync("✓ Letras importadas: " + hechas + ".", 6000);
+    ilCalcular();
+  }catch(err){
+    console.error(err);
+    ilEstado("No se pudo guardar: " + err.message + ". Lo ya guardado se conserva; vuelve a calcular y reintenta.", true);
+    ilCalcular();
+  }finally{
+    IL.guardando = false; ilBotonesLectura(); ilActualizarPie();
+  }
+}
+if(HAY_PUENTE_APP){
+  const btn = $("#btn-importar-letras");
+  btn.style.display = "";
+  btn.addEventListener("click", ()=>{
+    $("#modal-fondo-importar-letras").classList.add("abierto");
+    ilBotonesLectura();
+    if(!ALBUMES.length) ilEstado("Aún no hay datos cargados.", true);
+  });
+  $("#cerrar-importar-letras").addEventListener("click", ()=>{
+    if(IL.leyendo){ window.chrome.webview.postMessage("mp3-cancelar"); IL.leyendo = false; }
+    if(IL.guardando){ alert("Espera a que termine de guardar."); return; }
+    $("#modal-fondo-importar-letras").classList.remove("abierto");
+  });
+  $("#il-leer").addEventListener("click", ()=> ilIniciarLectura(""));
+  $("#il-releer").addEventListener("click", ()=> ilIniciarLectura($("#il-releer").dataset.carpeta));
+  $("#il-cancelar-lectura").addEventListener("click", ()=> window.chrome.webview.postMessage("mp3-cancelar"));
+  $("#il-marcar-seguras").addEventListener("click", ()=>{ IL.grupos.forEach(g=> g.items.forEach(it=>{ it.marcada = it.estado === "seguro"; })); ilRenderLista(); });
+  $("#il-quitar-todas").addEventListener("click", ()=>{ IL.grupos.forEach(g=> g.items.forEach(it=>{ it.marcada = false; })); ilRenderLista(); });
+  $("#il-guardar").addEventListener("click", ilGuardar);
+}
+
 /* ---------- Copias de seguridad de la colección ---------- */
 // En el programa de Windows se guardan solas en una carpeta del PC (cada cierto tiempo) o a mano desde Herramientas.
 // En el navegador, "Copia de seguridad ahora" descarga un archivo .json.
-const HAY_PUENTE_APP = EN_APP && window.chrome && window.chrome.webview;
 function datosDeLaCopia(){
   return { aplicacion:"Mi colección de CDs", formato:1, fecha:new Date().toISOString(), usuario:usuarioActual,
            albumes:ALBUMES, canciones:CANCIONES, escuchas:ESCUCHAS };
@@ -6712,7 +7102,9 @@ function programarCopiaAutomatica(){
 if(HAY_PUENTE_APP){
   window.chrome.webview.addEventListener("message", ev=>{
     const m = String(ev.data || "");
+    if(m.startsWith("mp3-")){ importarLetrasMensaje(m); return; }
     if(m === "copia-toca"){ copiaSeguridadAhora(true); return; }
+    if(esperaCopia && (m.startsWith("copia-hecha|") || m.startsWith("copia-error|"))){ const r = esperaCopia; esperaCopia = null; r(m.startsWith("copia-hecha|")); }
     if(m.startsWith("copia-hecha|")){
       const [, ruta, nAlb, nCan] = m.split("|");
       avisoSync((copiaAutomaticaEnCurso ? "✓ Copia automática guardada" : "✓ Copia guardada") + " (" + nAlb + " álbumes, " + nCan + " canciones): " + ruta, 9000);
