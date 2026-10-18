@@ -834,6 +834,10 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   .il-item .il-etiqueta{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:9px;font-size:calc(11.5px * var(--ft,1));font-weight:600;border:1px solid var(--border);}
   .il-item .il-etiqueta.seguro{color:var(--msg-ok);border-color:var(--msg-ok);}
   .il-item .il-etiqueta.dudosa{color:#e0a43a;border-color:#e0a43a;}
+  .il-item .il-etiqueta.cambio{color:var(--accent);border-color:var(--accent);}
+  .il-item .il-i-eti{margin:6px 0 0;font-size:calc(11.5px * var(--ft,1));font-weight:600;color:var(--accent);}
+  .il-item .il-i-eti.act{color:var(--muted);}
+  #il-incluir-wrap{display:flex;align-items:center;gap:8px;margin:10px 0 2px;font-size:calc(13.5px * var(--ft,1));cursor:pointer;}
   .il-item .il-i-mp3{color:var(--muted);font-size:calc(12px * var(--ft,1));margin-top:1px;}
   .il-item .il-i-letra{margin:5px 0 0;color:var(--muted);font-family:inherit;font-size:calc(12.5px * var(--ft,1));white-space:pre-wrap;line-height:1.4;max-height:2.9em;overflow:hidden;cursor:pointer;}
   .il-item .il-i-letra.abierta{max-height:none;}
@@ -1511,7 +1515,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.40</div>
+  <div class="pc-version">Versión 3.0</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1788,18 +1792,20 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   <div id="modal-importar-letras">
     <span class="cerrar-detalle" id="cerrar-importar-letras" title="Cerrar" aria-label="Cerrar">✕</span>
     <h3>Importar letras de los MP3</h3>
-    <p class="il-ayuda">Se leen las letras incrustadas en tus MP3 (o en archivos .lrc con el mismo nombre), se quitan las marcas de tiempo y se rellenan <b>solo las canciones que no tienen letra</b>. Antes de guardar podrás revisarlas.</p>
+    <p class="il-ayuda">Se leen las letras incrustadas en tus MP3 (o en archivos .lrc con el mismo nombre), se quitan las marcas de tiempo y se rellenan <b>solo las canciones que no tienen letra</b>. Si marcas la casilla de abajo, también se te mostrarán las letras que has cambiado en los MP3 (nunca se sustituye nada sin que lo marques tú). Antes de guardar podrás revisarlo todo.</p>
     <div class="il-acciones">
       <button type="button" id="il-leer" class="principal">📁 Elegir carpeta y leer…</button>
       <button type="button" id="il-releer" style="display:none;"></button>
       <button type="button" id="il-cancelar-lectura" style="display:none;">Cancelar lectura</button>
     </div>
+    <label id="il-incluir-wrap"><input type="checkbox" id="il-incluir-cambiadas"> Incluir también las letras que han cambiado en los MP3 (para sustituir las de la colección)</label>
     <div id="il-estado"></div>
     <div id="il-resumen" style="display:none;"></div>
     <div id="il-lista"></div>
     <div id="il-pie" style="display:none;">
       <div class="il-pie-botones">
         <button type="button" id="il-marcar-seguras">Marcar las seguras</button>
+        <button type="button" id="il-marcar-cambiadas" style="display:none;">Marcar las cambiadas</button>
         <button type="button" id="il-quitar-todas">Quitar todas</button>
       </div>
       <button type="button" id="il-guardar" class="principal">Guardar</button>
@@ -6841,10 +6847,15 @@ function prepararIndiceMp3(entradas){
 }
 
 // Devuelve [{ album, items:[{ cancion, mp3, estado:'seguro'|'dudosa', motivo, letra, marcada }] }]
-function emparejarLetras(indice, albumes, canciones){
+// Para comparar letras ignorando diferencias de espacios y saltos de línea
+const normLetra = t=> String(t || "").replace(/\s+/g, " ").trim();
+
+function emparejarLetras(indice, albumes, canciones, incluirCambiadas){
   const sinLetra = new Map();
-  for(const c of canciones){
-    if(textoNoVacio(c["Letras"])) continue;
+  // Las canciones sin letra van primero: así tienen prioridad sobre las que ya tienen una
+  const ordenadas = incluirCambiadas ? canciones.filter(c=> !textoNoVacio(c["Letras"])).concat(canciones.filter(c=> textoNoVacio(c["Letras"]))) : canciones;
+  for(const c of ordenadas){
+    if(textoNoVacio(c["Letras"]) && !incluirCambiadas) continue;
     if(!sinLetra.has(c.ALBUM_ID)) sinLetra.set(c.ALBUM_ID, []);
     sinLetra.get(c.ALBUM_ID).push(c);
   }
@@ -6867,13 +6878,16 @@ function emparejarLetras(indice, albumes, canciones){
       if(!coinciden.length){ pendientes.push(c); continue; }
       const e = coinciden.find(x=> Number(x.n) === Number(c["PISTA Nº"])) || coinciden[0];
       usadas.add(e);
+      const tieneLetra = textoNoVacio(c["Letras"]);
+      if(tieneLetra && normLetra(c["Letras"]) === normLetra(e._limpia)) continue;      // igual que la de la colección: nada que hacer
       let estado = "seguro", motivo = "Coincide el título";
       const sc = typeof segundosDeDuracion === "function" ? segundosDeDuracion(c["Duración"]) : 0;
       if(sc > 0 && e.s > 0 && Math.abs(sc - e.s) > 20){ estado = "dudosa"; motivo = "Mismo título, pero la duración difiere (" + Math.abs(sc - e.s) + " s): ¿otra versión?"; }
-      items.push({ cancion:c, mp3:e, estado, motivo, letra:e._limpia, marcada: estado === "seguro" });
+      items.push({ cancion:c, mp3:e, estado, motivo, letra:e._limpia, cambio: tieneLetra, marcada: estado === "seguro" && !tieneLetra });
     }
     // 2ª pasada: mismo número de pista con título distinto
     for(const c of pendientes){
+      if(textoNoVacio(c["Letras"])) continue;      // las que ya tienen letra solo se comparan por título
       const n = Number(c["PISTA Nº"]);
       const posibles = conLetra.filter(e=> !usadas.has(e) && Number(e.n) === n && n > 0);
       if(posibles.length !== 1) continue;
@@ -6926,7 +6940,7 @@ function ilRenderItems(g, cont){
     const titulo = document.createElement("div");
     titulo.className = "il-i-titulo";
     titulo.innerHTML = escapeHTML((it.cancion["PISTA Nº"] || "") + ". " + (it.cancion["TITULO"] || "")) +
-      ' <span class="il-etiqueta ' + it.estado + '">' + (it.estado === "seguro" ? "coincide" : "dudosa") + "</span>";
+      ' <span class="il-etiqueta ' + it.estado + '">' + (it.estado === "seguro" ? "coincide" : "dudosa") + "</span>" + (it.cambio ? ' <span class="il-etiqueta cambio">cambiada</span>' : "");
     const mp3 = document.createElement("div");
     mp3.className = "il-i-mp3";
     mp3.textContent = it.motivo + (it.estado === "dudosa" ? " · MP3: «" + it.mp3.t + "»" : "") + (it.mp3.f ? " · origen: " + it.mp3.f : "");
@@ -6935,7 +6949,13 @@ function ilRenderItems(g, cont){
     letra.title = "Clic para ver la letra completa";
     letra.textContent = it.letra;
     letra.addEventListener("click", ()=> letra.classList.toggle("abierta"));
-    cuerpo.append(titulo, mp3, letra);
+    if(it.cambio){
+      const eAct = document.createElement("div"); eAct.className = "il-i-eti act"; eAct.textContent = "En la colección ahora:";
+      const actual = document.createElement("div"); actual.className = "il-i-letra"; actual.title = "Clic para ver la letra completa"; actual.textContent = it.cancion["Letras"];
+      actual.addEventListener("click", ()=> actual.classList.toggle("abierta"));
+      const eNue = document.createElement("div"); eNue.className = "il-i-eti"; eNue.textContent = "En el MP3 (sustituiría a la anterior):";
+      cuerpo.append(titulo, mp3, eAct, actual, eNue, letra);
+    }else cuerpo.append(titulo, mp3, letra);
     fila.append(chk, cuerpo);
     cont.appendChild(fila);
   });
@@ -6974,19 +6994,24 @@ function ilRenderLista(){
     lista.appendChild(det);
   });
   $("#il-pie").style.display = IL.grupos.length ? "" : "none";
+  $("#il-marcar-cambiadas").style.display = IL.grupos.some(g=> g.items.some(it=> it.cambio)) ? "" : "none";
   ilActualizarPie();
 }
 function ilCalcular(){
   const indice = prepararIndiceMp3(IL.entradas);
-  IL.grupos = emparejarLetras(indice, ALBUMES, CANCIONES);
+  const incluir = $("#il-incluir-cambiadas").checked;
+  IL.grupos = emparejarLetras(indice, ALBUMES, CANCIONES, incluir);
   const sinLetra = CANCIONES.filter(c=> !textoNoVacio(c["Letras"])).length;
-  const encontradas = IL.grupos.reduce((t, g)=> t + g.items.length, 0);
-  const seguras = IL.grupos.reduce((t, g)=> t + g.items.filter(i=> i.estado === "seguro").length, 0);
+  const nuevas = IL.grupos.reduce((t, g)=> t + g.items.filter(i=> !i.cambio).length, 0);
+  const cambiadas = IL.grupos.reduce((t, g)=> t + g.items.filter(i=> i.cambio).length, 0);
+  const encontradas = nuevas;
+  const seguras = IL.grupos.reduce((t, g)=> t + g.items.filter(i=> !i.cambio && i.estado === "seguro").length, 0);
   const r = $("#il-resumen");
   r.style.display = "";
   r.innerHTML = "Hay <b>" + sinLetra + "</b> canciones sin letra en la colección. En los MP3 se han encontrado letras para <b>" + encontradas +
     "</b> de ellas (<b>" + seguras + "</b> seguras, " + (encontradas - seguras) + " dudosas) en " + IL.grupos.length + " álbumes." +
-    (encontradas ? " Las seguras vienen marcadas; las dudosas, no: revísalas antes de marcarlas." : "");
+    (encontradas ? " Las seguras vienen marcadas; las dudosas, no: revísalas antes de marcarlas." : "") +
+    (incluir ? " <b>" + cambiadas + "</b> letra" + (cambiadas === 1 ? "" : "s") + " de la colección " + (cambiadas === 1 ? "es distinta" : "son distintas") + " de la del MP3 (no vienen marcadas: tú decides cuáles sustituir)." : "");
   ilRenderLista();
 }
 
@@ -7050,10 +7075,11 @@ function copiaYEsperar(){
 async function ilGuardar(){
   if(IL.guardando) return;
   const marcadas = [];
-  IL.grupos.forEach(g=> g.items.forEach(it=>{ if(it.marcada && !textoNoVacio(it.cancion["Letras"])) marcadas.push(it); }));
+  IL.grupos.forEach(g=> g.items.forEach(it=>{ if(it.marcada && (it.cambio || !textoNoVacio(it.cancion["Letras"]))) marcadas.push(it); }));
   if(!marcadas.length) return;
+  const nSust = marcadas.filter(it=> it.cambio).length;
   const albumes = new Set(marcadas.map(it=> it.cancion.ALBUM_ID)).size;
-  if(!confirm("Se guardarán " + marcadas.length + " letras en " + albumes + " álbumes (solo canciones que ahora no tienen letra).\n\nAntes se hará una copia de seguridad de la colección.\n\n¿Continuar?")) return;
+  if(!confirm("Se guardarán " + marcadas.length + " letras en " + albumes + " álbumes." + (nSust ? "\n\n" + nSust + " de ellas SUSTITUYEN a la letra que hay ahora en la colección." : " (Solo canciones que ahora no tienen letra.)") + "\n\nAntes se hará una copia de seguridad de la colección.\n\n¿Continuar?")) return;
   IL.guardando = true; ilBotonesLectura(); ilActualizarPie();
   try{
     ilEstado("Haciendo la copia de seguridad…");
@@ -7105,8 +7131,10 @@ if(HAY_PUENTE_APP){
   $("#il-leer").addEventListener("click", ()=> ilIniciarLectura(""));
   $("#il-releer").addEventListener("click", ()=> ilIniciarLectura($("#il-releer").dataset.carpeta));
   $("#il-cancelar-lectura").addEventListener("click", ()=> window.chrome.webview.postMessage("mp3-cancelar"));
-  $("#il-marcar-seguras").addEventListener("click", ()=>{ IL.grupos.forEach(g=> g.items.forEach(it=>{ it.marcada = it.estado === "seguro"; })); ilRenderLista(); });
+  $("#il-marcar-seguras").addEventListener("click", ()=>{ IL.grupos.forEach(g=> g.items.forEach(it=>{ it.marcada = !it.cambio && it.estado === "seguro"; })); ilRenderLista(); });
   $("#il-quitar-todas").addEventListener("click", ()=>{ IL.grupos.forEach(g=> g.items.forEach(it=>{ it.marcada = false; })); ilRenderLista(); });
+  $("#il-marcar-cambiadas").addEventListener("click", ()=>{ IL.grupos.forEach(g=> g.items.forEach(it=>{ it.marcada = !!it.cambio; })); ilRenderLista(); });
+  $("#il-incluir-cambiadas").addEventListener("change", ()=>{ if(IL.entradas.length && !IL.leyendo && !IL.guardando) ilCalcular(); });
   $("#il-guardar").addEventListener("click", ilGuardar);
 }
 
