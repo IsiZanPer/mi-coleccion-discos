@@ -834,6 +834,8 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   .il-item .il-etiqueta{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:9px;font-size:calc(11.5px * var(--ft,1));font-weight:600;border:1px solid var(--border);}
   .il-item .il-etiqueta.seguro{color:var(--msg-ok);border-color:var(--msg-ok);}
   .il-item .il-etiqueta.dudosa{color:#e0a43a;border-color:#e0a43a;}
+  body.app-menus #menu-herr, body.app-menus #btn-nuevo-album, body.app-menus #btn-sincronizar, body.app-menus #btn-modo,
+  body.app-menus #btn-tema-movil, body.app-menus #btn-cerrar-sesion{display:none !important;}
   .il-item .il-etiqueta.cambio{color:var(--accent);border-color:var(--accent);}
   .il-item .il-i-eti{margin:6px 0 0;font-size:calc(11.5px * var(--ft,1));font-weight:600;color:var(--accent);}
   .il-item .il-i-eti.act{color:var(--muted);}
@@ -1515,7 +1517,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 3.0</div>
+  <div class="pc-version">Versión 3.1</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1956,6 +1958,10 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
    ========================================================= */
 // El programa de Windows "Mi colección" añade MiColeccionApp al identificador del navegador: lleva el lector de CD integrado
 const EN_APP = /MiColeccionApp/.test(navigator.userAgent);
+// Versión de la página (la lee el menú Ayuda > Acerca de del programa de Windows)
+window.VERSION_PAGINA = ((document.querySelector(".pc-version") || {}).textContent || "").replace("Versión ", "");
+// Dentro del programa de Windows, esas opciones están en su barra de menús: se ocultan de la cabecera de la página
+if(EN_APP) document.body.classList.add("app-menus");
 const API_URL = "https://script.google.com/macros/s/AKfycbwjBPSQzS1HUC4fAl21wSonBf2qe5iNHLi8n-JVyQCt6VISRDpV-_VcUZM-se_Zabg2/exec";
 
 // Repositorio de GitHub donde se suben las carátulas
