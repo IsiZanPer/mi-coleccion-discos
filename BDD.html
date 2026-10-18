@@ -1523,7 +1523,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 3.2</div>
+  <div class="pc-version">Versión 3.3</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -6786,8 +6786,10 @@ function aplicarModoVisual(repintar){
   const cambio = nuevo !== modoMovilActivo;
   modoMovilActivo = nuevo;
   document.body.classList.toggle("modo-movil", nuevo);
-  // En el móvil "automático" no se ofrece volver a escritorio; si lo forzaste tú desde el PC, el botón sigue para poder volver
-  document.body.classList.toggle("movil-auto", nuevo && preferenciaModo === "auto");
+  // En un móvil (pantalla pequeña/táctil) no se ofrece el botón de cambio de modo, aunque la preferencia guardada sea "movil".
+  // Solo se conserva si estás en un PC con pantalla grande y forzaste el modo móvil a mano, para poder volver.
+  const pantallaMovil = !!(consultaMovil && consultaMovil.matches);
+  document.body.classList.toggle("movil-auto", nuevo && (preferenciaModo === "auto" || pantallaMovil));
   const btn = $("#btn-modo");
   btn.innerHTML = nuevo ? "🖥" : '📱<span class="txt"> Móvil</span>';
   btn.title = nuevo ? "Volver a la vista de escritorio" : "Cambiar a la vista para móvil";
