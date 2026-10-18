@@ -19,7 +19,12 @@ const FUENTES_LETRA = [
   { id:"merriweather", nombre:"Merriweather · con serifa", pila:"'Merriweather',Georgia,serif", google:"Merriweather:wght@400;700" }
 ];
 function aplicarFuenteLetra(id){
-  var f = FUENTES_LETRA.find(function(x){ return x.id === id; }) || FUENTES_LETRA[0];
+  var f = FUENTES_LETRA.find(function(x){ return x.id === id; });
+  if(!f && typeof id === "string" && id.indexOf("sys:") === 0){   // fuente instalada en el equipo (la elige el programa de Windows)
+    var n = id.slice(4).replace(/['"\\<>]/g, "");
+    if(n) f = { id:id, pila:"'" + n + "',system-ui,'Segoe UI',sans-serif" };
+  }
+  f = f || FUENTES_LETRA[0];
   var raiz = document.documentElement;
   var link = document.getElementById("fuente-letra-link");
   if(!f.pila){
@@ -834,6 +839,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   .il-item .il-etiqueta{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:9px;font-size:calc(11.5px * var(--ft,1));font-weight:600;border:1px solid var(--border);}
   .il-item .il-etiqueta.seguro{color:var(--msg-ok);border-color:var(--msg-ok);}
   .il-item .il-etiqueta.dudosa{color:#e0a43a;border-color:#e0a43a;}
+  body.movil-auto #btn-modo, body.modo-movil #btn-cerrar-sesion{display:none !important;}
   body.app-menus #menu-herr, body.app-menus #btn-nuevo-album, body.app-menus #btn-sincronizar, body.app-menus #btn-modo,
   body.app-menus #btn-tema-movil, body.app-menus #btn-cerrar-sesion{display:none !important;}
   .il-item .il-etiqueta.cambio{color:var(--accent);border-color:var(--accent);}
@@ -1517,7 +1523,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 3.1</div>
+  <div class="pc-version">Versión 3.2</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -6710,6 +6716,22 @@ $("#btn-sincronizar").addEventListener("click", sincronizarConHoja);
 })();
 
 /* ---------- Tipo de letra (Herramientas) ---------- */
+// Añade al desplegable una fuente del sistema ("sys:Nombre") si no estaba
+function agregarOpcionSistema(sel, id){
+  if(!sel || Array.prototype.some.call(sel.options, function(o){ return o.value === id; })) return;
+  const o = document.createElement("option");
+  o.value = id;
+  o.textContent = id.slice(4) + " (de Windows)";
+  sel.appendChild(o);
+}
+// Lo llama el programa de Windows al elegir una fuente instalada (nombre vacío = volver a la original)
+function fijarFuenteSistema(nombre){
+  const id = nombre ? "sys:" + nombre : "original";
+  aplicarFuenteLetra(id);
+  try{ localStorage.setItem("tipo_letra", id); }catch(e){}
+  const sel = $("#sel-fuente");
+  if(sel){ agregarOpcionSistema(sel, id); sel.value = id; }
+}
 (function(){
   const sel = $("#sel-fuente");
   FUENTES_LETRA.forEach(f=>{
@@ -6721,7 +6743,8 @@ $("#btn-sincronizar").addEventListener("click", sincronizarConHoja);
   });
   let actual = "original";
   try{ actual = localStorage.getItem("tipo_letra") || "original"; }catch(e){}
-  if(!FUENTES_LETRA.some(f=> f.id === actual)) actual = "original";
+  if(actual.indexOf("sys:") === 0) agregarOpcionSistema(sel, actual);
+  else if(!FUENTES_LETRA.some(f=> f.id === actual)) actual = "original";
   sel.value = actual;
   sel.addEventListener("change", ()=>{
     aplicarFuenteLetra(sel.value);
@@ -6763,6 +6786,8 @@ function aplicarModoVisual(repintar){
   const cambio = nuevo !== modoMovilActivo;
   modoMovilActivo = nuevo;
   document.body.classList.toggle("modo-movil", nuevo);
+  // En el móvil "automático" no se ofrece volver a escritorio; si lo forzaste tú desde el PC, el botón sigue para poder volver
+  document.body.classList.toggle("movil-auto", nuevo && preferenciaModo === "auto");
   const btn = $("#btn-modo");
   btn.innerHTML = nuevo ? "🖥" : '📱<span class="txt"> Móvil</span>';
   btn.title = nuevo ? "Volver a la vista de escritorio" : "Cambiar a la vista para móvil";
