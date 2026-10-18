@@ -1511,7 +1511,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 2.39</div>
+  <div class="pc-version">Versión 2.40</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -6929,7 +6929,7 @@ function ilRenderItems(g, cont){
       ' <span class="il-etiqueta ' + it.estado + '">' + (it.estado === "seguro" ? "coincide" : "dudosa") + "</span>";
     const mp3 = document.createElement("div");
     mp3.className = "il-i-mp3";
-    mp3.textContent = it.motivo + (it.estado === "dudosa" ? " · MP3: «" + it.mp3.t + "»" : "");
+    mp3.textContent = it.motivo + (it.estado === "dudosa" ? " · MP3: «" + it.mp3.t + "»" : "") + (it.mp3.f ? " · origen: " + it.mp3.f : "");
     const letra = document.createElement("div");
     letra.className = "il-i-letra";
     letra.title = "Clic para ver la letra completa";
@@ -7004,10 +7004,11 @@ function importarLetrasMensaje(m){
   }else if(tipo === "mp3-lote"){
     try{ JSON.parse(carga).forEach(e=> IL.entradas.push(e)); }catch(e){ console.error(e); }
   }else if(tipo === "mp3-fin"){
-    const [tot, con, err] = carga.split("|");
+    const [tot, con, err, desglose] = carga.split("|");
     IL.leyendo = false;
     ilBotonesLectura();
-    ilEstado("Lectura terminada: " + tot + " MP3, " + con + " con letra" + (Number(err) ? ", " + err + " no se pudieron leer" : "") + ".");
+    ilEstado("Lectura terminada: " + tot + " MP3, " + con + " con letra" + (desglose ? " (" + desglose + ")" : "") +
+      (Number(err) ? ", " + err + " no se pudieron leer" : "") + ".");
     ilCalcular();
   }else if(tipo === "mp3-cancelado"){
     IL.leyendo = false; ilBotonesLectura(); ilEstado("Lectura cancelada.");
