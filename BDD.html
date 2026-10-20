@@ -1011,7 +1011,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   .vent-ctrl .vf-mas{font-size:calc(20px * var(--ft,1));font-weight:600;}
   .vent-sep{width:1px;height:20px;background:#9c8f6e;margin:0 2px;}
   .vent-ctrl .vs-tono{font-size:calc(16px * var(--ft,1));}
-  .vent-ctrl .vz-max svg{width:16px;height:16px;display:block;margin:auto;pointer-events:none;}
+  .vent-ctrl .vz-max svg, .vent-ctrl .vt-arriba svg{width:16px;height:16px;display:block;margin:auto;pointer-events:none;}
   /* Ventana maximizada: ocupa toda la pantalla */
   #modal-ficha.maximizada,#modal-letra.maximizada{
     width:100vw;max-width:none;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;
@@ -1025,7 +1025,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   body.modo-movil .vent-ctrl .cerrar-detalle{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:calc(22px * var(--ft,1));}
   /* Móvil: sin botones < >; se cambia de canción deslizando el dedo por la ventana (izquierda = siguiente, derecha = anterior) */
   body.modo-movil .letra-nav{display:none;}
-  body.modo-movil #modal-letra{touch-action:pan-y;}
+  #modal-letra{touch-action:pan-y;}   /* el desplazamiento horizontal con el dedo lo gestiona la página (también en tablet, en modo PC) */
   /* Negrita, cursiva y subrayado dentro de ficha y letras */
   #modal-ficha strong,#modal-letra strong{font-weight:700;color:#000;}
   #modal-ficha em,#modal-letra em{font-style:italic;}
@@ -1536,7 +1536,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 3.5</div>
+  <div class="pc-version">Versión 3.6</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1718,6 +1718,8 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
 <div id="modal-fondo">
   <div id="modal-ficha">
     <div class="vent-ctrl">
+      <button type="button" class="vt-arriba" title="Volver al principio" aria-label="Volver al principio"></button>
+      <span class="vent-sep"></span>
       <button type="button" class="vs-tono" title="Cambiar el tono del fondo">◐</button>
       <span class="vent-sep"></span>
       <button type="button" class="vf-menos" title="Letra más pequeña">A</button>
@@ -1734,6 +1736,8 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
 <div id="modal-fondo-letra">
   <div id="modal-letra">
     <div class="vent-ctrl">
+      <button type="button" class="vt-arriba" title="Volver al principio" aria-label="Volver al principio"></button>
+      <span class="vent-sep"></span>
       <button type="button" class="vs-tono" title="Cambiar el tono del fondo">◐</button>
       <span class="vent-sep"></span>
       <button type="button" class="vf-menos" title="Letra más pequeña">A</button>
@@ -4250,7 +4254,7 @@ $("#cerrar-modal-letra").addEventListener("click", cerrarLetra);
 $("#btn-letra-anterior").addEventListener("click", ()=> mostrarLetraEnIndice(letraIndiceActual-1));
 $("#btn-letra-siguiente").addEventListener("click", ()=> mostrarLetraEnIndice(letraIndiceActual+1));
 
-/* ---------- Móvil: deslizar la ventana de letras para pasar a la canción anterior / siguiente ---------- */
+/* ---------- Táctil (móvil y tablet): deslizar la ventana de letras para pasar a la canción anterior / siguiente ---------- */
 (function(){
   const ventana = $("#modal-letra");
   const UMBRAL = 70;                                   // algo más que en la carátula: aquí se desliza sobre texto
@@ -4260,7 +4264,7 @@ $("#btn-letra-siguiente").addEventListener("click", ()=> mostrarLetraEnIndice(le
 
   ventana.addEventListener("touchstart", e=>{
     activo = false;
-    if(e.touches.length !== 1 || !document.body.classList.contains("modo-movil")) return;
+    if(e.touches.length !== 1) return;                   // vale en móvil y en tablet (modo PC); con el ratón no se usa
     if(e.target.closest(".vent-ctrl")) return;          // no al pulsar los iconos de arriba
     x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0;
     activo = true; decidido = false;
@@ -6635,6 +6639,18 @@ function configurarTonoSepia(selector, clave){
 }
 configurarTonoSepia("#modal-ficha", "sepia_ficha");
 configurarTonoSepia("#modal-letra", "sepia_letras");
+/* ---------- Botón "volver al principio" (junto a los de tono, letra y maximizar; la barra de botones siempre está a la vista) ---------- */
+const ICO_ARRIBA = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2.5h10M8 14V6.5M4.5 9.5L8 6l3.5 3.5"/></svg>';
+function configurarVolverArriba(selector){
+  const el = $(selector), b = el.querySelector(".vt-arriba");
+  b.innerHTML = ICO_ARRIBA;
+  function estado(){ b.disabled = el.scrollTop < 8; }       // ya estás arriba: el botón se ve atenuado
+  b.addEventListener("click", ()=> el.scrollTo({ top:0, behavior:"smooth" }));
+  el.addEventListener("scroll", estado, { passive:true });
+  estado();
+}
+configurarVolverArriba("#modal-ficha");
+configurarVolverArriba("#modal-letra");
 configurarZoomLetra("#modal-ficha", "zoom_letra_ficha");
 configurarZoomLetra("#modal-letra", "zoom_letra_letras");
 configurarMaximizarVentana("#modal-ficha", "max_ventana_ficha");
