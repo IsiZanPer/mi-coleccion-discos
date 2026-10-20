@@ -295,6 +295,14 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   #cov-tam{display:none;align-items:center;gap:6px;color:var(--muted);font-size:calc(12px * var(--ft,1));}
   body.vista-cov #cov-tam{display:flex;}
   body.modo-movil #cov-tam, body.modo-stats #cov-tam{display:none !important;}
+  /* --- Separadores por grupo en la vista Carátulas --- */
+  #cov-sep{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:2px 7px;cursor:pointer;font-size:calc(13px * var(--ft,1));line-height:1.3;}
+  #cov-sep.activo{color:var(--accent);border-color:var(--accent);}
+  .grupo-sep{grid-column:1 / -1;display:flex;align-items:baseline;gap:10px;margin:14px 0 -4px;}
+  .grupo-sep:first-child{margin-top:0;}
+  .grupo-sep .gs-nombre{font-family:var(--fuente-titulos,'Space Grotesk',sans-serif);font-size:calc(19px * var(--ft,1));font-weight:700;color:var(--accent);}
+  .grupo-sep .gs-n{font-size:calc(12px * var(--ft,1));color:var(--muted);white-space:nowrap;}
+  .grupo-sep::after{content:"";flex:1;height:1px;background:var(--border);align-self:center;order:3;}
   #cov-slider{width:110px;accent-color:var(--accent);cursor:pointer;}
   .vista-selector{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px;}
   .vista-btn{
@@ -1528,7 +1536,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 3.4</div>
+  <div class="pc-version">Versión 3.5</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1555,7 +1563,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <button type="button" class="vista-btn" data-vista="card" title="Tarjetas">☰</button>
     <button type="button" class="vista-btn" data-vista="list" title="Lista">≡</button>
   </div>
-  <div id="cov-tam" title="Tamaño de las carátulas (doble clic para volver al normal; también Ctrl + rueda del ratón sobre las carátulas)"><span aria-hidden="true">▫</span><input type="range" id="cov-slider" min="100" max="360" step="10" value="160" aria-label="Tamaño de las carátulas"><span aria-hidden="true" style="font-size:1.25em">▣</span></div>
+  <div id="cov-tam" title="Tamaño de las carátulas (doble clic para volver al normal; también Ctrl + rueda del ratón sobre las carátulas)"><span aria-hidden="true">▫</span><input type="range" id="cov-slider" min="100" max="360" step="10" value="160" aria-label="Tamaño de las carátulas"><span aria-hidden="true" style="font-size:1.25em">▣</span><button type="button" id="cov-sep" title="Separadores: agrupa las carátulas según la pestaña del menú de la izquierda (artista, año, género…)">☰ Grupos</button></div>
   <button type="button" id="btn-sincronizar" title="Sincronizar con Google Sheets (vuelve a leer los datos reales de la hoja)" aria-label="Sincronizar con Google Sheets">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
   </button>
@@ -2478,11 +2486,47 @@ function pintarGrid(){
 
   if(vista === "list"){
     pintarVistaLista(grid, lista);
+  } else if(vista === "covers" && separadoresActivos){
+    pintarCaratulasAgrupadas(grid, lista);
   } else {
     lista.forEach(a=> grid.appendChild(
       vista === "card" ? construirFilaCard(a) : construirCoverCard(a)
     ));
   }
+}
+
+/* ---------- Separadores por grupo (vista Carátulas) ---------- */
+let separadoresActivos = (function(){ try{ return localStorage.getItem("sep_caratulas") !== "0"; }catch(e){ return true; } })();
+
+// Agrupa según la pestaña del menú lateral (artista, año, década, género, etiqueta, tienda…) y pone una línea con el valor delante de cada grupo.
+// Dentro de cada grupo se mantiene el orden elegido en la barra de ordenación.
+function pintarCaratulasAgrupadas(grid, lista){
+  const grupos = new Map();
+  lista.forEach(a=>{
+    const k = valorSegunTab(a, tabActivo);
+    if(!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(a);
+  });
+  // Orden de los grupos: el del menú lateral (años y décadas, del más reciente al más antiguo; el resto, alfabético),
+  // salvo que el primer criterio de ordenación sea el mismo campo: entonces se respeta su dirección.
+  const primero = ordenActual[0] || {};
+  let dir = (tabActivo === "anio" || tabActivo === "decada") ? "desc" : "asc";
+  if(primero.campo === "artista" && tabActivo === "artista") dir = primero.dir;
+  if(primero.campo === "anio" && (tabActivo === "anio" || tabActivo === "decada")) dir = primero.dir;
+  const claves = Array.from(grupos.keys()).sort((a,b)=>{
+    const sa = /^\(Sin /.test(a), sb = /^\(Sin /.test(b);
+    if(sa !== sb) return sa ? 1 : -1;               // "(Sin año)", "(Sin etiqueta)"… siempre al final
+    const c = COLATOR_ES.compare(a, b);
+    return dir === "desc" ? -c : c;
+  });
+  claves.forEach(k=>{
+    const items = grupos.get(k);
+    const cab = document.createElement("div");
+    cab.className = "grupo-sep";
+    cab.innerHTML = `<span class="gs-nombre">${escapeHTML(k)}</span><span class="gs-n">${items.length} ${items.length === 1 ? "álbum" : "álbumes"}</span>`;
+    grid.appendChild(cab);
+    items.forEach(a=> grid.appendChild(construirCoverCard(a)));
+  });
 }
 
 function insigniaDiscos(a){
@@ -5140,6 +5184,15 @@ $$(".vista-btn").forEach(btn=>{
   }, { passive:false });
   // Lo usa el menú del programa de Windows: 1 = más grandes, -1 = más pequeñas, 0 = tamaño normal
   window.ajustarCaratulas = function(d){ aplicar(d === 0 ? DEF : v + d * PASO); };
+  const bSep = $("#cov-sep");
+  function pintarBotonSep(){ bSep.classList.toggle("activo", separadoresActivos); bSep.setAttribute("aria-pressed", separadoresActivos ? "true" : "false"); }
+  bSep.addEventListener("click", ()=>{
+    separadoresActivos = !separadoresActivos;
+    try{ localStorage.setItem("sep_caratulas", separadoresActivos ? "1" : "0"); }catch(e){}
+    pintarBotonSep();
+    pintarGrid();
+  });
+  pintarBotonSep();
   document.body.classList.toggle("vista-cov", vistaActual === "covers");
   aplicar(v);
 })();
