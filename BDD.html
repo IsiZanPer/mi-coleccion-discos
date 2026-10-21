@@ -1536,7 +1536,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 3.6</div>
+  <div class="pc-version">Versión 3.7</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -2716,6 +2716,8 @@ function abrirDetalle(album){
     ? `<img src="${escapeAttr(portada)}" alt="">`
     : escapeHTML(album["ALBUM"] || "Sin carátula");
 
+  // El precio se guarda con punto (9.99) pero se muestra con coma y dos decimales (9,99 €); si no es un número, se enseña tal cual
+  const precioTexto = v => !v ? `<span class="vacio">—</span>` : (/\d/.test(String(v)) ? fmtEuro(numeroDe(v)) : escapeHTML(String(v)));
   const campoOVacio = (valor, sufijo) => valor ? `${escapeHTML(String(valor))}${sufijo||''}` : `<span class="vacio">—</span>`;
 
   // Año a partir de "Fecha" (puede ser solo el año, o una fecha dd/mm/yyyy)
@@ -2763,7 +2765,7 @@ function abrirDetalle(album){
 
   const particulares = [
     `<b>Fecha de compra:</b> ${campoOVacio(album["Fecha de compra"])}`,
-    `<b>Precio:</b> ${campoOVacio(album["Precio"], " €")}`,
+    `<b>Precio:</b> ${precioTexto(album["Precio"])}`,
     `<b>Tienda:</b> ${campoOVacio(album["Tienda"])}`,
     `<b>Fecha de publicación:</b> ${fechaPub ? escapeHTML(fechaPub) : '<span class="vacio">—</span>'}`,
   ];
