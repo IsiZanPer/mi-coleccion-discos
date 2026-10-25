@@ -1572,7 +1572,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 4.2</div>
+  <div class="pc-version">Versión 4.3</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -2527,6 +2527,7 @@ function cambiarVista(nueva){
   vistaActual = nueva;
   localStorage.setItem("vista_grid", nueva);
   document.body.classList.toggle("vista-cov", nueva === "covers");
+  enviarEstadoApp();
   $$(".vista-btn").forEach(b=> b.classList.toggle("activo", b.dataset.vista===nueva));
   pintarGrid();
 }
@@ -5374,6 +5375,7 @@ $$(".vista-btn").forEach(btn=>{
     try{ localStorage.setItem("sep_caratulas", separadoresActivos ? "1" : "0"); }catch(e){}
     pintarBotonSep();
     pintarGrid();
+    enviarEstadoApp();
   });
   pintarBotonSep();
   document.body.classList.toggle("vista-cov", vistaActual === "covers");
@@ -5514,6 +5516,7 @@ $("#ord-the").addEventListener("click", ()=>{
   $("#ord-the").classList.toggle("activo", omitirThe);
   construirSidebar();      // la lista de artistas de la izquierda también cambia de orden
   pintarGrid();
+  enviarEstadoApp();
 });
 pintarBarraOrden();
 
@@ -6767,6 +6770,22 @@ $("#btn-ver-discogs").addEventListener("click", verEnDiscogs);
   actualizar();
 })();
 
+/* ---------- Aviso al programa de Windows: tema, colores y estado de las opciones (para que sus menús y ventanas los sigan) ---------- */
+function enviarEstadoApp(){
+  try{
+    if(!EN_APP || !(window.chrome && window.chrome.webview)) return;
+    const cs = getComputedStyle(document.documentElement), v = n=> cs.getPropertyValue(n).trim();
+    window.chrome.webview.postMessage("estado|" + JSON.stringify({
+      claro: document.documentElement.getAttribute("data-tema") === "claro",
+      colores: { bg:v("--bg"), panel:v("--panel"), panelHi:v("--panel-hi"), border:v("--border"), text:v("--text"), muted:v("--muted"), accent:v("--accent") },
+      vista: vistaActual,
+      movil: document.body.classList.contains("modo-movil"),
+      omitirThe: !!omitirThe,
+      grupos: !!separadoresActivos
+    }));
+  }catch(e){}
+}
+
 /* ---------- Tema claro / oscuro ---------- */
 function aplicarTema(claro){
   if(claro) document.documentElement.setAttribute("data-tema","claro");
@@ -6776,6 +6795,7 @@ function aplicarTema(claro){
   $("#btn-tema-txt").textContent = claro ? "Tema oscuro" : "Tema claro";
   const bm = $("#btn-tema-movil");
   if(bm){ bm.textContent = claro ? "🌙" : "☀"; bm.title = claro ? "Cambiar a tema oscuro" : "Cambiar a tema claro"; }
+  enviarEstadoApp();
 }
 aplicarTema(document.documentElement.getAttribute("data-tema") === "claro");
 function alternarTema(){
@@ -7087,6 +7107,7 @@ function aplicarModoVisual(repintar){
   // Solo se conserva si estás en un PC con pantalla grande y forzaste el modo móvil a mano, para poder volver.
   const pantallaMovil = !!(consultaMovil && consultaMovil.matches);
   document.body.classList.toggle("movil-auto", nuevo && (preferenciaModo === "auto" || pantallaMovil));
+  enviarEstadoApp();
   const btn = $("#btn-modo");
   btn.innerHTML = nuevo ? "🖥" : '📱<span class="txt"> Móvil</span>';
   btn.title = nuevo ? "Volver a la vista de escritorio" : "Cambiar a la vista para móvil";
