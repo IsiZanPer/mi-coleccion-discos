@@ -123,13 +123,20 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   }
   .buscador-caja{flex:1;max-width:320px;position:relative;min-width:0;}
   #buscador-borrar{
-    display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    display:none;position:absolute;right:34px;top:50%;transform:translateY(-50%);
     width:24px;height:24px;padding:0;line-height:1;border:none;border-radius:50%;
     background:transparent;color:var(--muted);font-size:calc(14px * var(--ft,1));cursor:pointer;font-family:inherit;
   }
   #buscador-borrar:hover{color:var(--accent);background:var(--panel-hi);}
   .buscador-caja.tiene-texto #buscador-borrar{display:block;}
-  .buscador-caja.tiene-texto #buscador{padding-right:32px;}
+  .buscador-caja.tiene-texto #buscador{padding-right:62px;}
+  #buscador-profundo{
+    position:absolute;right:6px;top:50%;transform:translateY(-50%);width:26px;height:26px;padding:0;
+    display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;
+    background:transparent;color:var(--muted);cursor:pointer;
+  }
+  #buscador-profundo:hover{color:var(--accent);background:var(--panel-hi);}
+  #buscador-profundo.activo{color:var(--accent);background:var(--panel-hi);box-shadow:0 0 0 1px var(--accent) inset;}
   #buscador{
     width:100%;
     box-sizing:border-box;
@@ -138,7 +145,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     background:var(--bg);
     border:1px solid var(--border);
     color:var(--text);
-    padding:8px 12px;
+    padding:8px 38px 8px 12px;
     border-radius:4px;
     font-size:calc(14px * var(--ft,1));
   }
@@ -602,6 +609,14 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:700;font-size:calc(14px * var(--ft,1));line-height:1;
   }
   .btn-info:hover{border-color:var(--accent);color:var(--accent);}
+  /* Búsqueda profunda: dónde ha coincidido */
+  .badge-coin{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:10px;border:1px solid var(--accent);color:var(--accent);font-size:calc(11px * var(--ft,1));font-weight:600;white-space:nowrap;vertical-align:middle;}
+  .lista-canciones li.coincide{background:color-mix(in srgb, var(--accent) 12%, transparent);border-radius:4px;}
+  .lista-canciones .coincide-btn{border-color:var(--accent);color:var(--accent);}
+  /* Columna Info de la vista Lista */
+  .info-ok{color:var(--msg-ok);font-weight:600;white-space:nowrap;}
+  .info-parte{color:var(--accent);white-space:nowrap;}
+  .info-nada{color:var(--muted);white-space:nowrap;}
 
   .det-particulares{
     font-size:calc(13.5px * var(--ft,1));color:var(--muted);line-height:2;
@@ -1303,9 +1318,10 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   body.modo-movil #sidebar,
   body.modo-movil #barra-seleccion{display:none !important;}
   body.modo-movil .buscador-caja{flex:1;max-width:none;min-width:0;}
-  body.modo-movil #buscador{flex:1;max-width:none;min-width:0;font-size:calc(16px * var(--ft,1));padding:11px 14px;}
-  body.modo-movil .buscador-caja.tiene-texto #buscador{padding-right:38px;}
-  body.modo-movil #buscador-borrar{width:30px;height:30px;font-size:calc(16px * var(--ft,1));right:8px;}
+  body.modo-movil #buscador{flex:1;max-width:none;min-width:0;font-size:calc(16px * var(--ft,1));padding:11px 46px 11px 14px;}
+  body.modo-movil .buscador-caja.tiene-texto #buscador{padding-right:84px;}
+  body.modo-movil #buscador-profundo{width:32px;height:32px;right:8px;}
+  body.modo-movil #buscador-borrar{width:30px;height:30px;font-size:calc(16px * var(--ft,1));right:46px;}
   body.modo-movil #btn-modo,
   body.modo-movil #btn-cerrar-sesion{
     position:static;padding:10px 12px;font-size:calc(16px * var(--ft,1));line-height:1;
@@ -1572,7 +1588,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 4.3</div>
+  <div class="pc-version">Versión 4.4</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1590,6 +1606,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <h1><span class="l-mi">Mi</span>colección</h1>
   </div>
   <div class="buscador-caja" id="buscador-caja">
+    <button type="button" id="buscador-profundo" aria-pressed="false" title="Búsqueda profunda: busca también en los títulos de las canciones, las letras y la información («i»)"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.6"/><path d="M10 10l4.2 4.2M4.7 5.3h3.6M4.7 7.7h2.2"/></svg></button>
     <input id="buscador" name="buscar-en-coleccion" type="text" placeholder="Buscar por álbum o artista…" autocomplete="off" autocapitalize="off" spellcheck="false">
     <button type="button" id="buscador-borrar" title="Borrar la búsqueda (Esc)" aria-label="Borrar la búsqueda">✕</button>
   </div>
@@ -2535,11 +2552,20 @@ function cambiarVista(nueva){
 function pintarGrid(){
   const texto = $("#buscador").value.trim().toLowerCase();
 
+  const profunda = busquedaProfunda && texto !== "";
+  const tp = profunda ? plano(texto) : "";
   let lista = ALBUMES_VISTA.filter(a=>{
+    a._coin = null;
     if(valorActivo !== "__TODOS__" && valorSegunTab(a, tabActivo) !== valorActivo) return false;
     if(!texto) return true;
-    const campo = ((a["ALBUM"]||"") + " " + (a["ARTISTA ALBUM"]||"")).toLowerCase();
-    return campo.includes(texto);
+    if(!profunda){
+      const campo = ((a["ALBUM"]||"") + " " + (a["ARTISTA ALBUM"]||"")).toLowerCase();
+      return campo.includes(texto);
+    }
+    // Búsqueda profunda: el álbum, el artista o cualquier canción (título, letra, información)
+    a._coin = coincidenciaAlbum(a, tp);
+    const campo = plano((a["ALBUM"]||"") + " " + (a["ARTISTA ALBUM"]||""));
+    return campo.includes(tp) || !!a._coin;
   });
 
   if(ordenActual.some(o=>o.campo==="caratula")) asegurarDimensiones(lista);
@@ -2603,6 +2629,70 @@ function pintarCaratulasAgrupadas(grid, lista){
   });
 }
 
+/* ---------- Búsqueda profunda (títulos de canciones, letras e información) ---------- */
+let busquedaProfunda = (function(){ try{ return localStorage.getItem("busqueda_profunda") === "1"; }catch(e){ return false; } })();
+// Minúsculas y sin acentos, para que "corazon" encuentre "corazón"
+const plano = t => String(t == null ? "" : t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+let idxCancionesRef = null, idxCanciones = new Map();
+// Canciones de un álbum (de todos sus discos) sin recorrer toda la lista cada vez
+function cancionesDeAlbum(a){
+  if(idxCancionesRef !== CANCIONES || idxCanciones._n !== CANCIONES.length){
+    idxCanciones = new Map();
+    CANCIONES.forEach(c=>{ if(!idxCanciones.has(c.ALBUM_ID)) idxCanciones.set(c.ALBUM_ID, []); idxCanciones.get(c.ALBUM_ID).push(c); });
+    idxCanciones._n = CANCIONES.length;
+    idxCancionesRef = CANCIONES;
+  }
+  const ids = a._esGrupo ? a._discos.map(d=> d.ALBUM_ID) : [a.ALBUM_ID];
+  return ids.flatMap(id=> idxCanciones.get(id) || []);
+}
+// Texto en "plano" de una canción, guardado en ella y recalculado solo si cambia (p. ej. al importar o editar)
+function textoPlanoCancion(c, campo, clave){
+  const origen = c[campo];
+  if(c[clave + "S"] !== origen){ c[clave + "S"] = origen; c[clave] = plano(origen); }
+  return c[clave];
+}
+function coincidenciaCancion(c, t){
+  return {
+    t: textoPlanoCancion(c, "TITULO", "_pt").includes(t),
+    l: textoPlanoCancion(c, "Letras", "_pl").includes(t),
+    i: textoPlanoCancion(c, "Info", "_pi").includes(t)
+  };
+}
+function coincidenciaAlbum(a, t){
+  const r = { t:0, l:0, i:0 };
+  cancionesDeAlbum(a).forEach(c=>{ const m = coincidenciaCancion(c, t); if(m.t) r.t++; if(m.l) r.l++; if(m.i) r.i++; });
+  return (r.t || r.l || r.i) ? r : null;
+}
+function terminoProfundo(){
+  const t = $("#buscador").value.trim();
+  return busquedaProfunda && t ? plano(t) : "";
+}
+function insigniaCoincidencia(a){
+  const c = a._coin;
+  if(!c) return "";
+  const nombres = [], detalle = [];
+  if(c.t){ nombres.push("canción"); detalle.push(c.t + (c.t === 1 ? " título de canción" : " títulos de canción")); }
+  if(c.l){ nombres.push("letra"); detalle.push(c.l + (c.l === 1 ? " letra" : " letras")); }
+  if(c.i){ nombres.push("info"); detalle.push(c.i + " información"); }
+  return `<span class="badge-coin" title="La búsqueda coincide en: ${detalle.join(", ")}">${nombres.join(" · ")}</span>`;
+}
+
+/* ---------- Columna "Info" de la vista Lista: cuántas canciones del álbum tienen información ---------- */
+function resumenInfo(a){
+  const cs = cancionesDeAlbum(a);
+  let n = 0;
+  cs.forEach(c=>{ if(c["Info"] && String(c["Info"]).trim() !== "") n++; });
+  return { n, total: cs.length };
+}
+function celdaInfo(a){
+  if(!hayColumnaInfo()) return "";
+  const { n, total } = resumenInfo(a);
+  if(!total) return "";
+  if(n === total) return `<span class="info-ok" title="Todas las canciones tienen información">✓ ${n}/${total}</span>`;
+  if(n === 0) return `<span class="info-nada" title="Ninguna canción tiene información todavía">— 0/${total}</span>`;
+  return `<span class="info-parte" title="${total - n === 1 ? "Falta 1 canción por rellenar" : "Faltan " + (total - n) + " canciones por rellenar"}">◐ ${n}/${total}</span>`;
+}
+
 function insigniaDiscos(a){
   if(!a._esGrupo || !a._discos || a._discos.length < 2) return "";
   const n = a._discos.length;
@@ -2635,7 +2725,7 @@ function construirFilaCard(a){
     <div class="fc-info">
       <div class="fc-titulo">${escapeHTML(a["ALBUM"]||"(Sin título)")}</div>
       <div class="fc-artista">${escapeHTML(a["ARTISTA ALBUM"]||"")}</div>
-      <div class="fc-formato">CD${anio ? " – "+escapeHTML(anio) : ""}${insigniaDiscos(a)}${insigniaRevisado(a)}</div>
+      <div class="fc-formato">CD${anio ? " – "+escapeHTML(anio) : ""}${insigniaDiscos(a)}${insigniaRevisado(a)}${insigniaCoincidencia(a)}</div>
     </div>
     <div class="fc-meta">
       <div class="fc-pistas">♫ ${pistas}</div>
@@ -2651,7 +2741,7 @@ function pintarVistaLista(grid, lista){
   tabla.className = "tabla-albumes";
   tabla.innerHTML = `
     <thead><tr>
-      ${modoSeleccion ? '<th class="td-chk"></th>' : ''}${[["titulo","Álbum"],["artista","Artista"],["anio","Año"],["genero","Género"],["rating","Rating"],["duracion","Duración"],["caratula","Carátula (px)"]].map(([campo, texto])=>{
+      ${modoSeleccion ? '<th class="td-chk"></th>' : ''}${[["titulo","Álbum"],["artista","Artista"],["anio","Año"],["genero","Género"],["rating","Rating"],["duracion","Duración"],["info","Info"],["caratula","Carátula (px)"]].map(([campo, texto])=>{
         const i = ordenActual.findIndex(o=>o.campo===campo);
         const flecha = i > -1 ? `<span class="th-flecha">${ordenActual[i].dir==="asc" ? "↑" : "↓"}${ordenActual.length > 1 ? `<sup>${i+1}</sup>` : ""}</span>` : "";
         return `<th data-campo="${campo}" title="Ordenar por ${texto.toLowerCase()} (Mayús+clic: añadir como criterio adicional)">${texto}${flecha}</th>`;
@@ -2669,12 +2759,13 @@ function pintarVistaLista(grid, lista){
     const tr = document.createElement("tr");
     if(albumSeleccionado && albumSeleccionado.ALBUM_ID === a.ALBUM_ID) tr.classList.add("selec");
     tr.innerHTML = `
-      <td class="td-album">${escapeHTML(a["ALBUM"]||"(Sin título)")}${insigniaDiscos(a)}${insigniaRevisado(a)}</td>
+      <td class="td-album">${escapeHTML(a["ALBUM"]||"(Sin título)")}${insigniaDiscos(a)}${insigniaRevisado(a)}${insigniaCoincidencia(a)}</td>
       <td>${escapeHTML(a["ARTISTA ALBUM"]||"")}</td>
       <td>${escapeHTML(anio)}</td>
       <td>${escapeHTML(a["GENERO"]||"")}</td>
       <td>${rating ? rating+"/10" : ""}</td>
       <td>${escapeHTML(duracionTexto)}</td>
+      <td class="td-info">${celdaInfo(a)}</td>
       <td class="td-dim"></td>
     `;
     ponerDimensionCaratula(tr.lastElementChild, a["PORTADA"]);
@@ -2753,6 +2844,8 @@ function construirOlCanciones(canciones){
     const tieneLetra = c["Letras"] && String(c["Letras"]).trim() !== "";
     const tieneInfo = c["Info"] && String(c["Info"]).trim() !== "";
     const artistaCancion = c["ARTISTA"] ? ` <em>(${escapeHTML(c["ARTISTA"])})</em>` : "";
+    const tp = terminoProfundo();
+    const coincide = tp ? coincidenciaCancion(c, tp) : null;
     li.innerHTML = `
       <span class="num">${escapeHTML(String(c["PISTA Nº"]||""))}</span>
       <span class="tit">${escapeHTML(c["TITULO"]||"")}${artistaCancion}</span>
@@ -2760,6 +2853,11 @@ function construirOlCanciones(canciones){
       ${tieneLetra ? `<button class="btn-letra" type="button">Letra</button>` : ""}
       <span class="dur">${escapeHTML(formatearDuracion(c["Duración"]))}</span>
     `;
+    if(coincide && (coincide.t || coincide.l || coincide.i)){
+      li.classList.add("coincide");
+      if(coincide.l && tieneLetra) li.querySelector(".btn-letra").classList.add("coincide-btn");
+      if(coincide.i && tieneInfo) li.querySelector(".btn-info").classList.add("coincide-btn");
+    }
     if(tieneLetra){
       li.querySelector(".btn-letra").addEventListener("click", ()=> abrirLetra(c, canciones));
     }
@@ -4221,6 +4319,19 @@ function formatearMinutosTotales(total){
 
 /* ---------- Eventos ---------- */
 $("#buscador").addEventListener("input", pintarGrid);
+function pintarInterruptorProfundo(){
+  $("#buscador-profundo").classList.toggle("activo", busquedaProfunda);
+  $("#buscador-profundo").setAttribute("aria-pressed", busquedaProfunda ? "true" : "false");
+  $("#buscador").placeholder = busquedaProfunda ? "Álbum, canción, letra o información…" : "Buscar por álbum o artista…";
+}
+$("#buscador-profundo").addEventListener("click", ()=>{
+  busquedaProfunda = !busquedaProfunda;
+  try{ localStorage.setItem("busqueda_profunda", busquedaProfunda ? "1" : "0"); }catch(e){}
+  pintarInterruptorProfundo();
+  pintarGrid();
+  $("#buscador").focus();
+});
+pintarInterruptorProfundo();
 // Botón ✕ del buscador: borra lo escrito (también con Esc dentro del cuadro)
 function actualizarBotonBorrarBusqueda(){
   $("#buscador-caja").classList.toggle("tiene-texto", $("#buscador").value !== "");
@@ -5412,6 +5523,8 @@ const CRITERIOS_ORDEN = {
   // Solo desde las cabeceras de la vista Lista: en la barra superior aparecen únicamente mientras están activos
   genero:   { etiqueta:"Género",   dirIni:"asc",  tipo:"texto", soloColumna:true, valor:a=>a["GENERO"] },
   duracion: { etiqueta:"Duración", dirIni:"desc", tipo:"num",   soloColumna:true, valor:a=>{ const s = segundosAlbumCache(a); return s > 0 ? s : null; } },
+  // Proporción de canciones con información (para ordenar la columna Info); sin canciones, al final
+  info: { etiqueta:"Info", dirIni:"desc", tipo:"num", soloColumna:true, valor:a=>{ const r = resumenInfo(a); return r.total ? r.n / r.total + r.n / 100000 : null; } },
   // Píxeles totales (alto × ancho) de la carátula; sin carátula o sin medir, al final
   caratula: { etiqueta:"Carátula", dirIni:"desc", tipo:"num",   soloColumna:true, valor:a=>{ const v = DIM_VALORES.get(String(a["PORTADA"]||"").trim()); return v > 0 ? v : null; } }
 };
