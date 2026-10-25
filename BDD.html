@@ -595,6 +595,13 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     flex-shrink:0;
   }
   .btn-letra:hover{border-color:var(--accent);color:var(--accent);}
+  /* Botón "i" de información de la canción */
+  .btn-info{
+    background:transparent;border:1px solid var(--border);color:var(--muted);
+    width:24px;height:24px;border-radius:50%;padding:0;cursor:pointer;flex-shrink:0;
+    font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:700;font-size:calc(14px * var(--ft,1));line-height:1;
+  }
+  .btn-info:hover{border-color:var(--accent);color:var(--accent);}
 
   .det-particulares{
     font-size:calc(13.5px * var(--ft,1));color:var(--muted);line-height:2;
@@ -728,7 +735,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     line-height:1;
   }
   .btn-eliminar-cancion:hover{background:#c96a5a;border-color:#c96a5a;color:#fff;}
-  .ed-c-letras{
+  .ed-c-letras, .ed-c-info{
     width:100%;
     background:var(--bg);
     border:1px solid var(--border);
@@ -739,7 +746,9 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     font-family:inherit;
     resize:vertical;
   }
-  .ed-c-letras:focus{outline:none;border-color:var(--accent);}
+  .ed-c-letras:focus, .ed-c-info:focus{outline:none;border-color:var(--accent);}
+  .ed-c-info{margin-top:6px;}
+  .ed-c-info:disabled{opacity:.6;cursor:not-allowed;}
   .btn-anadir-cancion{
     width:100%;
     background:transparent;
@@ -1051,6 +1060,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     white-space:normal;   /* si fuera pre-wrap, los saltos de línea del HTML entre título, artista y letra se verían como líneas en blanco */
   }
   #letra-cuerpo{white-space:pre-wrap;}   /* la letra sí conserva sus saltos de línea */
+  #letra-cuerpo.modo-info{white-space:normal;}   /* la información es texto corrido: los párrafos se ajustan solos */
   #modal-letra p{margin:0 0 10px;}
   #modal-letra h3{margin:0;padding-bottom:6px;border-bottom:1px solid #b8aa88;line-height:1.2;font-size:calc(24px * var(--ft,1));color:#000;font-family:var(--fuente-titulos,'Space Grotesk','Inter',system-ui,sans-serif);}
   #modal-letra .subtitulo{color:#5b4f3a;font-family:var(--fuente-texto,Inter,system-ui,sans-serif);font-size:calc(13px * var(--ft,1));margin:2px 0 14px;}
@@ -1231,6 +1241,10 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     font-size:calc(13.5px * var(--ft,1));font-family:inherit;cursor:pointer;white-space:nowrap;
   }
   .herr-item .ico{width:18px;text-align:center;}
+  /* Tablet (pantalla táctil en modo PC): "Añadir álbum" pasa de la cabecera al menú Herramientas para dejar más sitio arriba */
+  #btn-nuevo-album-herr{display:none;}
+  body.tablet:not(.modo-movil) #btn-nuevo-album-herr{display:flex;}
+  body.tablet:not(.modo-movil) #btn-nuevo-album{display:none !important;}
   .herr-tam{display:flex;align-items:center;gap:6px;padding:7px 10px;color:var(--text);}
   .herr-tam .ico{width:auto;min-width:18px;margin-right:4px;text-align:center;font-weight:600;}
   .herr-tam-txt{flex:1;white-space:nowrap;}
@@ -1536,7 +1550,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 3.7</div>
+  <div class="pc-version">Versión 3.9</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1571,6 +1585,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   <div class="menu-herr" id="menu-herr">
     <button class="btn-seleccionar" id="btn-herramientas" type="button" aria-haspopup="true" aria-expanded="false" title="Herramientas">🛠<span class="txt"> Herramientas</span> <span class="flecha">▾</span></button>
     <div class="menu-herr-lista" id="menu-herr-lista" role="menu">
+      <button class="herr-item" id="btn-nuevo-album-herr" type="button" role="menuitem" title="Añadir un álbum nuevo"><span class="ico">＋</span> Añadir álbum</button>
       <button class="herr-item" id="btn-seleccionar" type="button" role="menuitem" title="Seleccionar varios álbumes para editarlos en bloque"><span class="ico">☑</span> Seleccionar</button>
       <button class="herr-item" id="btn-stats" type="button" role="menuitem" title="Ver estadísticas de la colección (respeta el filtro de la izquierda)"><span class="ico">📊</span> Estadísticas</button>
       <button class="herr-item" id="btn-limpiar" type="button" role="menuitem" title="Buscar carátulas de GitHub que ningún álbum usa y borrarlas"><span class="ico">🧹</span> Carátulas</button>
@@ -1983,6 +1998,14 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
 // El programa de Windows "Mi colección" añade MiColeccionApp al identificador del navegador: lleva el lector de CD integrado
 const EN_APP = /MiColeccionApp/.test(navigator.userAgent);
 // Versión de la página (la lee el menú Ayuda > Acerca de del programa de Windows)
+// Tablet = pantalla táctil sin ratón (se detecta aquí y se actualiza solo si cambia, p. ej. al conectar un ratón)
+(function(){
+  const mq = window.matchMedia("(hover: none) and (pointer: coarse)");
+  const poner = ()=> document.body.classList.toggle("tablet", mq.matches);
+  poner();
+  if(mq.addEventListener) mq.addEventListener("change", poner);
+  document.getElementById("btn-nuevo-album-herr").addEventListener("click", ()=> document.getElementById("btn-nuevo-album").click());
+})();
 window.VERSION_PAGINA = ((document.querySelector(".pc-version") || {}).textContent || "").replace("Versión ", "");
 // Dentro del programa de Windows, esas opciones están en su barra de menús: se ocultan de la cabecera de la página
 if(EN_APP) document.body.classList.add("app-menus");
@@ -2123,7 +2146,9 @@ function encontrarEntradaVista(albumId){
 // llamado "1989" o "21"). Los campos de texto se pasan a string para que ordenar,
 // buscar y agrupar no fallen.
 const CAMPOS_TEXTO_ALBUM = ["ALBUM","ARTISTA ALBUM","GENERO","Etiqueta","Tienda","Número de Catalogo","Código de barras","Comentario","Ficha PDF","PORTADA","Imagen MDX"];
-const CAMPOS_TEXTO_CANCION = ["TITULO","ARTISTA","Letras"];
+const CAMPOS_TEXTO_CANCION = ["TITULO","ARTISTA","Letras","Info"];
+// ¿Existe la columna "Info" en la hoja CANCIONES? (si no, hay que crearla a mano en Google Sheets para poder guardar la información)
+const hayColumnaInfo = ()=> CANCIONES.some(c=> "Info" in c);
 function normalizarTextos(filas, campos){
   (filas || []).forEach(f=> campos.forEach(c=>{
     if(f[c] !== undefined && f[c] !== null && typeof f[c] !== "string") f[c] = String(f[c]);
@@ -2681,15 +2706,20 @@ function construirOlCanciones(canciones){
   canciones.forEach(c=>{
     const li = document.createElement("li");
     const tieneLetra = c["Letras"] && String(c["Letras"]).trim() !== "";
+    const tieneInfo = c["Info"] && String(c["Info"]).trim() !== "";
     const artistaCancion = c["ARTISTA"] ? ` <em>(${escapeHTML(c["ARTISTA"])})</em>` : "";
     li.innerHTML = `
       <span class="num">${escapeHTML(String(c["PISTA Nº"]||""))}</span>
       <span class="tit">${escapeHTML(c["TITULO"]||"")}${artistaCancion}</span>
+      ${tieneInfo ? `<button class="btn-info" type="button" title="Información de la canción" aria-label="Información de la canción">i</button>` : ""}
       ${tieneLetra ? `<button class="btn-letra" type="button">Letra</button>` : ""}
       <span class="dur">${escapeHTML(formatearDuracion(c["Duración"]))}</span>
     `;
     if(tieneLetra){
       li.querySelector(".btn-letra").addEventListener("click", ()=> abrirLetra(c, canciones));
+    }
+    if(tieneInfo){
+      li.querySelector(".btn-info").addEventListener("click", ()=> abrirLetra(c, canciones, "info"));
     }
     ol.appendChild(li);
   });
@@ -2869,6 +2899,7 @@ function crearFilaCancionEdicion(c, pistaOriginal){
       <button type="button" class="btn-eliminar-cancion" title="Eliminar canción">✕</button>
     </div>
     <textarea class="ed-c-letras" rows="3" placeholder="Letra">${escapeHTML(c["Letras"]||"")}</textarea>
+    <textarea class="ed-c-info" rows="2" placeholder="${hayColumnaInfo() ? "Información de la canción (opcional; se ve con el botón i)" : "Para guardar información, crea una columna «Info» en la hoja CANCIONES de Google Sheets"}" ${hayColumnaInfo() ? "" : "disabled"}>${escapeHTML(c["Info"]||"")}</textarea>
   `;
   div.querySelector(".btn-eliminar-cancion").addEventListener("click", ()=>{
     if(div.dataset.pistaOriginal !== undefined){
@@ -2896,6 +2927,7 @@ function crearFilaCancionNueva(c){
       <button type="button" class="btn-eliminar-cancion" title="Eliminar canción">✕</button>
     </div>
     <textarea class="ed-c-letras" rows="3" placeholder="Letra">${escapeHTML(c["Letras"]||"")}</textarea>
+    <textarea class="ed-c-info" rows="2" placeholder="${hayColumnaInfo() ? "Información de la canción (opcional; se ve con el botón i)" : "Para guardar información, crea una columna «Info» en la hoja CANCIONES de Google Sheets"}" ${hayColumnaInfo() ? "" : "disabled"}>${escapeHTML(c["Info"]||"")}</textarea>
   `;
   div.querySelector(".btn-eliminar-cancion").addEventListener("click", ()=> div.remove());
   div.querySelector(".ed-c-duracion").addEventListener("input", formatearEntradaDuracion);
@@ -2983,7 +3015,8 @@ async function entrarModoEdicion(){
       ARTISTA: c["ARTISTA"],
       "Duración": c["Duración"] || "",
       "Original Release Year": c["Original Release Year"],
-      Letras: c["Letras"]
+      Letras: c["Letras"],
+      Info: c["Info"]
     }, String(c["PISTA Nº"])));
   });
 
@@ -3237,7 +3270,8 @@ async function guardarCambios(){
       "ARTISTA": div.querySelector(".ed-c-artista").value.trim(),
       "Duración": div.querySelector(".ed-c-duracion").value.trim(),
       "Original Release Year": div.querySelector(".ed-c-anio").value.trim(),
-      "Letras": div.querySelector(".ed-c-letras").value
+      "Letras": div.querySelector(".ed-c-letras").value,
+      "Info": div.querySelector(".ed-c-info").value
     };
     if(div.dataset.pistaOriginal !== undefined){
       datos.pista_original = div.dataset.pistaOriginal;
@@ -3928,8 +3962,10 @@ function cerrarFicha(){
 /* ---------- Modal de letra (con navegación anterior/siguiente) ---------- */
 let letraListaActual = [];
 let letraIndiceActual = -1;
+let letraModo = "letra";      // "letra" | "info": la ventana de información es la misma que la de letras (mismo tono, tamaño, maximizar, volver arriba, anterior/siguiente y deslizar con el dedo)
 
-function abrirLetra(cancion, lista){
+function abrirLetra(cancion, lista, modo){
+  letraModo = modo === "info" ? "info" : "letra";
   letraListaActual = lista || [cancion];
   letraIndiceActual = letraListaActual.indexOf(cancion);
   mostrarLetraEnIndice(letraIndiceActual);
@@ -3941,9 +3977,13 @@ function mostrarLetraEnIndice(i){
   letraIndiceActual = i;
   const cancion = letraListaActual[i];
   $("#letra-titulo").textContent = cancion["TITULO"] || "";
-  $("#letra-subtitulo").textContent = albumSeleccionado ? (albumSeleccionado["ARTISTA ALBUM"] || "") : "";
-  const letra = (cancion["Letras"]||"").trim();
-  $("#letra-cuerpo").innerHTML = letra ? markdownASimpleHTML(letra) : '<p style="color:#5b4f3a;font-family:var(--fuente-texto,Inter,system-ui,sans-serif);font-size:calc(14px * var(--ft,1));">Esta canción no tiene letra guardada.</p>';
+  const esInfo = letraModo === "info";
+  const album = albumSeleccionado ? (albumSeleccionado["ARTISTA ALBUM"] || "") : "";
+  $("#letra-subtitulo").textContent = esInfo ? ("ⓘ Información" + (album ? " · " + album : "")) : album;
+  $("#letra-cuerpo").classList.toggle("modo-info", esInfo);
+  $("#modal-letra").classList.toggle("modo-info", esInfo);
+  const letra = (cancion[esInfo ? "Info" : "Letras"]||"").trim();
+  $("#letra-cuerpo").innerHTML = letra ? markdownASimpleHTML(letra) : '<p style="color:#5b4f3a;font-family:var(--fuente-texto,Inter,system-ui,sans-serif);font-size:calc(14px * var(--ft,1));">' + (esInfo ? "Esta canción no tiene información guardada." : "Esta canción no tiene letra guardada.") + '</p>';
   $("#btn-letra-anterior").disabled = (i<=0);
   $("#btn-letra-siguiente").disabled = (i>=letraListaActual.length-1);
 }
@@ -4681,7 +4721,8 @@ async function crearAlbumNuevo(){
         "ARTISTA": div.querySelector(".ed-c-artista").value.trim() || albumBase["ARTISTA ALBUM"],   // en blanco = artista del álbum
         "Duración": div.querySelector(".ed-c-duracion").value.trim(),
         "Original Release Year": div.querySelector(".ed-c-anio").value.trim(),
-        "Letras": div.querySelector(".ed-c-letras").value
+        "Letras": div.querySelector(".ed-c-letras").value,
+        "Info": div.querySelector(".ed-c-info").value
       }));
 
       const albumDisco = Object.assign({}, albumBase);
