@@ -1440,6 +1440,12 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     padding:3px 8px;font-size:calc(14px * var(--ft,1));cursor:pointer;
   }
   #ord-reset:hover{color:var(--accent);border-color:var(--accent);}
+  #ord-the{
+    background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;
+    padding:3px 9px;cursor:pointer;font-family:inherit;font-size:calc(12px * var(--ft,1));white-space:nowrap;
+  }
+  #ord-the:hover{color:var(--accent);border-color:var(--accent);}
+  #ord-the.activo{background:var(--accent);border-color:var(--accent);color:#14151a;font-weight:600;}
   #ord-multi{
     background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:4px;
     padding:3px 9px;font-size:calc(12.5px * var(--ft,1));font-family:inherit;cursor:pointer;white-space:nowrap;
@@ -1550,7 +1556,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 3.9</div>
+  <div class="pc-version">Versión 4.0</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1645,6 +1651,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
       <span class="ord-titulo"><b>⇅</b> Ordenar</span>
       <div id="ord-chips"></div>
       <button type="button" id="ord-multi" title="Combinar criterios: con esto activado, cada criterio que pulses se añade al orden (alternativa a Mayús+clic en tablet)">＋ Combinar</button>
+      <button type="button" id="ord-the" title="Al ordenar por artista: con esto activado, «The Beatles» se coloca en la B y «The Cranberries» en la C (se omite «The»); desactivado, ambos van en la T">Omitir «The»</button>
       <button type="button" id="ord-reset" title="Restablecer el orden (Artista ↑ · Año ↑)">↺</button>
       <span class="ord-ayuda">Clic: ordenar · Mayús+clic o ＋ Combinar: añadir otro criterio</span>
     </div>
@@ -2333,7 +2340,9 @@ function construirSidebar(){
   let claves = Object.keys(conteo);
   claves = (tabActivo === "anio" || tabActivo === "decada")
     ? claves.sort((a,b)=> b.localeCompare(a,'es', {numeric:true})) // años y décadas: más reciente primero
-    : claves.sort((a,b)=>a.localeCompare(b,'es'));
+    : (tabActivo === "artista"
+        ? claves.sort((a,b)=> claveArtista(a).localeCompare(claveArtista(b), 'es'))   // respeta "Omitir «The»"
+        : claves.sort((a,b)=>a.localeCompare(b,'es')));
 
   $("#n-todos").textContent = ALBUMES_VISTA.length;
 
@@ -2545,7 +2554,7 @@ function pintarCaratulasAgrupadas(grid, lista){
   const claves = Array.from(grupos.keys()).sort((a,b)=>{
     const sa = /^\(Sin /.test(a), sb = /^\(Sin /.test(b);
     if(sa !== sb) return sa ? 1 : -1;               // "(Sin año)", "(Sin etiqueta)"… siempre al final
-    const c = COLATOR_ES.compare(a, b);
+    const c = tabActivo === "artista" ? COLATOR_ES.compare(claveArtista(a), claveArtista(b)) : COLATOR_ES.compare(a, b);
     return dir === "desc" ? -c : c;
   });
   claves.forEach(k=>{
@@ -5257,9 +5266,17 @@ function numeroFechaCompra(v){
   return null;
 }
 
+// Clave para ordenar artistas: con la opción "Omitir «The»" activada, "The Beatles" se ordena como "Beatles" (el nombre mostrado no cambia)
+let omitirThe = (function(){ try{ return localStorage.getItem("orden_omitir_the") === "1"; }catch(e){ return false; } })();
+function claveArtista(nombre){
+  const t = String(nombre || "").trim();
+  if(!omitirThe) return t;
+  const sin = t.replace(/^the\s+/i, "");
+  return sin || t;
+}
 const CRITERIOS_ORDEN = {
   titulo:  { etiqueta:"Título",  dirIni:"asc",  tipo:"texto", valor:a=>a["ALBUM"] },
-  artista: { etiqueta:"Artista", dirIni:"asc",  tipo:"texto", valor:a=>a["ARTISTA ALBUM"] },
+  artista: { etiqueta:"Artista", dirIni:"asc",  tipo:"texto", valor:a=>claveArtista(a["ARTISTA ALBUM"]) },
   anio:    { etiqueta:"Año",     dirIni:"asc",  tipo:"num",   valor:a=>{ const y = anioValido(a["Fecha"]); return y ? parseInt(y,10) : null; } },
   compra:  { etiqueta:"Compra",  dirIni:"desc", tipo:"num",   valor:a=>numeroFechaCompra(a["Fecha de compra"]) },
   rating:  { etiqueta:"Rating",  dirIni:"desc", tipo:"num",   valor:a=>{ const r = parseInt(a["Rating"],10); return r > 0 ? r : null; } },
@@ -5363,6 +5380,14 @@ $("#ord-multi").addEventListener("click", ()=>{
   $("#ord-multi").classList.toggle("activo", modoCombinar);
 });
 $("#ord-reset").addEventListener("click", ()=> cambiarOrden(ORDEN_POR_DEFECTO()));
+$("#ord-the").classList.toggle("activo", omitirThe);
+$("#ord-the").addEventListener("click", ()=>{
+  omitirThe = !omitirThe;
+  try{ localStorage.setItem("orden_omitir_the", omitirThe ? "1" : "0"); }catch(e){}
+  $("#ord-the").classList.toggle("activo", omitirThe);
+  construirSidebar();      // la lista de artistas de la izquierda también cambia de orden
+  pintarGrid();
+});
 pintarBarraOrden();
 
 /* ---------- Buscar y borrar carátulas sin usar ---------- */
