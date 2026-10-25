@@ -831,6 +831,20 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     white-space:nowrap;
   }
   .grupo-busqueda-nuevo button:hover{background:#5ad3f8;}
+  /* --- Pegar información de las canciones (editor de álbum) --- */
+  #modal-fondo-pegar-info{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:90;align-items:center;justify-content:center;}
+  #modal-fondo-pegar-info.abierto{display:flex;}
+  #modal-pegar-info{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:22px 26px;width:min(780px,96vw);max-height:92vh;display:flex;flex-direction:column;gap:8px;}
+  #cerrar-pegar-info{position:absolute;top:14px;right:18px;float:none;}
+  #modal-pegar-info h3{margin:0 0 4px;font-size:calc(19px * var(--ft,1));}
+  #pi-texto{width:100%;height:46vh;min-height:180px;resize:vertical;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:4px;font-family:inherit;font-size:calc(13px * var(--ft,1));line-height:1.45;}
+  #pi-texto:focus{outline:none;border-color:var(--accent);}
+  #pi-estado{min-height:1.3em;font-size:calc(13px * var(--ft,1));color:var(--muted);white-space:pre-wrap;}
+  #pi-estado.mal{color:var(--msg-mal,#ff5d5d);font-weight:600;}
+  .pi-botones{display:flex;gap:8px;flex-wrap:wrap;}
+  .pi-botones button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:9px 14px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:calc(13.5px * var(--ft,1));}
+  .pi-botones button:hover{border-color:var(--accent);color:var(--accent);}
+  .pi-botones button.principal{background:var(--accent);border-color:var(--accent);color:#06222c;font-weight:700;}
   /* --- Importar letras de MP3 --- */
   #modal-fondo-importar-letras{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:82;align-items:center;justify-content:center;}
   #modal-fondo-importar-letras.abierto{display:flex;}
@@ -1558,7 +1572,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 4.1</div>
+  <div class="pc-version">Versión 4.2</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1834,6 +1848,20 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
       </div>
       <label>O elige un archivo de tu PC: <input type="file" id="bc-archivo" accept="image/*"></label>
       <a id="bc-google" target="_blank" rel="noopener noreferrer">Abrir Google Imágenes con esta búsqueda ↗</a>
+    </div>
+  </div>
+</div>
+
+<div id="modal-fondo-pegar-info">
+  <div id="modal-pegar-info">
+    <span class="cerrar-detalle" id="cerrar-pegar-info" title="Cerrar" aria-label="Cerrar">✕</span>
+    <h3>Pegar información de las canciones</h3>
+    <p class="il-ayuda">Pega el bloque con un apartado por canción: cada uno empieza con una línea <code>## 1. Título de la canción</code> y debajo va el texto (admite Markdown). Se reparte entre las canciones de este álbum por título (o por número de pista) y <b>se rellena el cuadro «Información» de cada una</b>; después lo revisas y pulsas Guardar como siempre.</p>
+    <textarea id="pi-texto" placeholder="## 1. Título de la canción&#10;Texto de la información…&#10;&#10;## 2. Otra canción&#10;Texto…" spellcheck="false"></textarea>
+    <div id="pi-estado"></div>
+    <div class="pi-botones">
+      <button type="button" id="pi-aplicar" class="principal">Rellenar las canciones</button>
+      <button type="button" id="pi-cancelar">Cancelar</button>
     </div>
   </div>
 </div>
@@ -2901,6 +2929,95 @@ function formatearEntradaDuracion(e){
   e.target.value = bloques.join(":");
 }
 
+/* ---------- Pegar información de las canciones (bloque con un apartado «## nº. Título» por canción) ---------- */
+// Devuelve [{ num, titulo, texto }]. Un "## ..." abre apartado si lleva número o si su título es de una canción del álbum; los demás encabezados son parte del texto.
+function parsearInfoCanciones(texto, esTituloConocido){
+  let t = String(texto || "").replace(/\r\n?/g, "\n").trim();
+  t = t.replace(/^```[a-zA-Z]*\n/, "").replace(/\n```\s*$/, "");
+  const bloques = [];
+  let actual = null, enCodigo = false;
+  for(const linea of t.split("\n")){
+    if(/^\s*```/.test(linea)) enCodigo = !enCodigo;
+    const m = enCodigo ? null : linea.match(/^##\s+(?:(\d{1,3})\s*[.)\-–:]\s*)?(.+?)\s*#*\s*$/);
+    if(m){
+      const titulo = m[2].replace(/[*`_]/g, "").replace(/\s*\(\d{1,2}:\d{2}\)\s*$/, "").trim();
+      if(m[1] || esTituloConocido(titulo)){
+        actual = { num: m[1] ? parseInt(m[1], 10) : 0, titulo, lineas: [] };
+        bloques.push(actual);
+        continue;
+      }
+    }
+    if(actual) actual.lineas.push(linea);
+  }
+  return bloques.map(b=>({ num:b.num, titulo:b.titulo, texto:b.lineas.join("\n").trim() })).filter(b=> b.titulo);
+}
+function abrirPegarInfo(){
+  $("#pi-texto").value = "";
+  const estado = $("#pi-estado");
+  estado.classList.remove("mal");
+  estado.textContent = "";
+  if(!hayColumnaInfo()){
+    estado.classList.add("mal");
+    estado.textContent = "Falta la columna «Info» en la hoja CANCIONES de Google Sheets: créala, pulsa «Sincronizar» y vuelve a abrir el álbum.";
+  }
+  $("#modal-fondo-pegar-info").classList.add("abierto");
+  $("#pi-texto").focus();
+}
+function aplicarPegarInfo(){
+  const estado = $("#pi-estado");
+  estado.classList.remove("mal");
+  if(!hayColumnaInfo()){ estado.classList.add("mal"); estado.textContent = "Falta la columna «Info» en la hoja CANCIONES."; return; }
+  const filas = $$("#ed-canciones .cancion-edicion").map(div=>({
+    div, titulo: div.querySelector(".ed-c-titulo").value, num: parseInt(div.querySelector(".ed-c-pista").value, 10) || 0, usada:false,
+  }));
+  if(!filas.length){ estado.classList.add("mal"); estado.textContent = "Este álbum no tiene canciones."; return; }
+  const conocidos = new Set();
+  filas.forEach(f=>{ conocidos.add(normClave(f.titulo)); conocidos.add(normBase(f.titulo)); });
+  const bloques = parsearInfoCanciones($("#pi-texto").value, t=> conocidos.has(normClave(t)) || conocidos.has(normBase(t)));
+  if(!bloques.length){ estado.classList.add("mal"); estado.textContent = "No encuentro ningún apartado «## 1. Título». Comprueba que cada canción empieza con esa línea."; return; }
+
+  const asignaciones = [], sinCanci = [];
+  for(const b of bloques){
+    const tk = normClave(b.titulo), tb = normBase(b.titulo);
+    let cand = filas.filter(f=> !f.usada && (normClave(f.titulo) === tk || normBase(f.titulo) === tb));
+    let fila = cand.find(f=> f.num === b.num) || cand[0];
+    if(!fila && b.num){      // mismo nº de pista con un título parecido (p. ej. "Remastered", "feat.…")
+      const porNum = filas.filter(f=> !f.usada && f.num === b.num);
+      if(porNum.length === 1 && parecidoTitulos(porNum[0].titulo, b.titulo) >= 0.34) fila = porNum[0];
+    }
+    if(!fila){ sinCanci.push((b.num ? b.num + ". " : "") + b.titulo); continue; }
+    fila.usada = true;
+    asignaciones.push({ fila, texto: b.texto });
+  }
+  const conTexto = asignaciones.filter(a=> a.texto);
+  const yaTenian = conTexto.filter(a=> textoNoVacio(a.fila.div.querySelector(".ed-c-info").value) && normLetra(a.fila.div.querySelector(".ed-c-info").value) !== normLetra(a.texto));
+  let sustituir = true;
+  if(yaTenian.length) sustituir = confirm(yaTenian.length + " de las canciones ya tienen información distinta.\n\nAceptar = sustituirla por la nueva.\nCancelar = dejar las que ya tienen y rellenar solo las vacías.");
+  let rellenadas = 0;
+  conTexto.forEach(a=>{
+    const ta = a.fila.div.querySelector(".ed-c-info");
+    if(textoNoVacio(ta.value) && !sustituir) return;
+    ta.value = a.texto;
+    rellenadas++;
+  });
+  const sinInfo = filas.filter(f=> !f.usada).map(f=> (f.num ? f.num + ". " : "") + f.titulo);
+  let msg = "✓ Información repartida en " + rellenadas + " canciones. Revísala en el editor y pulsa Guardar.";
+  const avisos = [];
+  if(sinCanci.length) avisos.push("No he encontrado estas canciones en el álbum (no se han usado): " + sinCanci.join("; ") + ".");
+  if(sinInfo.length) avisos.push("Canciones del álbum sin apartado en el bloque: " + sinInfo.join("; ") + ".");
+  if(avisos.length){
+    estado.classList.add("mal");
+    estado.textContent = msg + "\n" + avisos.join("\n");
+    // Se queda la ventana abierta para que veas el aviso; las canciones que sí coincidían ya están rellenas
+    return;
+  }
+  $("#modal-fondo-pegar-info").classList.remove("abierto");
+  avisoSync(msg, 7000);
+}
+$("#cerrar-pegar-info").addEventListener("click", ()=> $("#modal-fondo-pegar-info").classList.remove("abierto"));
+$("#pi-cancelar").addEventListener("click", ()=> $("#modal-fondo-pegar-info").classList.remove("abierto"));
+$("#pi-aplicar").addEventListener("click", aplicarPegarInfo);
+
 function crearFilaCancionEdicion(c, pistaOriginal){
   const div = document.createElement("div");
   div.className = "cancion-edicion";
@@ -3015,6 +3132,7 @@ async function entrarModoEdicion(){
     <div class="det-subtitulo">Canciones</div>
     <div id="ed-canciones"></div>
     <button type="button" class="btn-anadir-cancion" id="btn-anadir-cancion">+ Añadir canción</button>
+    <button type="button" class="btn-anadir-cancion" id="btn-pegar-info" title="Pega un bloque con la información de las canciones del álbum y se reparte entre ellas">📥 Pegar información de las canciones</button>
   `;
 
   $("#ed-campos").innerHTML = html;
@@ -3035,6 +3153,8 @@ async function entrarModoEdicion(){
       Info: c["Info"]
     }, String(c["PISTA Nº"])));
   });
+
+  $("#btn-pegar-info").addEventListener("click", abrirPegarInfo);
 
   $("#btn-anadir-cancion").addEventListener("click", ()=>{
     const siguiente = $$("#ed-canciones .ed-c-pista")
