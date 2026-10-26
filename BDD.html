@@ -1588,7 +1588,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 4.4</div>
+  <div class="pc-version">Versión 4.5</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1671,6 +1671,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
         <option value="decada">Décadas</option>
         <option value="disco">Con Disco</option>
         <option value="revisado">Revisado</option>
+        <option value="ficha">Ficha</option>
       </select>
     </div>
     <div class="artista-item activo" data-valor="__TODOS__">
@@ -2151,7 +2152,7 @@ let ALBUMES = [];        // datos crudos, una fila por disco (tal cual la hoja)
 let ALBUMES_VISTA = [];  // para grid/sidebar: álbumes multi-disco fusionados en una sola entrada
 let ESCUCHAS = {};       // { ALBUM_ID: { n: veces, ultima: 'yyyy-MM-dd HH:mm:ss' } } (hoja ESCUCHAS)
 let CANCIONES = [];
-let tabActivo = "artista";       // 'artista' | 'genero' | 'etiqueta' | 'tienda' | 'anio' | 'decada' | 'disco' | 'revisado'
+let tabActivo = "artista";       // 'artista' | 'genero' | 'etiqueta' | 'tienda' | 'anio' | 'decada' | 'disco' | 'revisado' | 'ficha'
 let valorActivo = "__TODOS__";   // valor seleccionado dentro de la pestaña actual
 let albumSeleccionado = null;
 let modoEstadisticas = false;   // true = el centro y la derecha muestran estadísticas en vez de la rejilla
@@ -2378,6 +2379,7 @@ function valorSegunTab(album, tab){
   }
   if(tab === "disco") return tieneImagenDisco(album) ? "Con disco" : "Sin disco";
   if(tab === "revisado") return albumRevisado(album) ? "Revisado" : "Sin revisar";
+  if(tab === "ficha") return { completa:"Ficha completa", breve:"Ficha breve", sin:"Sin ficha" }[estadoFicha(album)];
   return "";
 }
 
@@ -2677,6 +2679,27 @@ function insigniaCoincidencia(a){
   return `<span class="badge-coin" title="La búsqueda coincide en: ${detalle.join(", ")}">${nombres.join(" · ")}</span>`;
 }
 
+/* ---------- Ficha del álbum (campo Comentario): completa, breve o sin ficha ---------- */
+const FICHA_MIN_PALABRAS = 250;      // desde estas palabras se considera "ficha completa"; por debajo, "ficha breve"
+function palabrasFicha(a){
+  const t = a["Comentario"];
+  if(a._fichaTxt !== t){
+    a._fichaTxt = t;
+    a._fichaPal = t ? (String(t).match(/[\p{L}\p{N}]+/gu) || []).length : 0;
+  }
+  return a._fichaPal;
+}
+function estadoFicha(a){
+  const n = palabrasFicha(a);
+  return n === 0 ? "sin" : (n >= FICHA_MIN_PALABRAS ? "completa" : "breve");
+}
+function celdaFicha(a){
+  const n = palabrasFicha(a);
+  if(n === 0) return '<span class="info-nada" title="Este álbum no tiene ficha">— sin ficha</span>';
+  if(n >= FICHA_MIN_PALABRAS) return `<span class="info-ok" title="Ficha completa (${n} palabras)">✓ completa</span>`;
+  return `<span class="info-parte" title="Ficha breve: ${n} palabras (se considera completa desde ${FICHA_MIN_PALABRAS})">◐ breve</span>`;
+}
+
 /* ---------- Columna "Info" de la vista Lista: cuántas canciones del álbum tienen información ---------- */
 function resumenInfo(a){
   const cs = cancionesDeAlbum(a);
@@ -2741,7 +2764,7 @@ function pintarVistaLista(grid, lista){
   tabla.className = "tabla-albumes";
   tabla.innerHTML = `
     <thead><tr>
-      ${modoSeleccion ? '<th class="td-chk"></th>' : ''}${[["titulo","Álbum"],["artista","Artista"],["anio","Año"],["genero","Género"],["rating","Rating"],["duracion","Duración"],["info","Info"],["caratula","Carátula (px)"]].map(([campo, texto])=>{
+      ${modoSeleccion ? '<th class="td-chk"></th>' : ''}${[["titulo","Álbum"],["artista","Artista"],["anio","Año"],["genero","Género"],["rating","Rating"],["duracion","Duración"],["info","Info"],["ficha","Ficha"],["caratula","Carátula (px)"]].map(([campo, texto])=>{
         const i = ordenActual.findIndex(o=>o.campo===campo);
         const flecha = i > -1 ? `<span class="th-flecha">${ordenActual[i].dir==="asc" ? "↑" : "↓"}${ordenActual.length > 1 ? `<sup>${i+1}</sup>` : ""}</span>` : "";
         return `<th data-campo="${campo}" title="Ordenar por ${texto.toLowerCase()} (Mayús+clic: añadir como criterio adicional)">${texto}${flecha}</th>`;
@@ -2766,6 +2789,7 @@ function pintarVistaLista(grid, lista){
       <td>${rating ? rating+"/10" : ""}</td>
       <td>${escapeHTML(duracionTexto)}</td>
       <td class="td-info">${celdaInfo(a)}</td>
+      <td class="td-info">${celdaFicha(a)}</td>
       <td class="td-dim"></td>
     `;
     ponerDimensionCaratula(tr.lastElementChild, a["PORTADA"]);
@@ -5525,6 +5549,8 @@ const CRITERIOS_ORDEN = {
   duracion: { etiqueta:"Duración", dirIni:"desc", tipo:"num",   soloColumna:true, valor:a=>{ const s = segundosAlbumCache(a); return s > 0 ? s : null; } },
   // Proporción de canciones con información (para ordenar la columna Info); sin canciones, al final
   info: { etiqueta:"Info", dirIni:"desc", tipo:"num", soloColumna:true, valor:a=>{ const r = resumenInfo(a); return r.total ? r.n / r.total + r.n / 100000 : null; } },
+  // Longitud de la ficha (Comentario) en palabras; sin ficha = 0 (con orden ascendente salen primero los álbumes sin ficha)
+  ficha: { etiqueta:"Ficha", dirIni:"desc", tipo:"num", soloColumna:true, valor:a=> palabrasFicha(a) },
   // Píxeles totales (alto × ancho) de la carátula; sin carátula o sin medir, al final
   caratula: { etiqueta:"Carátula", dirIni:"desc", tipo:"num",   soloColumna:true, valor:a=>{ const v = DIM_VALORES.get(String(a["PORTADA"]||"").trim()); return v > 0 ? v : null; } }
 };
@@ -6160,7 +6186,7 @@ document.addEventListener("load", ev=>{
 /* ---------- Estadísticas ---------- */
 // Las estadísticas se calculan sobre la misma lista que ve la rejilla
 // (filtro del sidebar + buscador), así que el sidebar sirve de filtro.
-const NOMBRES_TAB_STATS = { artista:"Artista", genero:"Género", etiqueta:"Sello", tienda:"Tienda", anio:"Año", decada:"Década", disco:"Disco", revisado:"Revisado" };
+const NOMBRES_TAB_STATS = { artista:"Artista", genero:"Género", etiqueta:"Sello", tienda:"Tienda", anio:"Año", decada:"Década", disco:"Disco", revisado:"Revisado", ficha:"Ficha" };
 
 function alternarEstadisticas(forzar){
   const nuevo = (forzar === undefined) ? !modoEstadisticas : !!forzar;
