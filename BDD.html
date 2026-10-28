@@ -892,6 +892,11 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   .il-item .il-etiqueta{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:9px;font-size:calc(11.5px * var(--ft,1));font-weight:600;border:1px solid var(--border);}
   .il-item .il-etiqueta.seguro{color:var(--msg-ok);border-color:var(--msg-ok);}
   .il-item .il-etiqueta.dudosa{color:#e0a43a;border-color:#e0a43a;}
+  /* Todo lo relacionado con discos montados / lector de CD: solo en el programa de Windows */
+  #btn-iniciar-lector{display:none !important;}
+  body:not(.en-app) #btn-desmontar-herr, body:not(.en-app) #btn-desmontar, body:not(.en-app) #btn-ir-disco,
+  body:not(.en-app) #btn-comprobar-disco, body:not(.en-app) .btn-ir-disco-sec, body:not(.en-app) .btn-desmontar-sec,
+  body:not(.en-app) .btn-comprobar-sec, body:not(.en-app) .grupo-busqueda-nuevo, body:not(.en-app) .campo-mdx{display:none !important;}
   body.movil-auto #btn-modo, body.modo-movil #btn-cerrar-sesion{display:none !important;}
   body.app-menus #menu-herr, body.app-menus #btn-nuevo-album, body.app-menus #btn-sincronizar, body.app-menus #btn-modo,
   body.app-menus #btn-tema-movil, body.app-menus #btn-cerrar-sesion{display:none !important;}
@@ -1588,7 +1593,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 4.5</div>
+  <div class="pc-version">Versión 4.6</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -2068,7 +2073,9 @@ const EN_APP = /MiColeccionApp/.test(navigator.userAgent);
 })();
 window.VERSION_PAGINA = ((document.querySelector(".pc-version") || {}).textContent || "").replace("Versión ", "");
 // Dentro del programa de Windows, esas opciones están en su barra de menús: se ocultan de la cabecera de la página
-if(EN_APP) document.body.classList.add("app-menus");
+if(EN_APP) document.body.classList.add("app-menus", "en-app");
+// Montar/desmontar discos, "Ir a disco", comprobar disco, leer un CD y la imagen del disco solo existen en el programa de Windows: en la web se quitan
+if(!EN_APP){ const o = document.querySelector('option[value="disco"]'); if(o) o.remove(); }
 const API_URL = "https://script.google.com/macros/s/AKfycbwjBPSQzS1HUC4fAl21wSonBf2qe5iNHLi8n-JVyQCt6VISRDpV-_VcUZM-se_Zabg2/exec";
 
 // Repositorio de GitHub donde se suben las carátulas
@@ -3913,7 +3920,7 @@ document.addEventListener("click", ev=>{
 /* ---------- Examinar: elegir la imagen en el disco duro (ventana de Windows abierta por lector_cd.py) ---------- */
 function campoImagenMDX(id, label, valor){
   return `
-    <label class="campo-edicion">
+    <label class="campo-edicion campo-mdx">
       <span>${label}</span>
       <div class="campo-ruta">
         <input type="text" id="${id}" value="${escapeAttr(valor==null?"":valor)}">
