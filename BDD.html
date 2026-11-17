@@ -1193,6 +1193,11 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   #edcom-texto:focus{outline:none;border-color:var(--accent);}
   #edcom-texto,#ed-comentario{tab-size:4;-moz-tab-size:4;}
   .edcom-pie{display:flex;justify-content:flex-end;gap:8px;}
+  /* Contador de caracteres (el límite de una celda de Google Sheets es de 50.000) */
+  .contador-car{display:block;margin-top:4px;font-size:calc(12px * var(--ft,1));color:var(--muted);}
+  .contador-car.cerca{color:#e0a43a;}
+  .contador-car.pasado{color:var(--msg-mal,#ff5d5d);font-weight:700;}
+  .edcom-pie .contador-car{margin:0 auto 0 0;align-self:center;}
   .edcom-pie button{padding:8px 18px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:calc(14px * var(--ft,1));border:1px solid var(--border);background:var(--panel-hi);color:var(--text);}
   .edcom-pie button.principal{background:var(--accent);border-color:var(--accent);color:#14151a;font-weight:600;}
   #sel-contador{color:var(--text);font-weight:600;margin-right:auto;}
@@ -1593,7 +1598,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 4.6</div>
+  <div class="pc-version">Versión 4.7</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1834,6 +1839,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     </div>
     <textarea id="edcom-texto" spellcheck="true"></textarea>
     <div class="edcom-pie">
+      <span class="contador-car" id="edcom-contador" data-para="edcom-texto"></span>
       <button type="button" id="edcom-cancelar">Cancelar</button>
       <button type="button" id="edcom-aplicar" class="principal">Aplicar al álbum</button>
     </div>
@@ -3232,6 +3238,7 @@ async function entrarModoEdicion(){
     <label class="campo-edicion campo-edicion-ancho">
       <span class="fila-etiqueta"><span>${label}</span><span class="botones-etiqueta"><button type="button" class="btn-ampliar-campo" data-destino="${id}" title="Abrir en una ventana más grande para editarlo con negrita, cursiva y subrayado">✎ Ampliar</button><button type="button" class="btn-copiar-campo" data-destino="${id}" title="Copiar todo el texto de este campo">📋 Copiar</button></span></span>
       <textarea id="${id}" rows="${filas}">${escapeHTML(valor||"")}</textarea>
+      ${contadorHTML(id, valor)}
     </label>`;
 
   let html = `
@@ -3500,6 +3507,18 @@ async function eliminarAlbumActual(){
 
 async function guardarCambios(){
   if(!albumSeleccionado) return;
+  // Una celda de Google Sheets admite 50.000 caracteres: se avisa antes de intentar guardar
+  const demasiado = [];
+  const com = $("#ed-comentario").value;
+  if(com.length > LIMITE_CELDA) demasiado.push("El comentario / ficha tiene " + fmtN(com.length) + " caracteres: te pasas por " + fmtN(com.length - LIMITE_CELDA) + ". Quita al menos esos caracteres (el límite de una celda es " + fmtN(LIMITE_CELDA) + ").");
+  $$("#ed-canciones .cancion-edicion").forEach(div=>{
+    const titulo = (div.querySelector(".ed-c-titulo") || {}).value || "";
+    [["ed-c-letras", "la letra"], ["ed-c-info", "la información"]].forEach(([clase, nombre])=>{
+      const t = div.querySelector("." + clase);
+      if(t && t.value.length > LIMITE_CELDA) demasiado.push("En «" + titulo + "», " + nombre + " tiene " + fmtN(t.value.length) + " caracteres: te pasas por " + fmtN(t.value.length - LIMITE_CELDA) + ".");
+    });
+  });
+  if(demasiado.length){ alert(demasiado.join("\n\n")); return; }
   const botonesGuardar = $$(".btn-guardar-ed");
   const estadoGuardar = (deshabilitado, texto)=> botonesGuardar.forEach(b=>{ b.disabled = deshabilitado; b.textContent = texto; });
   estadoGuardar(true, "Guardando…");
@@ -3659,6 +3678,33 @@ document.addEventListener("click", ev=>{
   if(b){ ev.preventDefault(); copiarTextoCampo(b); }
 });
 
+/* ---------- Contador de caracteres del comentario / ficha (límite de una celda de Google Sheets) ---------- */
+const LIMITE_CELDA = 50000;
+const fmtN = n => { try{ return n.toLocaleString("es-ES", { useGrouping:"always" }); }catch(e){ return n.toLocaleString("es-ES"); } };
+// Texto y estado del contador para n caracteres
+function estadoContador(n){
+  if(n > LIMITE_CELDA) return { clase:"pasado", texto: fmtN(n) + " caracteres · te pasas por " + fmtN(n - LIMITE_CELDA) + " (el límite es " + fmtN(LIMITE_CELDA) + ")" };
+  return { clase: n >= LIMITE_CELDA * 0.9 ? "cerca" : "", texto: fmtN(n) + " / " + fmtN(LIMITE_CELDA) + " caracteres · quedan " + fmtN(LIMITE_CELDA - n) };
+}
+function contadorHTML(id, valor){
+  const e = estadoContador(String(valor || "").length);
+  return `<span class="contador-car ${e.clase}" data-para="${id}">${e.texto}</span>`;
+}
+function actualizarContadores(){
+  document.querySelectorAll(".contador-car").forEach(el=>{
+    const ta = document.getElementById(el.dataset.para);
+    if(!ta) return;
+    const e = estadoContador(ta.value.length);
+    el.classList.toggle("cerca", e.clase === "cerca");
+    el.classList.toggle("pasado", e.clase === "pasado");
+    el.textContent = e.texto;
+  });
+}
+document.addEventListener("input", ev=>{
+  const id = ev.target && ev.target.id;
+  if(id === "ed-comentario" || id === "edcom-texto") actualizarContadores();
+});
+
 /* ---------- Editor grande del comentario (lapicero ✎ en la edición) ---------- */
 let edComDestino = null, edComOriginal = "";
 function abrirEditorComentario(idCampo){
@@ -3669,6 +3715,7 @@ function abrirEditorComentario(idCampo){
   $("#edcom-titulo").textContent = "Comentario / ficha completa" + (titulo ? " — " + titulo : "");
   const ta = $("#edcom-texto");
   ta.value = dest.value;
+  actualizarContadores();
   $("#modal-fondo-edcom").classList.add("abierto");
   ta.focus(); ta.setSelectionRange(0, 0); ta.scrollTop = 0;
 }
