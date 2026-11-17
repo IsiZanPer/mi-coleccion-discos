@@ -1598,7 +1598,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 4.7</div>
+  <div class="pc-version">Versión 4.8</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -3690,7 +3690,7 @@ function contadorHTML(id, valor){
   const e = estadoContador(String(valor || "").length);
   return `<span class="contador-car ${e.clase}" data-para="${id}">${e.texto}</span>`;
 }
-function actualizarContadores(){
+function actualizarContadoresCaracteres(){
   document.querySelectorAll(".contador-car").forEach(el=>{
     const ta = document.getElementById(el.dataset.para);
     if(!ta) return;
@@ -3702,7 +3702,7 @@ function actualizarContadores(){
 }
 document.addEventListener("input", ev=>{
   const id = ev.target && ev.target.id;
-  if(id === "ed-comentario" || id === "edcom-texto") actualizarContadores();
+  if(id === "ed-comentario" || id === "edcom-texto") actualizarContadoresCaracteres();
 });
 
 /* ---------- Editor grande del comentario (lapicero ✎ en la edición) ---------- */
@@ -3715,7 +3715,7 @@ function abrirEditorComentario(idCampo){
   $("#edcom-titulo").textContent = "Comentario / ficha completa" + (titulo ? " — " + titulo : "");
   const ta = $("#edcom-texto");
   ta.value = dest.value;
-  actualizarContadores();
+  actualizarContadoresCaracteres();
   $("#modal-fondo-edcom").classList.add("abierto");
   ta.focus(); ta.setSelectionRange(0, 0); ta.scrollTop = 0;
 }
