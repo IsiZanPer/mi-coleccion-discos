@@ -1598,7 +1598,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 4.10</div>
+  <div class="pc-version">Versión 4.11</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -2441,11 +2441,11 @@ function valorSegunTab(album, tab){
   }
   if(tab === "disco") return tieneImagenDisco(album) ? "Con disco" : "Sin disco";
   if(tab === "revisado") return albumRevisado(album) ? "Revisado" : "Sin revisar";
-  if(tab === "ficha") return { completa:"Ficha completa", normal:"Ficha normal", escasa:"Ficha escasa o vacía", sinmedir:"Ficha sin medir" }[estadoFicha(album)];
+  if(tab === "ficha") return NOMBRES_ESTADO_FICHA[estadoFicha(album)];
   return "";
 }
 
-/* ---------- Sidebar con desplegable (Artistas/Géneros/Etiquetas/Tiendas/Años/Décadas/Con Disco/Revisado) ---------- */
+/* ---------- Sidebar con desplegable (Artistas/Géneros/Etiquetas/Tiendas/Años/Décadas/Con Disco/Revisado/Ficha) ---------- */
 function construirSidebar(){
   const conteo = {};
   ALBUMES_VISTA.forEach(a=>{
@@ -2456,7 +2456,9 @@ function construirSidebar(){
   let claves = Object.keys(conteo);
   claves = (tabActivo === "anio" || tabActivo === "decada")
     ? claves.sort((a,b)=> b.localeCompare(a,'es', {numeric:true})) // años y décadas: más reciente primero
-    : (tabActivo === "artista"
+    : tabActivo === "ficha"
+      ? claves.sort((a,b)=> ORDEN_FILTRO_FICHA.indexOf(a) - ORDEN_FILTRO_FICHA.indexOf(b))   // vacía, escasa, normal, completa
+      : (tabActivo === "artista"
         ? claves.sort((a,b)=> claveArtista(a).localeCompare(claveArtista(b), 'es'))   // respeta "Omitir «The»"
         : claves.sort((a,b)=>a.localeCompare(b,'es')));
 
@@ -2743,8 +2745,8 @@ function insigniaCoincidencia(a){
 
 /* ---------- Ficha del álbum (campo Comentario): completa, normal o escasa/vacía, según sus CARACTERES ----------
    Se mide en caracteres porque ese es el límite real del markdown (50.000 por celda):
-   menos de 30.000 = escasa o vacía · de 30.000 a 40.000 = normal · más de 40.000 = completa. */
-const FICHA_CAR_NORMAL = 30000;     // desde aquí (incluido) la ficha es "normal"
+   sin ficha = vacía · menos de 24.000 = escasa · de 24.000 a 40.000 = normal · más de 40.000 = completa. */
+const FICHA_CAR_NORMAL = 24000;     // desde aquí (incluido) la ficha es "normal"
 const FICHA_CAR_COMPLETA = 40000;   // por encima de esto (más de 40.000) la ficha es "completa"
 function palabrasFicha(a){
   if(typeof a.Palabras === "number") return a.Palabras;   // normal desde la 4.9: lo calcula el servidor
@@ -2755,6 +2757,9 @@ function palabrasFicha(a){
   }
   return a._fichaPal;
 }
+// Nombres del filtro lateral «Ficha», en el orden en que se muestran
+const NOMBRES_ESTADO_FICHA = { vacia:"Ficha vacía", escasa:"Ficha escasa", normal:"Ficha normal", completa:"Ficha completa", sinmedir:"Ficha sin medir" };
+const ORDEN_FILTRO_FICHA = Object.values(NOMBRES_ESTADO_FICHA);
 // Nº de caracteres de la ficha; null si el servidor aún no lo ha medido (hay que ejecutar recalcularMedidasFichas en Apps Script)
 function caracteresFicha(a){
   if(typeof a.Caracteres === "number") return a.Caracteres;
@@ -2765,6 +2770,7 @@ function caracteresFicha(a){
 function estadoFicha(a){
   const n = caracteresFicha(a);
   if(n === null) return "sinmedir";
+  if(n === 0) return "vacia";
   if(n > FICHA_CAR_COMPLETA) return "completa";
   return n >= FICHA_CAR_NORMAL ? "normal" : "escasa";
 }
