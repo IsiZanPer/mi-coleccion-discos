@@ -1598,7 +1598,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 4.9</div>
+  <div class="pc-version">Versión 4.10</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -2441,7 +2441,7 @@ function valorSegunTab(album, tab){
   }
   if(tab === "disco") return tieneImagenDisco(album) ? "Con disco" : "Sin disco";
   if(tab === "revisado") return albumRevisado(album) ? "Revisado" : "Sin revisar";
-  if(tab === "ficha") return { completa:"Ficha completa", breve:"Ficha breve", sin:"Sin ficha" }[estadoFicha(album)];
+  if(tab === "ficha") return { completa:"Ficha completa", normal:"Ficha normal", escasa:"Ficha escasa o vacía", sinmedir:"Ficha sin medir" }[estadoFicha(album)];
   return "";
 }
 
@@ -2741,8 +2741,11 @@ function insigniaCoincidencia(a){
   return `<span class="badge-coin" title="La búsqueda coincide en: ${detalle.join(", ")}">${nombres.join(" · ")}</span>`;
 }
 
-/* ---------- Ficha del álbum (campo Comentario): completa, breve o sin ficha ---------- */
-const FICHA_MIN_PALABRAS = 250;      // desde estas palabras se considera "ficha completa"; por debajo, "ficha breve"
+/* ---------- Ficha del álbum (campo Comentario): completa, normal o escasa/vacía, según sus CARACTERES ----------
+   Se mide en caracteres porque ese es el límite real del markdown (50.000 por celda):
+   menos de 30.000 = escasa o vacía · de 30.000 a 40.000 = normal · más de 40.000 = completa. */
+const FICHA_CAR_NORMAL = 30000;     // desde aquí (incluido) la ficha es "normal"
+const FICHA_CAR_COMPLETA = 40000;   // por encima de esto (más de 40.000) la ficha es "completa"
 function palabrasFicha(a){
   if(typeof a.Palabras === "number") return a.Palabras;   // normal desde la 4.9: lo calcula el servidor
   const t = a["Comentario"];                              // datos antiguos con la ficha dentro
@@ -2752,15 +2755,27 @@ function palabrasFicha(a){
   }
   return a._fichaPal;
 }
+// Nº de caracteres de la ficha; null si el servidor aún no lo ha medido (hay que ejecutar recalcularMedidasFichas en Apps Script)
+function caracteresFicha(a){
+  if(typeof a.Caracteres === "number") return a.Caracteres;
+  if(typeof a.Palabras === "number") return a.Palabras === 0 ? 0 : null;
+  const t = a["Comentario"];                              // datos antiguos con la ficha dentro
+  return t ? String(t).length : 0;
+}
 function estadoFicha(a){
-  const n = palabrasFicha(a);
-  return n === 0 ? "sin" : (n >= FICHA_MIN_PALABRAS ? "completa" : "breve");
+  const n = caracteresFicha(a);
+  if(n === null) return "sinmedir";
+  if(n > FICHA_CAR_COMPLETA) return "completa";
+  return n >= FICHA_CAR_NORMAL ? "normal" : "escasa";
 }
 function celdaFicha(a){
-  const n = palabrasFicha(a);
-  if(n === 0) return '<span class="info-nada" title="Este álbum no tiene ficha">— sin ficha</span>';
-  if(n >= FICHA_MIN_PALABRAS) return `<span class="info-ok" title="Ficha completa (${n} palabras)">✓ completa</span>`;
-  return `<span class="info-parte" title="Ficha breve: ${n} palabras (se considera completa desde ${FICHA_MIN_PALABRAS})">◐ breve</span>`;
+  const n = caracteresFicha(a);
+  if(n === null) return '<span class="info-nada" title="Esta ficha todavía no está medida (falta ejecutar recalcularMedidasFichas en Apps Script)">? sin medir</span>';
+  const car = n.toLocaleString("es-ES") + " caracteres";
+  if(n === 0) return '<span class="info-nada" title="Este álbum no tiene ficha">— vacía</span>';
+  if(n > FICHA_CAR_COMPLETA) return `<span class="info-ok" title="Ficha completa: ${car} (más de ${FICHA_CAR_COMPLETA.toLocaleString("es-ES")})">✓ completa</span>`;
+  if(n >= FICHA_CAR_NORMAL) return `<span class="info-parte" title="Ficha normal: ${car} (de ${FICHA_CAR_NORMAL.toLocaleString("es-ES")} a ${FICHA_CAR_COMPLETA.toLocaleString("es-ES")})">◐ normal</span>`;
+  return `<span class="info-nada" title="Ficha escasa: ${car} (menos de ${FICHA_CAR_NORMAL.toLocaleString("es-ES")})">— escasa</span>`;
 }
 
 /* ---------- Columna "Info" de la vista Lista: cuántas canciones del álbum tienen información ---------- */
@@ -3673,7 +3688,7 @@ async function guardarCambios(){
     if(idxAlbum>-1) Object.assign(ALBUMES[idxAlbum], albumEditado);
     if(fichaCambiada){
       const pal = contarPalabrasTexto(com);
-      [albumSeleccionado, idxAlbum>-1 ? ALBUMES[idxAlbum] : null].forEach(x=>{ if(x){ x.Palabras = pal; delete x["Comentario"]; } });
+      [albumSeleccionado, idxAlbum>-1 ? ALBUMES[idxAlbum] : null].forEach(x=>{ if(x){ x.Palabras = pal; x.Caracteres = com.length; delete x["Comentario"]; } });
       guardarFichaLocal(albumSeleccionado.ALBUM_ID, pal, com);
     }
 
@@ -5695,8 +5710,8 @@ const CRITERIOS_ORDEN = {
   duracion: { etiqueta:"Duración", dirIni:"desc", tipo:"num",   soloColumna:true, valor:a=>{ const s = segundosAlbumCache(a); return s > 0 ? s : null; } },
   // Proporción de canciones con información (para ordenar la columna Info); sin canciones, al final
   info: { etiqueta:"Info", dirIni:"desc", tipo:"num", soloColumna:true, valor:a=>{ const r = resumenInfo(a); return r.total ? r.n / r.total + r.n / 100000 : null; } },
-  // Longitud de la ficha (Comentario) en palabras; sin ficha = 0 (con orden ascendente salen primero los álbumes sin ficha)
-  ficha: { etiqueta:"Ficha", dirIni:"desc", tipo:"num", soloColumna:true, valor:a=> palabrasFicha(a) },
+  // Longitud de la ficha (Comentario) en caracteres; sin ficha = 0 (con orden ascendente salen primero los álbumes sin ficha); sin medir, al final
+  ficha: { etiqueta:"Ficha", dirIni:"desc", tipo:"num", soloColumna:true, valor:a=> caracteresFicha(a) },
   // Píxeles totales (alto × ancho) de la carátula; sin carátula o sin medir, al final
   caratula: { etiqueta:"Carátula", dirIni:"desc", tipo:"num",   soloColumna:true, valor:a=>{ const v = DIM_VALORES.get(String(a["PORTADA"]||"").trim()); return v > 0 ? v : null; } }
 };
