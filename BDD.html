@@ -1598,7 +1598,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 4.8</div>
+  <div class="pc-version">Versión 4.9</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -2218,7 +2218,7 @@ function encontrarEntradaVista(albumId){
 // Google Sheets devuelve como NÚMERO las celdas que parecen numéricas (p. ej. un álbum
 // llamado "1989" o "21"). Los campos de texto se pasan a string para que ordenar,
 // buscar y agrupar no fallen.
-const CAMPOS_TEXTO_ALBUM = ["ALBUM","ARTISTA ALBUM","GENERO","Etiqueta","Tienda","Número de Catalogo","Código de barras","Comentario","Ficha PDF","PORTADA","Imagen MDX"];
+const CAMPOS_TEXTO_ALBUM = ["ALBUM","ARTISTA ALBUM","GENERO","Etiqueta","Tienda","Número de Catalogo","Código de barras","Ficha PDF","PORTADA","Imagen MDX"];
 const CAMPOS_TEXTO_CANCION = ["TITULO","ARTISTA","Letras","Info"];
 // ¿Existe la columna "Info" en la hoja CANCIONES? (si no, hay que crearla a mano en Google Sheets para poder guardar la información)
 const hayColumnaInfo = ()=> CANCIONES.some(c=> "Info" in c);
@@ -2262,7 +2262,7 @@ async function guardarCacheLocal(json, firma){
     const db = await abrirCacheDB();
     await new Promise(ok=>{
       const tx = db.transaction(CACHE_ALMACEN, "readwrite");
-      tx.objectStore(CACHE_ALMACEN).put({ usuario: usuarioActual, fecha: Date.now(), firma,
+      tx.objectStore(CACHE_ALMACEN).put({ v: 2, usuario: usuarioActual, fecha: Date.now(), firma,
         albumes: json.albumes, canciones: json.canciones, escuchas: json.escuchas || {} }, CACHE_CLAVE);
       tx.oncomplete = ()=> ok(); tx.onerror = ()=> ok(); tx.onabort = ()=> ok();
     });
@@ -2273,11 +2273,60 @@ async function borrarCacheLocal(){
     const db = await abrirCacheDB();
     await new Promise(ok=>{
       const tx = db.transaction(CACHE_ALMACEN, "readwrite");
-      tx.objectStore(CACHE_ALMACEN).delete(CACHE_CLAVE);
+      tx.objectStore(CACHE_ALMACEN).clear();
       tx.oncomplete = ()=> ok(); tx.onerror = ()=> ok(); tx.onabort = ()=> ok();
     });
   }catch(e){}
 }
+/* ---------- Fichas (Comentario) bajo demanda ----------
+   La colección llega SIN las fichas (cada una ronda los 50.000 caracteres): solo trae "Palabras".
+   La ficha completa se pide al abrir el álbum y se guarda en este equipo. Si el nº de palabras del álbum
+   cambia (editada desde otro sitio), la copia local se descarta y se vuelve a pedir. */
+const FICHAS_MEM = new Map();   // ALBUM_ID -> { palabras, texto }
+async function leerFichaLocal(id){
+  try{
+    const db = await abrirCacheDB();
+    return await new Promise(ok=>{
+      const rq = db.transaction(CACHE_ALMACEN).objectStore(CACHE_ALMACEN).get("ficha_" + id);
+      rq.onsuccess = ()=> ok(rq.result || null);
+      rq.onerror = ()=> ok(null);
+    });
+  }catch(e){ return null; }
+}
+async function guardarFichaLocal(id, palabras, texto){
+  FICHAS_MEM.set(String(id), { palabras, texto });
+  try{
+    const db = await abrirCacheDB();
+    await new Promise(ok=>{
+      const tx = db.transaction(CACHE_ALMACEN, "readwrite");
+      tx.objectStore(CACHE_ALMACEN).put({ usuario: usuarioActual, palabras, texto }, "ficha_" + id);
+      tx.oncomplete = ()=> ok(); tx.onerror = ()=> ok(); tx.onabort = ()=> ok();
+    });
+  }catch(e){ /* sin caché local no pasa nada: se pide al servidor */ }
+}
+const contarPalabrasTexto = t => t ? (String(t).match(/[\p{L}\p{N}]+/gu) || []).length : 0;
+// Devuelve el texto de la ficha del álbum (cadena vacía si no tiene). Lanza error si no se puede obtener.
+async function obtenerFicha(a){
+  const id = String(a.ALBUM_ID);
+  // Datos antiguos (caché de la 4.8) que aún traen la ficha dentro
+  if(typeof a.Palabras !== "number" && typeof a["Comentario"] === "string") return a["Comentario"];
+  const pal = palabrasFicha(a);
+  const m = FICHAS_MEM.get(id);
+  if(m && m.palabras === pal) return m.texto;
+  if(pal === 0) return "";
+  const l = await leerFichaLocal(id);
+  if(l && l.usuario === usuarioActual && l.palabras === pal){ FICHAS_MEM.set(id, { palabras: pal, texto: l.texto }); return l.texto; }
+  const res = await fetch(API_URL + "?sesion=" + encodeURIComponent(sesionActual) + "&ficha=" + encodeURIComponent(id));
+  const json = await res.json();
+  if(!json.ok){
+    if(manejarErrorSesion(json.error)) throw new Error("Sesión caducada");
+    throw new Error(json.error || "No se pudo leer la ficha");
+  }
+  const texto = String(json.comentario || "");
+  await guardarFichaLocal(id, pal, texto);
+  return texto;
+}
+
 // Huella rápida del texto recibido, para saber si la hoja ha cambiado desde la última vez
 function firmaTexto(t){
   let h = 5381;
@@ -2324,7 +2373,7 @@ function aplicarDatosRecibidos(json){
 async function cargarDatos(){
   const cache = await leerCacheLocal();
   let desdeCache = false;
-  if(cache && cache.usuario === usuarioActual && Array.isArray(cache.albumes) && Array.isArray(cache.canciones)){
+  if(cache && cache.v === 2 && cache.usuario === usuarioActual && Array.isArray(cache.albumes) && Array.isArray(cache.canciones)){
     ALBUMES = cache.albumes;
     CANCIONES = cache.canciones;
     ESCUCHAS = cache.escuchas || {};
@@ -2695,7 +2744,8 @@ function insigniaCoincidencia(a){
 /* ---------- Ficha del álbum (campo Comentario): completa, breve o sin ficha ---------- */
 const FICHA_MIN_PALABRAS = 250;      // desde estas palabras se considera "ficha completa"; por debajo, "ficha breve"
 function palabrasFicha(a){
-  const t = a["Comentario"];
+  if(typeof a.Palabras === "number") return a.Palabras;   // normal desde la 4.9: lo calcula el servidor
+  const t = a["Comentario"];                              // datos antiguos con la ficha dentro
   if(a._fichaTxt !== t){
     a._fichaTxt = t;
     a._fichaPal = t ? (String(t).match(/[\p{L}\p{N}]+/gu) || []).length : 0;
@@ -3038,7 +3088,7 @@ function abrirDetalle(album){
     $("#btn-modificar").style.display = "";
   }
 
-  $("#btn-ficha").style.display = album["Comentario"] ? "inline-block" : "none";
+  $("#btn-ficha").style.display = palabrasFicha(album) > 0 ? "inline-block" : "none";
   $("#btn-ficha-pdf").style.display = album["Ficha PDF"] ? "inline-block" : "none";
   // "Ir A Disco": en álbumes de un solo disco va aquí; en multi-disco hay uno por cada disco (en su cabecera)
   $("#btn-ir-disco").style.display = (!album._esGrupo && album["Imagen MDX"]) ? "inline-block" : "none";
@@ -3265,7 +3315,7 @@ async function entrarModoEdicion(){
       ${campo("ed-ficha-pdf","URL de la ficha en PDF (Google Drive)",a["Ficha PDF"])}
       ${campoImagenMDX("ed-imagen-mdx","Imagen MDX: ruta del archivo en tu PC (p. ej. D:\\Discos\\Yes - 90125.mdx)",a["Imagen MDX"])}
     </div>
-    ${campoAnchoCopiar("ed-comentario","Comentario / ficha completa (Markdown: **negrita**, *cursiva*, __subrayado__)",a["Comentario"],6)}
+    ${campoAnchoCopiar("ed-comentario","Comentario / ficha completa (Markdown: **negrita**, *cursiva*, __subrayado__)","",6)}
     <div class="det-subtitulo">Canciones</div>
     <div id="ed-canciones"></div>
     <button type="button" class="btn-anadir-cancion" id="btn-anadir-cancion">+ Añadir canción</button>
@@ -3307,6 +3357,31 @@ async function entrarModoEdicion(){
   $("#btn-ver-discogs").style.display = "none";
   $("#det-nav").style.display = "none";
   $("#btn-eliminar-album").style.display = "none";
+  cargarFichaEnEdicion(a);
+}
+
+// La ficha se pide aparte (no viaja con la colección). Mientras llega, el campo está bloqueado.
+let fichaEdicion = { id: null, cargada: false, original: "" };
+async function cargarFichaEnEdicion(a){
+  const ta = document.getElementById("ed-comentario");
+  fichaEdicion = { id: a.ALBUM_ID, cargada: false, original: "" };
+  if(!ta) return;
+  ta.disabled = true;
+  ta.placeholder = "Cargando la ficha…";
+  try{
+    const texto = await obtenerFicha(a);
+    if(fichaEdicion.id !== a.ALBUM_ID || document.getElementById("ed-comentario") !== ta) return; // se cerró la edición mientras tanto
+    ta.value = texto;
+    fichaEdicion.original = texto;
+    fichaEdicion.cargada = true;
+    ta.disabled = false;
+    ta.placeholder = "";
+    actualizarContadoresCaracteres();
+  }catch(err){
+    console.error(err);
+    if(document.getElementById("ed-comentario") !== ta) return;
+    ta.placeholder = "No se pudo cargar la ficha. Los demás campos se guardan igual, pero la ficha no se tocará. Cierra la edición y ábrela de nuevo para reintentarlo.";
+  }
 }
 
 function slugTexto(t){
@@ -3443,6 +3518,7 @@ async function cancelarEdicionUsuario(){
 }
 
 function cancelarEdicion(){
+  fichaEdicion = { id: null, cargada: false, original: "" };
   cancionesAEliminar = [];
   rutasSubidasEdicion = new Set();
   $("#vista-album").style.display = "";
@@ -3541,9 +3617,10 @@ async function guardarCambios(){
     "Imagen MDX": limpiarRutaPC($("#ed-imagen-mdx").value),
     "Fecha de compra": $("#ed-fecha-compra").value.trim(),
     "Precio": $("#ed-precio").value.trim(),
-    "Tienda": $("#ed-tienda").value.trim(),
-    "Comentario": $("#ed-comentario").value
+    "Tienda": $("#ed-tienda").value.trim()
   };
+  // La ficha solo se manda si se llegó a cargar y ha cambiado (así nunca se pisa con un campo vacío por error)
+  const fichaCambiada = fichaEdicion.cargada && fichaEdicion.id === albumSeleccionado.ALBUM_ID && com !== fichaEdicion.original;
 
   const cancionesEditar = [];
   const cancionesNuevas = [];
@@ -3575,6 +3652,7 @@ async function guardarCambios(){
       body: JSON.stringify({
         sesion: sesionActual,
         album: albumEditado,
+        ficha: fichaCambiada ? { album_id: albumSeleccionado.ALBUM_ID, texto: com } : undefined,
         canciones_editar: cancionesEditar,
         canciones_nuevas: cancionesNuevas,
         canciones_eliminar: cancionesAEliminar
@@ -3593,6 +3671,11 @@ async function guardarCambios(){
     Object.assign(albumSeleccionado, albumEditado);
     const idxAlbum = ALBUMES.findIndex(x=>x.ALBUM_ID===albumSeleccionado.ALBUM_ID);
     if(idxAlbum>-1) Object.assign(ALBUMES[idxAlbum], albumEditado);
+    if(fichaCambiada){
+      const pal = contarPalabrasTexto(com);
+      [albumSeleccionado, idxAlbum>-1 ? ALBUMES[idxAlbum] : null].forEach(x=>{ if(x){ x.Palabras = pal; delete x["Comentario"]; } });
+      guardarFichaLocal(albumSeleccionado.ALBUM_ID, pal, com);
+    }
 
     // Carátula sustituida: se borra de GitHub la antigua (y las subidas y descartadas en esta edición)
     const candidatas = new Set(rutasSubidasEdicion);
@@ -3632,11 +3715,20 @@ async function guardarCambios(){
 }
 
 /* ---------- Modal ficha (comentario en Markdown) ---------- */
-function abrirFicha(){
+async function abrirFicha(){
   if(!albumSeleccionado) return;
-  $("#modal-titulo").textContent = albumSeleccionado["ALBUM"] || "";
-  $("#modal-cuerpo").innerHTML = markdownASimpleHTML(albumSeleccionado["Comentario"] || "");
+  const a = albumSeleccionado;
+  $("#modal-titulo").textContent = a["ALBUM"] || "";
+  $("#modal-cuerpo").innerHTML = "<p>Cargando la ficha…</p>";
   $("#modal-fondo").classList.add("abierto");
+  try{
+    const texto = await obtenerFicha(a);
+    if(albumSeleccionado !== a) return;   // se cambió de álbum mientras cargaba
+    $("#modal-cuerpo").innerHTML = markdownASimpleHTML(texto || "");
+  }catch(err){
+    console.error(err);
+    if(albumSeleccionado === a) $("#modal-cuerpo").innerHTML = "<p>No se pudo cargar la ficha. Comprueba la conexión e inténtalo de nuevo.</p>";
+  }
 }
 
 /* ---------- Ir A Disco: mostrar en el PC el archivo de imagen (.mdx) del disco ---------- */
@@ -3709,7 +3801,7 @@ document.addEventListener("input", ev=>{
 let edComDestino = null, edComOriginal = "";
 function abrirEditorComentario(idCampo){
   const dest = document.getElementById(idCampo);
-  if(!dest) return;
+  if(!dest || dest.disabled) return;   // bloqueado = la ficha todavía se está cargando
   edComDestino = dest; edComOriginal = dest.value;
   const titulo = (document.getElementById("ed-album") || {}).value || "";
   $("#edcom-titulo").textContent = "Comentario / ficha completa" + (titulo ? " — " + titulo : "");
@@ -5763,8 +5855,23 @@ async function abrirLimpiezaCaratulas(){
 
     // En uso: referenciadas como PORTADA de cualquier fila, o citadas dentro de un comentario (ficha Markdown)
     const enUso = new Set(ALBUMES.map(x=>rutaCaratulaRepo(x["PORTADA"])).filter(Boolean));
-    const textos = ALBUMES.map(x=>String(x["Comentario"]||"")).join("\n");
-    const citada = f => textos.includes(f.name) || textos.includes(encodeURIComponent(f.name));
+    // Las fichas ya no viajan con la colección: el servidor dice cuáles de estas imágenes se citan en alguna ficha.
+    // Si no se puede comprobar, no se ofrece borrar nada (mejor no limpiar que borrar una imagen en uso).
+    let citadasEnFichas;
+    try{
+      const rc = await fetch(API_URL, { method: "POST", body: JSON.stringify({ sesion: sesionActual, accion: "fichas_citadas", nombres: archivos.map(f=> f.name) }) });
+      const jc = await rc.json();
+      if(!jc.ok){
+        if(manejarErrorSesion(jc.error)) return;
+        throw new Error(jc.error || "error");
+      }
+      citadasEnFichas = new Set(jc.citadas || []);
+    }catch(errC){
+      console.error(errC);
+      estado.textContent = "No se pudieron comprobar las fichas, así que no se borra nada. Inténtalo de nuevo en un momento.";
+      return;
+    }
+    const citada = f => citadasEnFichas.has(f.name);
 
     const usadas = archivos.filter(f=> enUso.has(f.path) || citada(f));
     lcHuerfanas = archivos
