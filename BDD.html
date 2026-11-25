@@ -1497,6 +1497,33 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   .ord-ayuda{color:var(--muted);font-size:calc(11.5px * var(--ft,1));margin-left:auto;white-space:nowrap;}
   @container (max-width:900px){ .ord-ayuda{display:none;} }
 
+  /* ---------- Enlaces dentro de las fichas ---------- */
+  #modal-enlaces-fondo{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:80;
+    align-items:center;justify-content:center;padding:12px;
+  }
+  #modal-enlaces-fondo.abierto{display:flex;}
+  #modal-enlaces{
+    position:relative;background:var(--panel);border:1px solid var(--border);border-radius:6px;
+    padding:22px 24px;width:min(760px,100%);max-height:92vh;display:flex;flex-direction:column;
+  }
+  #modal-enlaces > .cerrar-detalle{position:absolute;top:12px;right:16px;float:none;z-index:2;}
+  #modal-enlaces h3{margin:0 0 4px;padding-right:28px;font-size:calc(18px * var(--ft,1));}
+  #le-estado{color:var(--muted);font-size:calc(13px * var(--ft,1));margin:0 0 10px;line-height:1.45;}
+  #le-opcion{display:flex;gap:8px;align-items:center;font-size:calc(13px * var(--ft,1));margin:0 0 6px;cursor:pointer;}
+  #le-nota{color:var(--muted);font-size:calc(11.5px * var(--ft,1));margin:0 0 12px;line-height:1.4;}
+  #le-todas{background:none;border:none;color:var(--accent);cursor:pointer;font-size:calc(12.5px * var(--ft,1));padding:0 0 8px;text-align:left;display:none;}
+  #le-lista{overflow-y:auto;border:1px solid var(--border);border-radius:6px;display:none;margin-bottom:12px;}
+  .le-album{padding:8px 10px;border-top:1px solid var(--border);}
+  .le-album:first-child{border-top:none;}
+  .le-cab{display:flex;gap:10px;align-items:baseline;cursor:pointer;font-size:calc(13px * var(--ft,1));}
+  .le-n{color:var(--muted);font-size:calc(12px * var(--ft,1));white-space:nowrap;margin-left:auto;}
+  .le-album details{margin:6px 0 0 26px;}
+  .le-album summary{cursor:pointer;color:var(--accent);font-size:calc(12px * var(--ft,1));}
+  .le-album ul{margin:6px 0 0;padding-left:18px;}
+  .le-album li{font-size:calc(12px * var(--ft,1));word-break:break-all;margin:2px 0;}
+  .le-url{color:var(--muted);}
+
   /* ---------- Limpieza de carátulas sin usar ---------- */
   body.modo-movil #btn-limpiar{display:none !important;}
   #modal-limpieza-fondo{
@@ -1598,7 +1625,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 4.11</div>
+  <div class="pc-version">Versión 4.12</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -1638,6 +1665,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
       <button class="herr-item" id="btn-seleccionar" type="button" role="menuitem" title="Seleccionar varios álbumes para editarlos en bloque"><span class="ico">☑</span> Seleccionar</button>
       <button class="herr-item" id="btn-stats" type="button" role="menuitem" title="Ver estadísticas de la colección (respeta el filtro de la izquierda)"><span class="ico">📊</span> Estadísticas</button>
       <button class="herr-item" id="btn-limpiar" type="button" role="menuitem" title="Buscar carátulas de GitHub que ningún álbum usa y borrarlas"><span class="ico">🧹</span> Carátulas</button>
+      <button class="herr-item" id="btn-enlaces" type="button" role="menuitem" title="Buscar enlaces [texto](dirección) dentro de las fichas y quitarlos, dejando solo el texto"><span class="ico">🔗</span> Enlaces de fichas</button>
       <button class="herr-item" id="btn-verificar" type="button" role="menuitem" title="Comparar las canciones de tus álbumes con las de Discogs y marcar los que no coinciden"><span class="ico">🔎</span> Comprobar con Discogs</button>
       <button class="herr-item" id="btn-iniciar-lector" type="button" role="menuitem" title="Arrancar en este PC el programa lector de CD (equivale a ejecutar iniciar_lector.bat)"><span class="ico">▶</span> Iniciar lector de CD</button>
       <button class="herr-item" id="btn-desmontar-herr" type="button" role="menuitem" title="Desmontar la imagen que esté montada en Daemon Tools"><span class="ico">⏏</span> Desmontar disco</button>
@@ -2026,6 +2054,21 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="fila-botones">
       <button type="button" id="btn-lc-borrar" disabled>Borrar seleccionadas</button>
       <button type="button" id="btn-lc-cerrar">Cerrar</button>
+    </div>
+  </div>
+</div>
+<div id="modal-enlaces-fondo">
+  <div id="modal-enlaces">
+    <span class="cerrar-detalle" id="cerrar-modal-enlaces" title="Cerrar">✕</span>
+    <h3>Enlaces dentro de las fichas</h3>
+    <p id="le-estado"></p>
+    <label id="le-opcion"><input type="checkbox" id="le-respetar" checked> Respetar los enlaces de las secciones «Fuentes»</label>
+    <p id="le-nota">Se buscan enlaces del tipo [texto](dirección). Al quitarlos se deja solo el texto, sin corchetes, y se borra la dirección. Las imágenes y las direcciones sueltas no se tocan.</p>
+    <button type="button" id="le-todas"></button>
+    <div id="le-lista"></div>
+    <div class="fila-botones">
+      <button type="button" id="btn-le-quitar" disabled>Quitar enlaces</button>
+      <button type="button" id="btn-le-cerrar">Cerrar</button>
     </div>
   </div>
 </div>
@@ -5943,6 +5986,131 @@ async function borrarCaratulasSeleccionadas(){
 $("#btn-limpiar").addEventListener("click", abrirLimpiezaCaratulas);
 $("#btn-lc-cerrar").addEventListener("click", ()=> $("#modal-limpieza-fondo").classList.remove("abierto"));
 $("#cerrar-modal-limpieza").addEventListener("click", ()=> $("#modal-limpieza-fondo").classList.remove("abierto"));
+
+/* ---------- Quitar enlaces de las fichas ----------
+   El servidor revisa las fichas (la página no las tiene todas): primero solo las mira y lista los enlaces
+   que encontraría; al confirmar, los quita en las fichas marcadas (antes hace una copia de seguridad de la hoja). */
+let leAnalisis = null;      // último resultado de "fichas_enlaces"
+let leOcupado = false;
+let leMensaje = "";         // aviso del último borrado, se muestra encima del resumen
+function leNombreAlbum(id){
+  const a = ALBUMES.find(x=> String(x.ALBUM_ID) === String(id));
+  return a ? ((a["ARTISTA ALBUM"] || "(Sin artista)") + " — " + (a["ALBUM"] || "(Sin título)")) : "Álbum " + id;
+}
+async function lePost(cuerpo){
+  const res = await fetch(API_URL, { method: "POST", body: JSON.stringify(Object.assign({ sesion: sesionActual }, cuerpo)) });
+  const json = await res.json();
+  if(!json.ok){
+    if(manejarErrorSesion(json.error)) throw new Error("Sesión caducada");
+    throw new Error(json.error || "Error del servidor");
+  }
+  return json;
+}
+function leSeleccion(){
+  return Array.from(document.querySelectorAll("#le-lista .le-chk:checked")).map(c=> c.dataset.id);
+}
+function leActualizarBoton(){
+  const ids = leSeleccion();
+  const n = (leAnalisis ? leAnalisis.albumes : []).filter(a=> ids.includes(a.id)).reduce((t,a)=> t + a.n, 0);
+  const btn = $("#btn-le-quitar");
+  btn.disabled = leOcupado || !ids.length;
+  btn.textContent = ids.length ? `Quitar ${n} enlace${n===1?"":"s"} de ${ids.length} ficha${ids.length===1?"":"s"}` : "Quitar enlaces";
+}
+function lePintar(){
+  const estado = $("#le-estado"), lista = $("#le-lista"), todas = $("#le-todas");
+  lista.innerHTML = "";
+  lista.style.display = "none"; todas.style.display = "none";
+  if(!leAnalisis){ leActualizarBoton(); return; }
+  const r = leAnalisis;
+  const extra = [];
+  if(r.respetados) extra.push(`se respetan ${r.respetados} enlace${r.respetados===1?"":"s"} de las secciones Fuentes`);
+  if(r.sueltas) extra.push(`hay ${r.sueltas} ${r.sueltas===1?"dirección suelta":"direcciones sueltas"} (https://…) que esta herramienta no toca`);
+  const resumen = r.totalEnlaces
+    ? `Se han encontrado ${r.totalEnlaces} enlace${r.totalEnlaces===1?"":"s"} en ${r.albumes.length} ficha${r.albumes.length===1?"":"s"} (de ${r.fichas} revisadas).`
+    : `No hay enlaces que quitar en las ${r.fichas} fichas revisadas.`;
+  estado.textContent = (leMensaje ? leMensaje + " " : "") + resumen + (extra.length ? " Además " + extra.join(" y ") + "." : "");
+  if(r.albumes.length){
+    const orden = r.albumes.slice().sort((a,b)=> leNombreAlbum(a.id).localeCompare(leNombreAlbum(b.id), "es"));
+    lista.innerHTML = orden.map(a=>{
+      const items = a.enlaces.map(e=> `<li><b>${escapeHTML(e.texto || "(sin texto)")}</b> <span class="le-url">→ ${escapeHTML(e.url)}</span></li>`).join("");
+      const mas = a.n > a.enlaces.length ? `<li>… y ${a.n - a.enlaces.length} más</li>` : "";
+      return `<div class="le-album"><label class="le-cab"><input type="checkbox" class="le-chk" data-id="${escapeHTML(a.id)}" checked>` +
+        `<span>${escapeHTML(leNombreAlbum(a.id))}</span><span class="le-n">${a.n} enlace${a.n===1?"":"s"}</span></label>` +
+        `<details><summary>Ver los enlaces</summary><ul>${items}${mas}</ul></details></div>`;
+    }).join("");
+    lista.style.display = "block";
+    todas.style.display = "block";
+    todas.textContent = "Desmarcar todas";
+    lista.querySelectorAll(".le-chk").forEach(c=> c.addEventListener("change", leActualizarBoton));
+  }
+  leActualizarBoton();
+}
+async function leBuscar(){
+  if(leOcupado) return;
+  leOcupado = true;
+  leAnalisis = null;
+  lePintar();
+  $("#le-estado").textContent = (leMensaje ? leMensaje + " " : "") + "Buscando enlaces en las fichas… (puede tardar unos segundos)";
+  $("#le-respetar").disabled = true;
+  try{
+    leAnalisis = await lePost({ accion: "fichas_enlaces", respetar_fuentes: $("#le-respetar").checked });
+  }catch(err){
+    console.error(err);
+    $("#le-estado").textContent = "No se pudieron revisar las fichas: " + err.message;
+  }finally{
+    leOcupado = false;
+    $("#le-respetar").disabled = false;
+    if(leAnalisis) lePintar(); else leActualizarBoton();
+  }
+}
+async function leQuitar(){
+  if(leOcupado || !leAnalisis) return;
+  const ids = leSeleccion();
+  if(!ids.length) return;
+  const n = leAnalisis.albumes.filter(a=> ids.includes(a.id)).reduce((t,a)=> t + a.n, 0);
+  const aviso = `Se quitarán ${n} enlace${n===1?"":"s"} de ${ids.length} ficha${ids.length===1?"":"s"}: se deja solo el texto de cada enlace y se borra su dirección.\n\n` +
+    `Antes se hace una copia de seguridad de la hoja en tu Drive (si no hay ya una de las últimas 2 horas), así que puede tardar un poco.\n\n¿Continuar?`;
+  if(!confirm(aviso)) return;
+  leOcupado = true;
+  leActualizarBoton();
+  $("#le-respetar").disabled = true;
+  $("#le-estado").textContent = "Quitando enlaces… no cierres la página.";
+  let hecho = null;
+  try{
+    hecho = await lePost({ accion: "fichas_quitar_enlaces", respetar_fuentes: $("#le-respetar").checked, album_ids: ids });
+  }catch(err){
+    console.error(err);
+    $("#le-estado").textContent = "No se pudieron quitar los enlaces: " + err.message + " Revisa la hoja FICHAS antes de repetirlo.";
+  }finally{
+    leOcupado = false;
+    $("#le-respetar").disabled = false;
+  }
+  if(!hecho){ leActualizarBoton(); return; }
+  leMensaje = `Hecho: ${hecho.enlaces} enlace${hecho.enlaces===1?"":"s"} quitado${hecho.enlaces===1?"":"s"} en ${hecho.albumes} ficha${hecho.albumes===1?"":"s"}.` +
+    (hecho.copia ? ` Copia de seguridad: «${hecho.copia}».` : "") +
+    (hecho.pendientes ? " Se detuvo por tiempo: pulsa de nuevo «Quitar» para seguir con las que quedan." : "");
+  FICHAS_MEM.clear();
+  leBuscar();               // vuelve a revisar para mostrar lo que queda
+  sincronizarConHoja();     // la página recibe las palabras y caracteres nuevos
+}
+function abrirQuitarEnlaces(){
+  leMensaje = "";
+  leAnalisis = null;
+  $("#modal-enlaces-fondo").classList.add("abierto");
+  leBuscar();
+}
+$("#btn-enlaces").addEventListener("click", abrirQuitarEnlaces);
+$("#le-respetar").addEventListener("change", ()=>{ leMensaje = ""; leBuscar(); });
+$("#btn-le-quitar").addEventListener("click", leQuitar);
+$("#le-todas").addEventListener("click", ()=>{
+  const cs = Array.from(document.querySelectorAll("#le-lista .le-chk"));
+  const marcar = cs.some(c=> !c.checked);
+  cs.forEach(c=> c.checked = marcar);
+  $("#le-todas").textContent = marcar ? "Desmarcar todas" : "Marcar todas";
+  leActualizarBoton();
+});
+$("#btn-le-cerrar").addEventListener("click", ()=> $("#modal-enlaces-fondo").classList.remove("abierto"));
+$("#cerrar-modal-enlaces").addEventListener("click", ()=> $("#modal-enlaces-fondo").classList.remove("abierto"));
 $("#btn-lc-borrar").addEventListener("click", borrarCaratulasSeleccionadas);
 $("#lc-lista").addEventListener("change", lcActualizarBoton);
 $("#lc-todas").addEventListener("click", ()=>{
