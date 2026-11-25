@@ -389,6 +389,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
   .tabla-albumes td{padding:8px 10px;}
   .tabla-albumes .td-album{font-weight:600;}
   .tabla-albumes .td-dim{white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .tabla-albumes .td-num{white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;}
 
   #vacio{color:var(--muted);padding:40px;text-align:center;}
 
@@ -1625,7 +1626,7 @@ try{ aplicarFuenteLetra(localStorage.getItem("tipo_letra") || "original"); }catc
     <div class="pc-titulo"><span class="l-mi">Mi</span>colección</div>
   </div>
   <div class="pc-texto" id="pc-texto">Cargando…</div>
-  <div class="pc-version">Versión 4.12</div>
+  <div class="pc-version">Versión 4.13</div>
   <div class="pc-barra"><span></span></div>
 </div>
 
@@ -2817,6 +2818,11 @@ function estadoFicha(a){
   if(n > FICHA_CAR_COMPLETA) return "completa";
   return n >= FICHA_CAR_NORMAL ? "normal" : "escasa";
 }
+// Columna "Caracteres" de la vista Lista: nº exacto de caracteres de la ficha (0 si no tiene)
+function celdaCaracteres(a){
+  const n = caracteresFicha(a);
+  return n === null ? '<span title="Esta ficha todavía no está medida (falta ejecutar recalcularMedidasFichas en Apps Script)">?</span>' : n.toLocaleString("es-ES");
+}
 function celdaFicha(a){
   const n = caracteresFicha(a);
   if(n === null) return '<span class="info-nada" title="Esta ficha todavía no está medida (falta ejecutar recalcularMedidasFichas en Apps Script)">? sin medir</span>';
@@ -2891,7 +2897,7 @@ function pintarVistaLista(grid, lista){
   tabla.className = "tabla-albumes";
   tabla.innerHTML = `
     <thead><tr>
-      ${modoSeleccion ? '<th class="td-chk"></th>' : ''}${[["titulo","Álbum"],["artista","Artista"],["anio","Año"],["genero","Género"],["rating","Rating"],["duracion","Duración"],["info","Info"],["ficha","Ficha"],["caratula","Carátula (px)"]].map(([campo, texto])=>{
+      ${modoSeleccion ? '<th class="td-chk"></th>' : ''}${[["titulo","Álbum"],["artista","Artista"],["anio","Año"],["genero","Género"],["rating","Rating"],["duracion","Duración"],["info","Info"],["ficha","Ficha"],["caracteres","Caracteres"],["caratula","Carátula (px)"]].map(([campo, texto])=>{
         const i = ordenActual.findIndex(o=>o.campo===campo);
         const flecha = i > -1 ? `<span class="th-flecha">${ordenActual[i].dir==="asc" ? "↑" : "↓"}${ordenActual.length > 1 ? `<sup>${i+1}</sup>` : ""}</span>` : "";
         return `<th data-campo="${campo}" title="Ordenar por ${texto.toLowerCase()} (Mayús+clic: añadir como criterio adicional)">${texto}${flecha}</th>`;
@@ -2917,6 +2923,7 @@ function pintarVistaLista(grid, lista){
       <td>${escapeHTML(duracionTexto)}</td>
       <td class="td-info">${celdaInfo(a)}</td>
       <td class="td-info">${celdaFicha(a)}</td>
+      <td class="td-num">${celdaCaracteres(a)}</td>
       <td class="td-dim"></td>
     `;
     ponerDimensionCaratula(tr.lastElementChild, a["PORTADA"]);
@@ -5761,6 +5768,8 @@ const CRITERIOS_ORDEN = {
   info: { etiqueta:"Info", dirIni:"desc", tipo:"num", soloColumna:true, valor:a=>{ const r = resumenInfo(a); return r.total ? r.n / r.total + r.n / 100000 : null; } },
   // Longitud de la ficha (Comentario) en caracteres; sin ficha = 0 (con orden ascendente salen primero los álbumes sin ficha); sin medir, al final
   ficha: { etiqueta:"Ficha", dirIni:"desc", tipo:"num", soloColumna:true, valor:a=> caracteresFicha(a) },
+  // Nº de caracteres de la ficha (misma medida que "Ficha", pero mostrando la cifra exacta)
+  caracteres: { etiqueta:"Caracteres", dirIni:"desc", tipo:"num", soloColumna:true, valor:a=> caracteresFicha(a) },
   // Píxeles totales (alto × ancho) de la carátula; sin carátula o sin medir, al final
   caratula: { etiqueta:"Carátula", dirIni:"desc", tipo:"num",   soloColumna:true, valor:a=>{ const v = DIM_VALORES.get(String(a["PORTADA"]||"").trim()); return v > 0 ? v : null; } }
 };
